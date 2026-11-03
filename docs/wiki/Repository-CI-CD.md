@@ -60,15 +60,26 @@ replace the npm one.
 
 ### Dist-tags
 
-`1.0.0-prerelease.1` publishes under the `prerelease` tag, so
-`bun add @purview-dev/astroc4` keeps installing the last stable release. A version without a
-prerelease suffix publishes under `latest`. The tag is applied by
-`npm publish --tag`, which is part of the publish itself — managing dist-tags
-afterwards would need the extra "Allow npm dist-tag" permission on the trusted
-publisher, which this repository does not enable.
+`1.0.0-prerelease.1` publishes under the `prerelease` tag, so a bare install
+keeps resolving a stable release. A version without a prerelease suffix
+publishes under `latest`. The tag is applied by `npm publish --tag`, which is
+part of the publish itself — managing dist-tags afterwards would need the extra
+"Allow npm dist-tag" permission on the trusted publisher, which this repository
+does not enable.
 
-Until a stable version exists there is **no `latest` tag at all**, so installs
-have to ask for it: `bun add @purview-dev/astroc4@prerelease`.
+**The bootstrap publish also sets `latest`,** whatever `--tag` it was given: a
+package's first version always becomes `latest`. Left alone, `latest` would stay
+pinned to that first prerelease while CI publishes newer ones under `prerelease`,
+so a bare `bun add @purview-dev/astroc4` would install a stale version. Either
+delete it once:
+
+```sh
+npm dist-tag rm @purview-dev/astroc4 latest
+```
+
+…which leaves `bun add @purview-dev/astroc4@prerelease` as the only way in until
+`1.0.0` ships, or accept that `latest` is a prerelease for now and revisit when
+the first stable release lands.
 
 ### Idempotency
 
@@ -120,9 +131,21 @@ published:
    through CI. `--access public` is required: a scoped package defaults to
    restricted, and CI passes it too.
 
-2. **Add the trusted publisher** at
-   <https://www.npmjs.com/package/astroc4/access> → *Trusted Publisher* →
-   GitHub Actions:
+2. **Add the trusted publisher.** From the CLI (npm ≥ 11.20), in the same
+   session:
+
+   ```sh
+   npm trust github @purview-dev/astroc4 \
+     --repo purview-dev/astroc4 \
+     --file release.yml \
+     --allow-publish
+
+   npm trust list @purview-dev/astroc4   # expect the release.yml relationship
+   ```
+
+   The web UI does the same thing at
+   <https://www.npmjs.com/package/@purview-dev/astroc4/access> → *Trusted
+   Publisher* → GitHub Actions:
 
    | Field | Value |
    | --- | --- |
