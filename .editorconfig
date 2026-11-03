@@ -1,0 +1,52 @@
+root = true
+
+# This repository owns this file: it is not managed by a build SDK, so edits are
+# safe. The JavaScript, Astro and JSON conventions below match the rest of the
+# purview-dev repositories.
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = tab
+indent_size = 4
+
+# Data, docs and styling: two spaces, the formatting every tool in the chain
+# (Prettier defaults, Astro, Starlight, mkdocs) already produces.
+[*.{json,jsonc,yml,yaml,css,md,mdx}]
+indent_style = space
+indent_size = 2
+
+# Astro and React components are TypeScript underneath, so they follow it.
+[*.{js,cjs,mjs,jsx,ts,tsx,astro,mts,cts}]
+indent_style = tab
+indent_size = 4
+
+# Generated artefacts: never reformat them, the snapshot test compares text.
+[src/grammar/likec4.tmLanguage.json]
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = false
+
+[src/grammar/like-c4.langium]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = false
+
+# Shell scripts must keep their own endings; cmd.exe misparses LF in blocks.
+[*.{sh,bash,ps1,psm1,psd1}]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+
+[*.{bat,cmd}]
+indent_style = space
+indent_size = 2
+end_of_line = crlf
+
+[Justfile]
+indent_style = space
+indent_size = 4
+end_of_line = lf

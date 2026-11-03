@@ -6,6 +6,12 @@
 //
 // The second locale exists to exercise the plugin's i18n — its strings come
 // from src/content/i18n/fr.json, the same override path a real site uses.
+//
+// There is deliberately no `ec.config.mjs` here: the plugin registers LikeC4
+// syntax highlighting with Expressive Code itself, from the Langium grammar at
+// `highlighting.ref`. Uncomment the pinned version to build against a release
+// instead of `main` (the default):
+//   plugins: [starlightLikeC4({ highlighting: { ref: 'v1.59.4' } })],
 
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';

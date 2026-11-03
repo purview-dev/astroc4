@@ -3,30 +3,20 @@
 * text=auto
 
 # ---------------------------------------------------------------------------
-# .NET source and project files
-# No eol= means each dev's core.autocrlf / core.eol decides. Set eol=lf here
-# instead if you want to hard-enforce LF everywhere -- but keep it in sync
-# with end_of_line in .editorconfig or `dotnet format --verify-no-changes`
-# will fail in CI.
+# Source: TypeScript, Astro and the package's own .mjs entry points.
+# No eol= means each dev's core.autocrlf / core.eol decides; .editorconfig is
+# the authority, and `end_of_line = lf` there matches what the tools write.
 # ---------------------------------------------------------------------------
-*.cs        text diff=csharp
-*.csx       text diff=csharp
-*.vb        text
-*.fs        text
-*.fsx       text
-*.csproj    text
-*.fsproj    text
-*.vbproj    text
-*.props     text
-*.targets   text
-*.resx      text
-*.config    text
-*.ruleset   text
-*.xaml      text
-*.cshtml    text diff=html
-*.razor     text diff=html
-*.sln       text eol=lf
-*.slnx      text eol=lf
+*.mjs       text
+*.js        text
+*.cjs       text
+*.ts        text
+*.mts       text
+*.cts       text
+*.jsx       text
+*.tsx       text
+*.astro     text diff=html
+*.html      text diff=html
 
 # ---------------------------------------------------------------------------
 # Data, config and docs
@@ -37,21 +27,22 @@
 *.yaml      text
 *.toml      text
 *.md        text diff=markdown
+*.mdx       text diff=markdown
 *.svg       text
+*.css       text
+*.scss      text
+*.langium   text
 *.editorconfig text
 .gitattributes text
 .gitignore  text
 
 # ---------------------------------------------------------------------------
-# Web assets (only relevant if the repo ships any)
+# Generated grammar artefacts
+# `snapshot.test.ts` re-derives these and compares, so the bytes matter: a
+# CRLF checkout on Windows would fail the test without eol=lf here.
 # ---------------------------------------------------------------------------
-*.js        text
-*.jsx       text
-*.ts        text
-*.tsx       text
-*.html      text diff=html
-*.css       text
-*.scss      text
+src/grammar/likec4.tmLanguage.json  text eol=lf
+src/grammar/like-c4.langium         text eol=lf
 
 # ---------------------------------------------------------------------------
 # Scripts -- these MUST be pinned regardless of platform.

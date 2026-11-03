@@ -95,4 +95,38 @@ describe('likec4Language', () => {
 		expect(scopesOf(source, 'dynamic')).toEqual(['storage.modifier.likec4']);
 		expect(scopesOf(source, 'deployment')).toEqual(['storage.modifier.likec4']);
 	});
+
+	it('scopes vocabulary the grammar added after v1.59.4', () => {
+		const source = [
+			'model {',
+			"  a = system 'A' {",
+			'    descriptionFile ./a.md',
+			'    style { shape agent }',
+			'  }',
+			'}',
+			'global { predicateGroup mine { include * } }',
+			'deployment {',
+			'  deployed = instanceOf a',
+			'}',
+		].join('\n');
+
+		// `agent` joined ElementShape after v1.59.4; the derivation carries it.
+		expect(scopesOf(source, 'agent')).toEqual(['constant.language.likec4']);
+		expect(scopesOf(source, 'descriptionFile')).toEqual(['support.type.property-name.likec4']);
+		expect(scopesOf(source, 'instanceOf')).toEqual(['keyword.control.likec4']);
+		// `predicateGroup` takes a name, so it is a keyword rather than a block;
+		// `style {` opens a block and is scoped differently.
+		expect(scopesOf(source, 'predicateGroup')).toEqual(['keyword.control.likec4']);
+		expect(scopesOf('style { color red }', 'style')).toEqual(['keyword.control.block.likec4']);
+	});
+
+	it('scopes dynamic view flow keywords as control flow, not values', () => {
+		const source = 'dynamic view walk { reader -> system alt { } }';
+
+		expect(scopesOf(source, 'alt')).toEqual(['keyword.control.likec4']);
+	});
+
+	it('is JSON-serialisable, because Expressive Code round-trips it for <Code>', () => {
+		expect(JSON.parse(JSON.stringify(likec4Language))).toEqual(likec4Language);
+	});
 });

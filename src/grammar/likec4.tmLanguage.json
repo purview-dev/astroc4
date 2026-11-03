@@ -1,5 +1,11 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "$generated": {
+    "repo": "likec4/likec4",
+    "ref": "main",
+    "sha": "da5af77245f9",
+    "by": "astroc4/scripts/sync-grammar.mjs"
+  },
   "name": "likec4",
   "displayName": "LikeC4",
   "scopeName": "source.likec4",
@@ -67,9 +73,9 @@
         },
         {
           "name": "comment.line.double-slash.likec4",
-          "match": "(//).*$",
+          "match": "//.*$",
           "captures": {
-            "1": {
+            "0": {
               "name": "punctuation.definition.comment.likec4"
             }
           }
@@ -158,7 +164,7 @@
     },
     "icons": {
       "comment": "Bundled icon ids: `tech:nginx`, `aws:…`, `gcp:…`, …",
-      "match": "\\b(aws|azure|gcp|tech|bootstrap)(:)([\\w-]+)",
+      "match": "\\b(aws|azure|bootstrap|gcp|md|tech)(:)([\\w-]+)",
       "captures": {
         "1": {
           "name": "support.constant.icon-pack.likec4"
@@ -237,7 +243,7 @@
         },
         {
           "comment": "`reader = actor 'Engineer'`",
-          "match": "\\b([A-Za-z_]\\w*)\\s*(=)(?!=)\\s*([A-Za-z_]\\w*)?",
+          "match": "\\b([A-Za-z_]\\w*)\\s*(=)(?!=)\\s*(?!(?:autoLayout|deploymentNode|dynamic|element|exclude|extend|extends|from|icons|import|include|instance|instanceOf|is|metadata|node|not|of|predicate|relationship|rgb|rgba|view|where|with|add|deployment|diff|dynamicPredicateGroup|global|group|likec4lib|model|predicateGroup|rank|remove|specification|style|styleGroup|views|alt|break|catch|else|finally|if|loop|opt|par|parallel|try|when)\\b)([A-Za-z_]\\w*)?",
           "captures": {
             "1": {
               "name": "variable.other.definition.likec4"
@@ -255,28 +261,29 @@
     "keywords": {
       "patterns": [
         {
+          "comment": "Keywords that open a block: `model { … }`.",
           "name": "keyword.control.block.likec4",
-          "match": "\\b(specification|model|views|deployment|global|likec4lib)\\b(?=\\s*\\{)"
-        },
-        {
-          "name": "keyword.control.likec4",
-          "match": "\\b(import|from|extend|extends|instanceOf|of|include|exclude|with|where|style|autoLayout|group|parallel|par|navigateTo|metadata|link|rank|predicate|styleGroup)\\b"
+          "match": "\\b(?:add|deployment|diff|dynamicPredicateGroup|global|group|likec4lib|model|predicateGroup|rank|remove|specification|style|styleGroup|views)\\b(?=\\s*\\{)"
         },
         {
           "name": "keyword.operator.word.likec4",
-          "match": "\\b(and|or|not|is)\\b"
+          "match": "\\b(?:and|or|not|is)\\b"
+        },
+        {
+          "name": "keyword.control.likec4",
+          "match": "\\b(?:autoLayout|deploymentNode|dynamic|element|exclude|extend|extends|from|icons|import|include|instance|instanceOf|is|metadata|node|not|of|predicate|relationship|rgb|rgba|view|where|with|alt|break|catch|else|finally|if|loop|opt|par|parallel|try|when|add|deployment|diff|dynamicPredicateGroup|global|group|likec4lib|model|predicateGroup|rank|remove|specification|style|styleGroup|views)\\b"
         },
         {
           "name": "variable.language.likec4",
-          "match": "\\b(it|this|source|target)\\b"
+          "match": "\\b(?:source|target)\\b"
         },
         {
           "name": "support.type.property-name.likec4",
-          "match": "\\b(title|description|summary|technology|notes|notation|icon|color|shape|border|opacity|line|head|tail|multiple|size|padding|textSize|iconColor|iconSize|iconPosition|kind|tag)\\b"
+          "match": "\\b(?:border|color|description|descriptionFile|head|icon|iconColor|iconPosition|iconSize|includeAncestors|kind|line|link|multiple|navigateTo|notation|notes|opacity|order|padding|routing|shape|size|sizing|style|summary|tag|tail|technology|textSize|title|variant)\\b"
         },
         {
           "name": "constant.language.likec4",
-          "match": "\\b(rectangle|person|browser|mobile|cylinder|storage|queue|component|document|bucket|solid|dashed|dotted|none|normal|onormal|diamond|odiamond|crow|open|vee|dot|odot|primary|secondary|muted|amber|blue|gray|green|indigo|red|sky|slate|TopBottom|BottomTop|LeftRight|RightLeft|xsmall|small|medium|large|xlarge|xs|sm|md|lg|xl|true|false)\\b"
+          "match": "\\b(?:agent|amber|auto|blue|bottom|BottomTop|browser|bucket|component|crow|cylinder|dashed|diagram|diamond|document|dot|dotted|fixed|gray|green|indigo|large|left|LeftRight|lg|max|md|medium|min|mobile|muted|none|normal|odiamond|odot|onormal|open|ortho|person|primary|queue|rectangle|red|right|RightLeft|same|secondary|sequence|sink|sky|slate|sm|small|solid|source|spline|storage|top|TopBottom|vee|xl|xlarge|xs|xsmall)\\b"
         }
       ]
     },
@@ -288,7 +295,7 @@
       "patterns": [
         {
           "name": "keyword.operator.arrow.likec4",
-          "match": "<->|->"
+          "match": "\\]<->|\\]->|<->|->"
         },
         {
           "name": "keyword.operator.wildcard.likec4",
