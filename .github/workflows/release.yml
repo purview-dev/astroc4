@@ -34,13 +34,12 @@ jobs:
     # A deployment gate: the job pauses until a required reviewer approves it,
     # and the OIDC token it mints carries `environment: npm` as a claim.
     #
-    # The claim is part of what npm matches, so the package's trusted publisher
-    # must name this environment too (Environment = `npm`). It is not a setting
-    # that can be edited: delete the publisher on npmjs.com and re-create it with
-    # the environment filled in, keeping "Allow npm publish" and "Allow npm
-    # dist-tag" ticked. Until that is done the OIDC exchange will not match and
-    # publishing fails — the Protected environment exists before this job runs,
-    # so the gate itself is never the surprise.
+    # The publisher's Environment field may stay empty — verified: with the job
+    # running in this environment, the dist-tag exchange against a publisher that
+    # names no environment succeeds. Filling it in *narrows* the claim to runs in
+    # that environment, which is defence in depth; npm cannot edit a connection,
+    # so that means deleting and re-creating the publisher, keeping "Allow npm
+    # publish" and "Allow npm dist-tag" ticked.
     environment:
       name: npm
     permissions:
