@@ -1,0 +1,149 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    # A release is driven by a version bump, so the pipeline only wakes when
+    # package.json changes. `version` in package.json is the single source of
+    # truth for every purview-dev repository, including the .NET ones.
+    paths:
+      - package.json
+
+# Serialize releases; the shared workflow skips when the v{version} tag already
+# exists, and the npm publish step below skips when the version is already on
+# the registry.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      # npm trusted publishing. The registry exchanges this OIDC token for a
+      # short-lived publish credential, so there is no npm token stored in this
+      # repository and nothing to rotate or leak.
+      id-token: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      published: ${{ steps.registry.outputs.published }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v5
+        with:
+          # Trusted publishing requires npm CLI >= 11.5.1. The assertion below
+          # enforces the floor regardless of what the image ships.
+          node-version: 24
+          # Deliberately no `registry-url`: setup-node would write
+          # `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}` into .npmrc,
+          # and with no token defined that placeholder is the one thing that
+          # would stand between npm and the OIDC exchange.
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - run: bun install --frozen-lockfile
+
+      # Never publish something that does not pass its own suite.
+      - name: Unit tests
+        run: bun run test
+
+      - name: Grammar snapshot matches its derivation
+        run: bun run grammar:check
+
+      - name: Read the version
+        id: version
+        run: |
+          set -euo pipefail
+
+          VERSION="$(bun -p "require('./package.json').version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Read version $VERSION from package.json."
+
+          # A prerelease must not take the `latest` dist-tag: `1.0.0-prerelease.1`
+          # would otherwise become what every `bun add astroc4` installs.
+          case "$VERSION" in
+            *-*) echo "tag=prerelease" >> "$GITHUB_OUTPUT"; echo "Prerelease: publishing under the prerelease tag." ;;
+            *)   echo "tag=latest" >> "$GITHUB_OUTPUT"; echo "Stable: publishing under the latest tag." ;;
+          esac
+
+      # Two preconditions of trusted publishing, checked before anything is
+      # published: the OIDC endpoint exists only on GitHub-hosted runners, and
+      # the CLI has to be new enough to know how to use it.
+      - name: Check trusted publishing preconditions
+        run: |
+          set -euo pipefail
+
+          if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+            echo "::error::No OIDC endpoint. Trusted publishing needs a GitHub-hosted runner and 'id-token: write'."
+            exit 1
+          fi
+
+          npm install -g 'npm@^11.5.1'
+          NPM_VERSION="$(npm --version)"
+          echo "npm $NPM_VERSION"
+
+          node -e '
+            const [major, minor] = process.argv[1].split(".").map(Number);
+            if (major < 11 || (major === 11 && minor < 5)) {
+              console.error(`npm ${process.argv[1]} cannot use trusted publishing; it needs >= 11.5.1.`);
+              process.exit(1);
+            }
+          ' "$NPM_VERSION"
+
+      # Re-running a release must be harmless: the shared release workflow also
+      # skips when the tag exists, so both halves are idempotent. Reading a
+      # public package needs no credential.
+      - name: Is this version already published?
+        id: registry
+        run: |
+          set -euo pipefail
+
+          if npm view "astroc4@${{ steps.version.outputs.version }}" version > /dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "astroc4@${{ steps.version.outputs.version }} is already on the registry; nothing to publish."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # No NODE_AUTH_TOKEN and no --provenance: with trusted publishing the CLI
+      # authenticates through OIDC and attaches provenance by default.
+      - name: Publish
+        if: steps.registry.outputs.published != 'true'
+        run: |
+          set -euo pipefail
+
+          npm publish \
+            --access public \
+            --tag "${{ steps.version.outputs.tag }}"
+
+  # Tag and GitHub release, through the same shared action every purview-dev
+  # repository uses. `GitHubRelease` rather than `NuGet`: this repository ships
+  # no NuGet package — a NuGet package cannot be consumed by an Astro site.
+  # It runs after `publish` so a failed npm publish never leaves a release that
+  # points at a version nobody can install.
+  release:
+    name: Tag and GitHub release
+    needs: publish
+    # A reusable workflow can only use permissions its caller grants, and this
+    # file sets `contents: read` workflow-wide — so the grant has to be explicit
+    # here or the shared action cannot push the tag or create the release.
+    # `packages: write` is what it declares for the optional GitHub Packages
+    # mirror; neither grant affects the publish step above.
+    permissions:
+      contents: write
+      packages: write
+    uses: purview-dev/build/.github/workflows/purview-release.yml@main
+    with:
+      release-mode: GitHubRelease
+      run-pack: false
+      validate-pack: false
+    secrets: inherit

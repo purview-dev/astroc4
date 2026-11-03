@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/purview-dev/build/main/purview-build.schema.json",
+  // Pipeline configuration for the shared purview-build workflow
+  // (purview-dev/build/.github/workflows/purview-build.yml). This repository is
+  // a Bun/Astro package, so the pipeline runs the Web modules: install, build
+  // and test from the root package.json scripts, exactly as `purview-dev.github.io`
+  // does for its site.
+  "Build": {
+    "ProjectType": "Web",
+    "WebInstallCommand": "bun install --frozen-lockfile",
+    // One command, ordered to fail fastest: a grammar snapshot that drifted from
+    // its derivation first, then the type-check, then the playground build.
+    "WebBuildCommand": "bun run grammar:check && bun run check && bun run build",
+    "WebTestCommand": "bun run test",
+    // No linter or formatter is configured here, and the Web defaults
+    // (`bun run lint`, `bun run format:check`) are not scripts in this package.
+    "RunLint": false,
+    // Nothing is packable by the pipeline: astroc4 publishes to npm from
+    // .github/workflows/release.yml, not as a NuGet package.
+    "RunPack": false,
+    "ValidatePack": false,
+    // What `bun run build` produces. Only used when a release uploads artifacts,
+    // which this repository does not do.
+    "WebBuildOutput": "playground/dist"
+  },
+  "Release": {
+    // Releases are a tag plus a GitHub release, driven by release.yml
+    // (`release-mode: GitHubRelease`), so the build pipeline publishes nothing.
+    "Mode": "None"
+  }
+}
