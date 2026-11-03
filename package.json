@@ -1,10 +1,36 @@
 {
   "name": "astroc4",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Starlight plugin for interactive LikeC4 architecture diagrams: <LikeC4View>, ```likec4 fences, syntax highlighting and translatable UI.",
+  "version": "1.0.0-prerelease.1",
+  "description": "Interactive LikeC4 architecture diagrams for Astro and Starlight: <LikeC4View>, ```likec4 fences, and LikeC4 syntax highlighting derived from the live Langium grammar.",
+  "license": "MIT",
+  "author": {
+    "name": "Kieron Lanning",
+    "url": "https://kieronlanning.dev/"
+  },
+  "homepage": "https://purview.dev/projects/astroc4/",
+  "bugs": {
+    "url": "https://github.com/purview-dev/astroc4/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/purview-dev/astroc4.git"
+  },
+  "keywords": [
+    "likec4",
+    "c4-model",
+    "architecture-as-code",
+    "architecture-diagrams",
+    "diagrams",
+    "astro",
+    "astro-integration",
+    "starlight",
+    "starlight-plugin",
+    "expressive-code",
+    "shiki",
+    "syntax-highlighting",
+    "documentation"
+  ],
   "type": "module",
-  "license": "UNLICENSED",
   "exports": {
     ".": "./src/index.mjs",
     "./expressive-code": "./src/expressive-code.mjs",
@@ -14,7 +40,8 @@
   },
   "files": [
     "src",
-    "!src/**/__tests__"
+    "!src/**/__tests__",
+    "!src/**/__fixtures__"
   ],
   "scripts": {
     "dev": "cd playground && astro dev",
@@ -23,7 +50,11 @@
     "check": "cd playground && astro check",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:network": "ASTROC4_NETWORK=1 vitest run src/grammar/__tests__/network.test.ts",
+    "test:site": "bun scripts/test-site.mjs",
     "test:smoke": "node scripts/smoke.mjs",
+    "grammar:sync": "bun scripts/sync-grammar.mjs",
+    "grammar:check": "bun scripts/sync-grammar.mjs --check",
     "likec4:validate": "likec4 validate playground/src/likec4"
   },
   "peerDependencies": {
@@ -34,7 +65,8 @@
     "astro": ">=7.4.4",
     "likec4": ">=1.59.4",
     "react": ">=19.0.0",
-    "react-dom": ">=19.0.0"
+    "react-dom": ">=19.0.0",
+    "shiki": ">=1.0.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
@@ -53,5 +85,14 @@
     "shiki": "^4.5.0",
     "typescript": "^6.0.3",
     "vitest": "^5.0.5"
+  },
+  "engines": {
+    "bun": ">=1.4.4",
+    "node": ">=22.19.0"
+  },
+  "packageManager": "bun@1.4.4",
+  "publishConfig": {
+    "access": "public"
   }
 }
+
