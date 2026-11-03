@@ -82,6 +82,13 @@ describe('the release workflow', () => {
 		expect(release).toMatch(/paths:\s*\n\s*-\s*package\.json/);
 	});
 
+	it('gates publishing behind the npm environment', () => {
+		// The environment is a deployment gate (required reviewer) *and* an OIDC
+		// claim npm matches against the trusted publisher's Environment field.
+		// Change one without the other and publishing stops working.
+		expect(release).toMatch(/environment:\s*\n\s*name:\s*npm/);
+	});
+
 	it('can be dispatched by hand, to re-run a release idempotently', () => {
 		expect(release).toMatch(/workflow_dispatch:/);
 	});

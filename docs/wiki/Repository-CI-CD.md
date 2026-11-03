@@ -118,6 +118,24 @@ missing). If the organisation name is unavailable, the package can live under
 the personal scope instead: `@kieronlanning/astroc4`, which changes
 `package.json` and the specifiers in `src/index.mjs` and `src/fences.mjs` only.
 
+The publish job runs in the GitHub **environment `npm`**, which is both a
+deployment gate (required reviewer) and an OIDC claim. The trusted publisher must
+name that environment, or the exchange will not match:
+
+| Field | Value |
+| --- | --- |
+| Organization or user | `purview-dev` |
+| Repository | `astroc4` |
+| Workflow filename | `release.yml` |
+| Environment name | `npm` |
+| Allow npm publish | ticked |
+| Allow npm dist-tag | ticked |
+
+npm cannot edit an existing publisher, so changing the environment means
+deleting and re-creating it. The CLI cannot grant the dist-tag permission (its
+only flags are `--allow-publish` and `--allow-stage-publish` in npm 11.x), so the
+web UI is the way in for that one.
+
 Trusted publishing is configured **per package, in the package's settings**, so
 the package has to exist on npm first. `@purview-dev/astroc4` has never been
 published:
@@ -185,11 +203,20 @@ changes which filename is validated.
 
 | Name | Kind | Used for |
 | --- | --- | --- |
+| `npm` | environment | Deployment gate on the publish job: a required reviewer approves each release, and the OIDC token carries `environment: npm` for the trusted publisher to match. |
 | `secrets: inherit` | — | Forwards the organisation NuGet secrets the shared workflows expect, even though this repository publishes none. |
 | `PURVIEW_NUGET_SOURCE_MAPPING` | variable | Organisation feed mapping; forwarded by the shared workflows. |
 
 No npm secret exists, by design. If you ever add one, it is a bug: trusted
 publishing is the only supported path here.
+
+## Branch protection
+
+`main` is protected: a pull request is required, the four PR checks must pass
+(`Build and test / Build`, `Live grammar`, `Browser smoke test`, `Packed consumer
+site`), the branch must be up to date with `main`, force pushes and deletion are
+refused. Administrators can bypass, so a docs-only fix can still be pushed
+directly — deliberately, because a `package.json` change is what publishes.
 
 ## Releasing
 
