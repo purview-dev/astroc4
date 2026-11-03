@@ -136,12 +136,12 @@ If you would rather pin the bundled grammar yourself:
 ```js
 // ec.config.mjs
 import { defineEcConfig } from '@astrojs/starlight/expressive-code';
-import { likec4Language } from 'astroc4/expressive-code';
+import { likec4Language } from '@purview-dev/astroc4/expressive-code';
 
 export default defineEcConfig({ shiki: { langs: [likec4Language] } });
 ```
 
-`astroc4/expressive-code` also exports `loadLikeC4Language(options)`, which runs
+`@purview-dev/astroc4/expressive-code` also exports `loadLikeC4Language(options)`, which runs
 the same pipeline for a Markdown pipeline of your own.
 
 ## Verifying highlighting in a build

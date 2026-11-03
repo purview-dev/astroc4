@@ -74,7 +74,7 @@ reports node/edge counts per view in ~2s; a view that lays out to 0 nodes
   latter pulls `createRequire` into the browser bundle.
 - **`client:only` fallbacks need `slot="fallback"`**, or they're never painted.
 - Imports the fence writes into pages use the package name
-  (`astroc4/components/…`), because they resolve from the site, not from here.
+  (`@purview-dev/astroc4/components/…`), because they resolve from the site, not from here.
 - Node-side entry points are `.mjs` with a sibling `.d.mts`: TypeScript doesn't
   read JSDoc from a package in `node_modules`. A `.d.mts` shadows JSDoc for the
   tests too, so keep the two in step.

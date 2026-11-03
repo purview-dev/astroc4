@@ -17,16 +17,16 @@ Full documentation lives in [`docs/wiki`](docs/wiki/index.md) (published with
 ## Install
 
 ```sh
-bun add astroc4@prerelease      # 1.0.0-prerelease.N
+bun add @purview-dev/astroc4@prerelease      # 1.0.0-prerelease.N
 ```
 
-Published to npm under the `prerelease` dist-tag, so `bun add astroc4` keeps
+Published to npm under the `prerelease` dist-tag, so `bun add @purview-dev/astroc4` keeps
 resolving the last stable release. Astroc4 declares its peer dependencies, so
 Bun and npm install them with it; under pnpm add them explicitly (`astro`,
 `@astrojs/starlight`, `@astrojs/react`, `@astrojs/markdown-satteri`, `likec4`,
 `@likec4/core`, `react`, `react-dom`, `shiki`).
 
-Working on astroc4 itself? `bun add astroc4@file:../path/to/astroc4` copies the
+Working on astroc4 itself? `bun add @purview-dev/astroc4@file:../path/to/astroc4` copies the
 package into `node_modules`, so run `bun install` in the site again after
 changing the plugin.
 
@@ -36,7 +36,7 @@ changing the plugin.
 // astro.config.mjs
 import starlight from '@astrojs/starlight';
 import react from '@astrojs/react';
-import astroc4 from 'astroc4';
+import astroc4 from '@purview-dev/astroc4';
 
 export default defineConfig({
  integrations: [starlight({ plugins: [astroc4()] }), react()],
@@ -44,7 +44,7 @@ export default defineConfig({
 ```
 
 ```mdx
-import LikeC4View from 'astroc4/components/LikeC4View.astro';
+import LikeC4View from '@purview-dev/astroc4/components/LikeC4View.astro';
 
 <LikeC4View viewId="index" height={560} />
 ```
@@ -115,7 +115,7 @@ bundled grammar there instead:
 ```js
 // ec.config.mjs
 import { defineEcConfig } from '@astrojs/starlight/expressive-code';
-import { likec4Language } from 'astroc4/expressive-code';
+import { likec4Language } from '@purview-dev/astroc4/expressive-code';
 
 export default defineEcConfig({ shiki: { langs: [likec4Language] } });
 ```

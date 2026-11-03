@@ -39,7 +39,7 @@ describe('starlightLikeC4', () => {
 		const { addIntegration } = await setup();
 
 		expect(addIntegration).toHaveBeenCalledTimes(1);
-		expect(addIntegration.mock.calls[0]?.[0]).toMatchObject({ name: 'astroc4/integration' });
+		expect(addIntegration.mock.calls[0]?.[0]).toMatchObject({ name: '@purview-dev/astroc4/integration' });
 	});
 
 	it('registers the grammar with the site Expressive Code, with no ec.config.mjs', async () => {

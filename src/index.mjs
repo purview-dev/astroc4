@@ -2,7 +2,7 @@
 // path: src/index.mjs
 // Starlight plugin that renders LikeC4 architecture diagrams:
 //
-//   import astroc4 from 'astroc4';
+//   import astroc4 from '@purview-dev/astroc4';
 //   starlight({ plugins: [astroc4()] })
 //
 // It wires up everything a site previously had to configure by hand:
@@ -33,7 +33,12 @@ import { resolveLikeC4Grammar } from './grammar/source.mjs';
 import { LANGUAGE_ALIASES, LANGUAGE_NAME } from './grammar/textmate.mjs';
 import { translations } from './translations.mjs';
 
-const PACKAGE_NAME = 'astroc4';
+/**
+ * The published package name. Scoped because npm refuses the unscoped
+ * `astroc4` — "too similar to existing package astro" — and because the scope
+ * makes the specifiers this plugin writes into a site's pages unambiguous.
+ */
+const PACKAGE_NAME = '@purview-dev/astroc4';
 
 /** @typedef {import('./index.d.mts').StarlightLikeC4Options} StarlightLikeC4Options */
 /** @typedef {import('./index.d.mts').LikeC4HighlightingOptions} LikeC4HighlightingOptions */
@@ -117,7 +122,7 @@ async function injectHighlighting({ root, expressiveCode, updateConfig, logger, 
  * disturbing anything already set.
  *
  * Replacing an existing entry rather than appending matters: a site that
- * pinned `likec4Language` from `astroc4/expressive-code` should get the
+ * pinned `likec4Language` from `@purview-dev/astroc4/expressive-code` should get the
  * grammar for the ref it configured here, not two grammars for the same scope.
  * Expressive Code concatenates `shiki.langs` when it merges these options with
  * an `ec.config.mjs`, so a site's own languages survive either way.

@@ -6,7 +6,7 @@ fence transform.
 ## `<LikeC4View>`
 
 ```mdx
-import LikeC4View from 'astroc4/components/LikeC4View.astro';
+import LikeC4View from '@purview-dev/astroc4/components/LikeC4View.astro';
 
 <LikeC4View viewId="index" height={560} />
 <LikeC4View viewId="edge" projectId="my-project" title="Edge cases" collapsible={false} />

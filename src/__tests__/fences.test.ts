@@ -121,7 +121,7 @@ describe('the ```likec4 fence transform', () => {
 
 		expect(inserted).toHaveLength(1);
 		expect(inserted[0]?.nodes).toHaveLength(1);
-		expect(JSON.stringify(inserted[0]?.nodes)).toContain('astroc4/components/LikeC4View.astro');
+		expect(JSON.stringify(inserted[0]?.nodes)).toContain('@purview-dev/astroc4/components/LikeC4View.astro');
 	});
 
 	it('inserts nothing when no fence was rewritten', async () => {

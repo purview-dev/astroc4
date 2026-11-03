@@ -21,6 +21,9 @@ the Phase 2 surface described in [Roadmap](docs/wiki/Roadmap.md).
   `packages/language-server/src/like-c4.langium` in likec4/likec4. The plugin
   injects the grammar into Starlight's Expressive Code options, so no
   `ec.config.mjs` is needed.
+- Published as `@purview-dev/astroc4`: npm refuses the unscoped name as *"too
+  similar to existing package astro"*, so the package is scoped and publishes
+  with `--access public`.
 - `highlighting.ref` (default `main`) selects the branch, tag or commit the
   grammar is read from, with `ASTROC4_REF` / `ASTROC4_OFFLINE` for CI.
 - Grammar fetches are cached per `repo@ref` in
@@ -47,4 +50,4 @@ the Phase 2 surface described in [Roadmap](docs/wiki/Roadmap.md).
 - Starlight 0.42.8 is a hard floor: the plugin relies on the `astroConfig` hook
   argument and on `updateConfig({ expressiveCode })` being accepted.
 - `1.0.0-prerelease.N` publishes to npm under the `prerelease` tag, so
-  `bun add astroc4` keeps installing the last stable release.
+  `bun add @purview-dev/astroc4` keeps installing the last stable release.

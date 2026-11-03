@@ -153,7 +153,7 @@ writeFileSync(
 );
 
 // Nothing here is imported at runtime; it exists so the consumer's `astro
-// check` resolves the declaration file for `astroc4/expressive-code` (and the
+// check` resolves the declaration file for `@purview-dev/astroc4/expressive-code` (and the
 // `shiki` types it refers to) from an installed package.
 writeFileSync(
 	join(src, 'types-probe.ts'),

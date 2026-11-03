@@ -60,11 +60,11 @@ Expressive Code integration, which is what makes the injection possible:
 | `likec4` (the Node API) is never imported at module scope | It pulls Langium, chevrotain, an LSP and the WASM layout engine; doing it while `astro.config.mjs` loads triggered a config-reload restart that killed the content-layer transport on a cold start. `fences.mjs` loads it lazily. |
 | On Windows, `require('likec4')` rather than `import('likec4')` | Vite's SSR module runner can already be tearing down when a page's fence needs the API, which crashed the build; `require()` goes through Node's resolver instead. |
 | `preloadLikeC4()` on `command === 'build'` | Finishes that load before the race exists. Build-only, because eager-loading in dev is what caused the restart. |
-| Fence imports use the package name (`astroc4/components/…`) | They are written into the *site's* page, so they resolve from the site, not from this package. |
+| Fence imports use the package name (`@purview-dev/astroc4/components/…`) | They are written into the *site's* page, so they resolve from the site, not from this package. |
 | The fence plugin is Sätteri mdast, appended to the site's processor | Astro 7 made Sätteri the default; `remarkPlugins` is a legacy option that is silently ignored without `@astrojs/markdown-satteri`. |
 | `withLikeC4Language` merges, never replaces | Starlight's `updateConfig` merges shallowly, so replacing `expressiveCode` would delete a site's themes and plugins. |
 | The grammar is plain JSON | Expressive Code JSON-round-trips integration options before the `<Code>` component renders them. |
-| `ssr.noExternal: ['astroc4']` | The components ship as `.astro`/`.tsx` source, so Vite has to transform them instead of handing them to Node. |
+| `ssr.noExternal: ['@purview-dev/astroc4']` | The components ship as `.astro`/`.tsx` source, so Vite has to transform them instead of handing them to Node. |
 
 ## Tests
 

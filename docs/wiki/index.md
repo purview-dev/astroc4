@@ -4,14 +4,14 @@ Interactive [LikeC4](https://likec4.dev) architecture diagrams for
 [Astro](https://astro.build) and [Starlight](https://starlight.astro.build).
 
 ```sh
-bun add astroc4
+bun add @purview-dev/astroc4
 ```
 
 ```js
 // astro.config.mjs
 import starlight from '@astrojs/starlight';
 import react from '@astrojs/react';
-import astroc4 from 'astroc4';
+import astroc4 from '@purview-dev/astroc4';
 
 export default defineConfig({
 	integrations: [starlight({ plugins: [astroc4()] }), react()],
@@ -19,7 +19,7 @@ export default defineConfig({
 ```
 
 ```mdx
-import LikeC4View from 'astroc4/components/LikeC4View.astro';
+import LikeC4View from '@purview-dev/astroc4/components/LikeC4View.astro';
 
 <LikeC4View viewId="index" height={560} />
 ```
