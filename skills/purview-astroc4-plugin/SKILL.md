@@ -23,7 +23,7 @@ transform, syntax highlighting and the UI strings.
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import react from '@astrojs/react';
-import astroc4 from 'astroc4';
+import astroc4 from '@purview-dev/astroc4';
 
 export default defineConfig({
 	integrations: [starlight({ plugins: [astroc4()] }), react()],

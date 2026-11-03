@@ -69,7 +69,7 @@ jobs:
           echo "Read version $VERSION from package.json."
 
           # A prerelease must not take the `latest` dist-tag: `1.0.0-prerelease.1`
-          # would otherwise become what every `bun add astroc4` installs.
+          # would otherwise become what every `bun add @purview-dev/astroc4` installs.
           case "$VERSION" in
             *-*) echo "tag=prerelease" >> "$GITHUB_OUTPUT"; echo "Prerelease: publishing under the prerelease tag." ;;
             *)   echo "tag=latest" >> "$GITHUB_OUTPUT"; echo "Stable: publishing under the latest tag." ;;
@@ -107,9 +107,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          if npm view "astroc4@${{ steps.version.outputs.version }}" version > /dev/null 2>&1; then
+          if npm view "@purview-dev/astroc4@${{ steps.version.outputs.version }}" version > /dev/null 2>&1; then
             echo "published=true" >> "$GITHUB_OUTPUT"
-            echo "astroc4@${{ steps.version.outputs.version }} is already on the registry; nothing to publish."
+            echo "@purview-dev/astroc4@${{ steps.version.outputs.version }} is already on the registry; nothing to publish."
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi

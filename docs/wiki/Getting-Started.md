@@ -5,7 +5,7 @@ Four files stand between an empty Starlight site and a rendered diagram.
 ## 1. Install
 
 ```sh
-bun add astroc4
+bun add @purview-dev/astroc4
 ```
 
 Astroc4 declares its peers, so Bun and npm install them with it. Under pnpm,
@@ -20,7 +20,7 @@ install them explicitly: `astro`, `@astrojs/starlight`, `@astrojs/react`,
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import react from '@astrojs/react';
-import astroc4 from 'astroc4';
+import astroc4 from '@purview-dev/astroc4';
 
 export default defineConfig({
 	integrations: [starlight({ title: 'My docs', plugins: [astroc4()] }), react()],
@@ -58,7 +58,7 @@ found is the default, so keep exactly the projects you mean to render there.
 title: Architecture
 ---
 
-import LikeC4View from 'astroc4/components/LikeC4View.astro';
+import LikeC4View from '@purview-dev/astroc4/components/LikeC4View.astro';
 
 <LikeC4View viewId="index" height={560} />
 ```

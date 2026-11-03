@@ -11,7 +11,7 @@
 //   - a site that already has an `ec.config.mjs`, which can add the bundled
 //     grammar with one line:
 //
-//       import { likec4Language } from 'astroc4/expressive-code';
+//       import { likec4Language } from '@purview-dev/astroc4/expressive-code';
 //       export default defineEcConfig({ shiki: { langs: [likec4Language] } });
 //
 //   - anything else that needs the grammar programmatically, e.g. a Markdown

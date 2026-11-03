@@ -61,18 +61,18 @@ replace the npm one.
 ### Dist-tags
 
 `1.0.0-prerelease.1` publishes under the `prerelease` tag, so
-`bun add astroc4` keeps installing the last stable release. A version without a
+`bun add @purview-dev/astroc4` keeps installing the last stable release. A version without a
 prerelease suffix publishes under `latest`. The tag is applied by
 `npm publish --tag`, which is part of the publish itself — managing dist-tags
 afterwards would need the extra "Allow npm dist-tag" permission on the trusted
 publisher, which this repository does not enable.
 
 Until a stable version exists there is **no `latest` tag at all**, so installs
-have to ask for it: `bun add astroc4@prerelease`.
+have to ask for it: `bun add @purview-dev/astroc4@prerelease`.
 
 ### Idempotency
 
-Both halves are safe to re-run: the npm step checks `npm view astroc4@<version>`
+Both halves are safe to re-run: the npm step checks `npm view @purview-dev/astroc4@<version>`
 first, and the shared release workflow skips when the `v<version>` tag exists.
 
 ## Publishing authentication: npm trusted publishing
@@ -94,19 +94,31 @@ There is nothing to rotate, leak or revoke.
 
 ### One-time setup
 
-Trusted publishing is configured **per package, in the package's settings**, so
-the package has to exist on npm first. `astroc4` has never been published:
+The package is **scoped** — `@purview-dev/astroc4` — because npm refuses the
+unscoped name with *"Package name too similar to existing package astro"*. A
+scope also needs its npm **organisation** to exist (`purview-dev`, which is the
+GitHub org name, not the same thing on npm; create it at
+<https://www.npmjs.com/org/create> if `npm org ls purview-dev` reports it
+missing). If the organisation name is unavailable, the package can live under
+the personal scope instead: `@kieronlanning/astroc4`, which changes
+`package.json` and the specifiers in `src/index.mjs` and `src/fences.mjs` only.
 
-1. **Bootstrap the first version once, locally**, from an account with publish
-   rights (`npm login`):
+Trusted publishing is configured **per package, in the package's settings**, so
+the package has to exist on npm first. `@purview-dev/astroc4` has never been
+published:
+
+1. **Bootstrap the first version once, locally**, from an account that can
+   publish to the scope (`npm login`):
 
    ```sh
+   npm org ls purview-dev          # is the scope yours to publish to?
    bun run test && bun run grammar:check
    npm publish --access public --tag prerelease
    ```
 
    This consumes `1.0.0-prerelease.1`. Do it once; every later release goes
-   through CI.
+   through CI. `--access public` is required: a scoped package defaults to
+   restricted, and CI passes it too.
 
 2. **Add the trusted publisher** at
    <https://www.npmjs.com/package/astroc4/access> → *Trusted Publisher* →

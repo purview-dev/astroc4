@@ -77,9 +77,12 @@ const PROJECT_COMPONENT = '__LikeC4View';
 
 // Package specifiers, not relative paths: the import is written into the page
 // being compiled, so it has to resolve from the site, not from this file.
+/** The published package name; see the comment on `PACKAGE_NAME` in index.mjs. */
+const PACKAGE_NAME = '@purview-dev/astroc4';
+
 const IMPORTS = {
-	[INLINE_COMPONENT]: 'astroc4/components/LikeC4Fence.astro',
-	[PROJECT_COMPONENT]: 'astroc4/components/LikeC4View.astro',
+	[INLINE_COMPONENT]: `${PACKAGE_NAME}/components/LikeC4Fence.astro`,
+	[PROJECT_COMPONENT]: `${PACKAGE_NAME}/components/LikeC4View.astro`,
 };
 
 /**
