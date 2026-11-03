@@ -8,6 +8,13 @@ on:
     # truth for every purview-dev repository, including the .NET ones.
     paths:
       - package.json
+  # Manual re-run of the release for whatever version is on the branch. Every
+  # step is idempotent — publishing skips a version already on the registry, the
+  # tag move is a no-op when it is already right, and the shared release workflow
+  # skips when the v{version} tag exists — so it is safe to dispatch. It is also
+  # how the trusted publisher's dist-tag permission gets exercised without
+  # cutting a new version.
+  workflow_dispatch:
 
 # Serialize releases; the shared workflow skips when the v{version} tag already
 # exists, and the npm publish step below skips when the version is already on

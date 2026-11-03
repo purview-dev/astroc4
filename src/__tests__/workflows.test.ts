@@ -82,6 +82,10 @@ describe('the release workflow', () => {
 		expect(release).toMatch(/paths:\s*\n\s*-\s*package\.json/);
 	});
 
+	it('can be dispatched by hand, to re-run a release idempotently', () => {
+		expect(release).toMatch(/workflow_dispatch:/);
+	});
+
 	it('tags the release only after a successful publish', () => {
 		expect(release).toMatch(/needs:\s*publish/);
 		expect(release).toMatch(/purview-dev\/build\/\.github\/workflows\/purview-release\.yml@main/);
