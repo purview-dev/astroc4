@@ -142,6 +142,45 @@ jobs:
 
           exit "$STATUS"
 
+      # A package always has a `latest` tag — the registry refuses to delete it —
+      # so while no stable version exists it has to point at the newest
+      # prerelease, or the npm page and a bare `bun add` keep resolving the
+      # bootstrap version while CI publishes newer ones under `prerelease`.
+      #
+      # Once a stable release exists, `latest` belongs to it (that publish sets
+      # it) and this step stands down, so a later prerelease can never pull the
+      # default install back onto a prerelease.
+      #
+      # Moving a tag needs the "Allow npm dist-tag" permission on the trusted
+      # publisher (npm >= 11.21), so a missing grant is a warning, never a failed
+      # release.
+      - name: Keep latest on the newest prerelease
+        run: |
+          set -uo pipefail
+
+          VERSION="${{ steps.version.outputs.version }}"
+          CURRENT="$(npm view @purview-dev/astroc4 dist-tags.latest 2>/dev/null || true)"
+          echo "version released: $VERSION"
+          echo "latest is currently: ${CURRENT:-(none)}"
+
+          case "$VERSION" in
+            *-*)
+              case "$CURRENT" in
+                '' | *-*)
+                  echo "No stable release yet; pointing latest at $VERSION."
+                  npm dist-tag add "@purview-dev/astroc4@$VERSION" latest ||
+                    echo "::warning::Could not move latest to $VERSION. Grant the 'Allow npm dist-tag' permission to the trusted publisher (npm >= 11.21), or run: npm dist-tag add @purview-dev/astroc4@$VERSION latest"
+                  ;;
+                *)
+                  echo "latest is the stable $CURRENT; leaving it alone."
+                  ;;
+              esac
+              ;;
+            *)
+              echo "$VERSION is stable, so publishing already set latest."
+              ;;
+          esac
+
   # Tag and GitHub release, through the same shared action every purview-dev
   # repository uses. `GitHubRelease` rather than `NuGet`: this repository ships
   # no NuGet package — a NuGet package cannot be consumed by an Astro site.

@@ -60,7 +60,7 @@ the Phase 2 surface described in [Roadmap](docs/wiki/Roadmap.md).
   a ref that does not exist always fails.
 - Starlight 0.42.8 is a hard floor: the plugin relies on the `astroConfig` hook
   argument and on `updateConfig({ expressiveCode })` being accepted.
-- `1.0.0-prerelease.N` publishes to npm under the `prerelease` tag, so a bare
-  install keeps resolving a stable release once one exists. The one exception is
-  the very first publish, which always also sets `latest`; see
+- `1.0.0-prerelease.N` publishes to npm under the `prerelease` tag; while no
+  stable release exists the workflow also keeps `latest` on the newest
+  prerelease, because the registry refuses to delete `latest`. See
   [Repository CI/CD](docs/wiki/Repository-CI-CD.md#dist-tags).

@@ -68,6 +68,16 @@ describe('the release workflow', () => {
 		expect(release).toMatch(/tag=prerelease/);
 	});
 
+	it('keeps latest on the newest prerelease until a stable release exists', () => {
+		// The registry refuses to delete `latest` (400 on DELETE), so a package
+		// with no stable version would otherwise leave the npm page and a bare
+		// install on whatever the first publish happened to be.
+		expect(release).toMatch(/Keep latest on the newest prerelease/);
+		expect(release).toMatch(/npm dist-tag add "@purview-dev\/astroc4@\$VERSION" latest/);
+		// A missing dist-tag permission must not fail a release.
+		expect(release).toMatch(/::warning::Could not move latest/);
+	});
+
 	it('only runs on a version bump', () => {
 		expect(release).toMatch(/paths:\s*\n\s*-\s*package\.json/);
 	});

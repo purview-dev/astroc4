@@ -60,26 +60,30 @@ replace the npm one.
 
 ### Dist-tags
 
-`1.0.0-prerelease.1` publishes under the `prerelease` tag, so a bare install
-keeps resolving a stable release. A version without a prerelease suffix
-publishes under `latest`. The tag is applied by `npm publish --tag`, which is
-part of the publish itself — managing dist-tags afterwards would need the extra
-"Allow npm dist-tag" permission on the trusted publisher, which this repository
-does not enable.
+`npm publish --tag prerelease` puts a prerelease under `prerelease`, so that tag
+can be pinned (`bun add @purview-dev/astroc4@prerelease`). A version without a
+prerelease suffix publishes under `latest`.
 
-**The bootstrap publish also sets `latest`,** whatever `--tag` it was given: a
-package's first version always becomes `latest`. Left alone, `latest` would stay
-pinned to that first prerelease while CI publishes newer ones under `prerelease`,
-so a bare `bun add @purview-dev/astroc4` would install a stale version. Either
-delete it once:
+`latest` **cannot be deleted** — the registry answers `400 Bad Request` to
+`DELETE …/dist-tags/latest`, because a package with published versions must have
+one. So the release workflow keeps it honest instead:
+
+| State | `latest` | `prerelease` |
+| --- | --- | --- |
+| No stable release yet | the newest prerelease (CI moves it after each publish) | the newest prerelease |
+| A stable release exists | the newest stable (its publish sets it) | the last prerelease |
+
+Moving the tag needs the **"Allow npm dist-tag"** permission on the trusted
+publisher (npm ≥ 11.21). Without it the workflow warns rather than failing, and
+the move can be done by hand:
 
 ```sh
-npm dist-tag rm @purview-dev/astroc4 latest
+npm dist-tag add @purview-dev/astroc4@1.0.0-prerelease.2 latest
 ```
 
-…which leaves `bun add @purview-dev/astroc4@prerelease` as the only way in until
-`1.0.0` ships, or accept that `latest` is a prerelease for now and revisit when
-the first stable release lands.
+The step only moves `latest` while `latest` itself is a prerelease, so once
+`1.0.0` ships a `1.0.1-prerelease.1` can never pull the default install back onto
+a prerelease.
 
 ### Idempotency
 
