@@ -1,6 +1,6 @@
 {
   "name": "@purview-dev/astroc4",
-  "version": "1.0.0-prerelease.1",
+  "version": "1.0.0-prerelease.2",
   "description": "Interactive LikeC4 architecture diagrams for Astro and Starlight: <LikeC4View>, ```likec4 fences, and LikeC4 syntax highlighting derived from the live Langium grammar.",
   "license": "MIT",
   "author": {
