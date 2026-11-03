@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0-prerelease.2] - 2026-11-03
+
+First version published by CI, over npm trusted publishing (OIDC): no token is
+stored in the repository. `1.0.0-prerelease.1` was bootstrapped by hand because a
+trusted publisher can only be configured once the package exists.
+
+### Changed
+
+- Releases after this one carry provenance attestations, now that the source
+  repository is public.
+
 ## [1.0.0-prerelease.1] - 2026-11-03
 
 First prerelease. The API is settled; what may still change before `1.0.0` is
