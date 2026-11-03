@@ -56,6 +56,13 @@ describe('the release workflow', () => {
 		expect(release).not.toMatch(/--provenance/);
 	});
 
+	it('says how to fix an unconfigured trusted publisher', () => {
+		// Without a publisher npm exits ENEEDAUTH ("authorize this machine"),
+		// which reads like a missing secret. It is not: there is no secret.
+		expect(release).toMatch(/ENEEDAUTH/);
+		expect(release).toMatch(/npm trust github @purview-dev\/astroc4/);
+	});
+
 	it('publishes under a dist-tag, so a prerelease never becomes latest', () => {
 		expect(release).toMatch(/--tag/);
 		expect(release).toMatch(/tag=prerelease/);

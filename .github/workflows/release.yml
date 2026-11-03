@@ -116,14 +116,31 @@ jobs:
 
       # No NODE_AUTH_TOKEN and no --provenance: with trusted publishing the CLI
       # authenticates through OIDC and attaches provenance by default.
+      #
+      # The failure mode when the publisher is not configured is `ENEEDAUTH`
+      # ("you need to authorize this machine"), which says nothing about the
+      # real cause: there is no credential to find, by design. Translate it.
       - name: Publish
         if: steps.registry.outputs.published != 'true'
         run: |
-          set -euo pipefail
+          set -uo pipefail
+
+          LOG="$(mktemp)"
+          STATUS=0
 
           npm publish \
             --access public \
-            --tag "${{ steps.version.outputs.tag }}"
+            --tag "${{ steps.version.outputs.tag }}" 2>&1 | tee "$LOG" || STATUS=$?
+
+          if [ "$STATUS" -eq 0 ]; then
+            exit 0
+          fi
+
+          if grep -q 'ENEEDAUTH' "$LOG"; then
+            echo "::error::npm found no credential and no trusted publisher for this workflow. Configure it once, then re-run this job: npm trust github @purview-dev/astroc4 --repo purview-dev/astroc4 --file release.yml --allow-publish"
+          fi
+
+          exit "$STATUS"
 
   # Tag and GitHub release, through the same shared action every purview-dev
   # repository uses. `GitHubRelease` rather than `NuGet`: this repository ships
