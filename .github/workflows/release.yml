@@ -137,7 +137,7 @@ jobs:
           fi
 
           if grep -q 'ENEEDAUTH' "$LOG"; then
-            echo "::error::npm found no credential and no trusted publisher for this workflow. Configure it once, then re-run this job: npm trust github @purview-dev/astroc4 --repo purview-dev/astroc4 --file release.yml --allow-publish"
+            echo "::error::npm found no credential and no publish-capable trusted publisher for this workflow. In the web UI the 'Allow npm publish' checkbox is required; on the CLI the flag is required (it is not the default): npm trust github @purview-dev/astroc4 --repo purview-dev/astroc4 --file release.yml --allow-publish. Check what exists with: npm trust list @purview-dev/astroc4"
           fi
 
           exit "$STATUS"

@@ -143,6 +143,11 @@ published:
    npm trust list @purview-dev/astroc4   # expect the release.yml relationship
    ```
 
+   `--allow-publish` is **not** the default: without it the relationship may only
+   stage a release, and `npm publish` gets no token at all — which npm reports as
+   `ENEEDAUTH` ("you need to authorize this machine"), not as a permission error.
+   In the web UI the same switch is the *Allow npm publish* checkbox.
+
    The web UI does the same thing at
    <https://www.npmjs.com/package/@purview-dev/astroc4/access> → *Trusted
    Publisher* → GitHub Actions:
