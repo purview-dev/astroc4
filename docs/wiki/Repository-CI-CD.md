@@ -118,23 +118,28 @@ missing). If the organisation name is unavailable, the package can live under
 the personal scope instead: `@kieronlanning/astroc4`, which changes
 `package.json` and the specifiers in `src/index.mjs` and `src/fences.mjs` only.
 
-The publish job runs in the GitHub **environment `npm`**, which is both a
-deployment gate (required reviewer) and an OIDC claim. The trusted publisher must
-name that environment, or the exchange will not match:
+The publish job runs in the GitHub **environment `npm`**, which is a deployment
+gate: a required reviewer approves each release, and the OIDC token carries
+`environment: npm` as a claim.
+
+Leaving the trusted publisher's `Environment name` **empty works** — verified by
+running the workflow in this environment: the OIDC exchange against a publisher
+that names no environment succeeded. Filling it in *narrows* the publisher to
+runs in that environment, which is worthwhile defence in depth; npm cannot edit a
+connection, so that means deleting and re-creating it.
 
 | Field | Value |
 | --- | --- |
 | Organization or user | `purview-dev` |
 | Repository | `astroc4` |
 | Workflow filename | `release.yml` |
-| Environment name | `npm` |
+| Environment name | *empty, or `npm` to narrow it to the gated job* |
 | Allow npm publish | ticked |
 | Allow npm dist-tag | ticked |
 
-npm cannot edit an existing publisher, so changing the environment means
-deleting and re-creating it. The CLI cannot grant the dist-tag permission (its
-only flags are `--allow-publish` and `--allow-stage-publish` in npm 11.x), so the
-web UI is the way in for that one.
+The CLI cannot grant the dist-tag permission (npm 11.x only exposes
+`--allow-publish` and `--allow-stage-publish`), so the web UI is the way in for
+that one.
 
 Trusted publishing is configured **per package, in the package's settings**, so
 the package has to exist on npm first. `@purview-dev/astroc4` has never been

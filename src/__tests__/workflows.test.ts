@@ -83,9 +83,10 @@ describe('the release workflow', () => {
 	});
 
 	it('gates publishing behind the npm environment', () => {
-		// The environment is a deployment gate (required reviewer) *and* an OIDC
-		// claim npm matches against the trusted publisher's Environment field.
-		// Change one without the other and publishing stops working.
+		// The environment is a deployment gate (required reviewer) and an OIDC
+		// claim. Verified: a publisher whose Environment field is empty still
+		// accepts a job that runs in this environment, so the gate does not
+		// require an npm-side change — naming it there only narrows the claim.
 		expect(release).toMatch(/environment:\s*\n\s*name:\s*npm/);
 	});
 
