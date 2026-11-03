@@ -1,0 +1,111 @@
+name: PR
+
+on:
+  pull_request:
+    branches: [main]
+    # `ready_for_review` is not one of the default activity types, so a draft PR
+    # would never re-evaluate the required gate once it is marked ready for review.
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # The organisation gate every purview-dev repository runs. `.config/purview-build.json`
+  # sets `ProjectType: Web`, so the shared pipeline installs, builds (grammar
+  # snapshot → type-check → playground build) and tests this package — the same
+  # arrangement `purview-dev.github.io` uses for its site. Pack and pack
+  # validation stay off: astroc4 ships to npm, not NuGet.
+  build:
+    name: Build and test
+    uses: purview-dev/build/.github/workflows/purview-build.yml@main
+    with:
+      run-pack: false
+      validate-pack: false
+    secrets: inherit
+
+  # The one test that talks to likec4/likec4, kept out of the shared gate so a
+  # red run says "upstream moved the grammar" (or GitHub is down) rather than
+  # "this branch broke something".
+  live-grammar:
+    name: Live grammar
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          # Single source of truth for the toolchain; `engines.bun` in
+          # package.json is the floor and this is the version it is tested on.
+          bun-version-file: package.json
+
+      - run: bun install --frozen-lockfile
+
+      - name: Read the grammar from likec4/likec4 and check it derives
+        run: bun run test:network
+
+  smoke:
+    name: Browser smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - run: bun install --frozen-lockfile
+
+      # The smoke test drives Chromium, so the browser has to be present. A
+      # static build passes even when islands fail to hydrate — only this
+      # proves the diagrams draw.
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - run: bun run build
+
+      - name: Start the preview server and smoke test it
+        run: |
+          set -euo pipefail
+
+          bun run preview > preview.log 2>&1 &
+
+          for _ in $(seq 1 60); do
+            if curl -fsS http://localhost:4321/ > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          bun scripts/smoke.mjs http://localhost:4321
+
+      - name: Preview log
+        if: failure()
+        run: cat preview.log
+
+  site:
+    name: Packed consumer site
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - run: bun install --frozen-lockfile
+
+      # What ships, not what is in the working tree: `npm pack`, then a
+      # throwaway Starlight site outside the repository installs the tarball
+      # from the registry, type-checks against its declaration files and
+      # builds. The playground self-references the package through `exports`,
+      # so it cannot catch a broken `files` field or a missing `.d.mts`.
+      - name: Build a real Starlight site from the packed package
+        run: bun run test:site
