@@ -22,6 +22,13 @@ jobs:
   # validation stay off: astroc4 ships to npm, not NuGet.
   build:
     name: Build and test
+    # The shared workflow declares `contents: read` **and** `packages: read`, and
+    # a called workflow may not request more than its caller grants — GitHub
+    # rejects the whole run at startup otherwise, with only "workflow file issue"
+    # to go on. Mirror its declaration here.
+    permissions:
+      contents: read
+      packages: read
     uses: purview-dev/build/.github/workflows/purview-build.yml@main
     with:
       run-pack: false
