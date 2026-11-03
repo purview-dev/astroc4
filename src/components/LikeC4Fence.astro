@@ -1,0 +1,62 @@
+---
+// LikeC4Fence.astro
+// path: src/components/LikeC4Fence.astro
+// Target of the ```likec4 fence transform. Authors never write this directly —
+// src/fences.mjs rewrites the fence into it, passing the model it compiled at
+// build time as a JSON string.
+
+import DiagramFrame from './DiagramFrame.astro';
+import DiagramShell from './DiagramShell.astro';
+import LikeC4InlineView from './LikeC4InlineView';
+import LoadingPlaceholder from './LoadingPlaceholder.astro';
+import { getIslandLabels, getTranslator } from './labels';
+
+interface Props {
+	/** Layouted model, JSON-encoded by the fence plugin. */
+	model: string;
+	viewId: string;
+	title?: string;
+	description?: string;
+	/** Arrives as a string via the MDX attribute. */
+	height?: string;
+	collapsible?: string;
+	defaultOpen?: string;
+}
+
+const t = getTranslator(Astro.locals.t);
+const labels = getIslandLabels(t, 'likec4.fence.loading');
+
+const {
+	model,
+	viewId,
+	title = t('likec4.fence.title'),
+	description,
+	height = '420',
+	collapsible = 'true',
+	defaultOpen = 'true',
+} = Astro.props;
+
+let parsedModel: unknown;
+
+try {
+	parsedModel = JSON.parse(model);
+} catch (cause) {
+	throw new Error('<LikeC4Fence> received a model that is not valid JSON.', { cause });
+}
+
+const parsedHeight = Number.parseInt(height, 10);
+---
+
+<DiagramShell
+	title={title}
+	description={description}
+	hint={t('likec4.fence.hint')}
+	collapsible={collapsible !== 'false'}
+	defaultOpen={defaultOpen !== 'false'}
+>
+	<DiagramFrame height={Number.isFinite(parsedHeight) ? parsedHeight : 420}>
+		<LikeC4InlineView model={parsedModel} viewId={viewId} labels={labels} client:only="react">
+			<LoadingPlaceholder slot="fallback" label={labels.loading} />
+		</LikeC4InlineView>
+	</DiagramFrame>
+</DiagramShell>

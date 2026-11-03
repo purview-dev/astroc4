@@ -1,0 +1,18 @@
+---
+title: Error states
+description: What a reader sees when a diagram cannot be shown.
+---
+
+import LikeC4View from 'astroc4/components/LikeC4View.astro';
+
+These are deliberately broken, so the messages can be checked (and checked in
+translation). A missing *view* is reported by the LikeC4 renderer itself; the
+two below are the plugin's own.
+
+## Unknown project
+
+<LikeC4View viewId="index" projectId="missing" title="Unknown project" height={120} />
+
+## Empty view id
+
+<LikeC4View viewId=" " title="No view id" height={120} />

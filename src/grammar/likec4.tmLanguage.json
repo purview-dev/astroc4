@@ -1,0 +1,320 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "likec4",
+  "displayName": "LikeC4",
+  "scopeName": "source.likec4",
+  "fileTypes": [
+    "c4",
+    "likec4"
+  ],
+  "patterns": [
+    {
+      "include": "#everything"
+    }
+  ],
+  "repository": {
+    "everything": {
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "include": "#strings"
+        },
+        {
+          "include": "#urls"
+        },
+        {
+          "include": "#icons"
+        },
+        {
+          "include": "#hex-colors"
+        },
+        {
+          "include": "#tags"
+        },
+        {
+          "include": "#typed-arrow"
+        },
+        {
+          "include": "#declarations"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#numbers"
+        },
+        {
+          "include": "#operators"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.likec4",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "captures": {
+            "0": {
+              "name": "punctuation.definition.comment.likec4"
+            }
+          }
+        },
+        {
+          "name": "comment.line.double-slash.likec4",
+          "match": "(//).*$",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.comment.likec4"
+            }
+          }
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.triple.likec4",
+          "begin": "'''",
+          "end": "'''",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.likec4"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.likec4"
+            }
+          }
+        },
+        {
+          "name": "string.quoted.triple.likec4",
+          "begin": "\"\"\"",
+          "end": "\"\"\"",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.likec4"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.likec4"
+            }
+          }
+        },
+        {
+          "name": "string.quoted.single.likec4",
+          "begin": "'",
+          "end": "'|$",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.likec4"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.likec4"
+            }
+          },
+          "patterns": [
+            {
+              "name": "constant.character.escape.likec4",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.double.likec4",
+          "begin": "\"",
+          "end": "\"|$",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.likec4"
+            }
+          },
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.likec4"
+            }
+          },
+          "patterns": [
+            {
+              "name": "constant.character.escape.likec4",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "urls": {
+      "name": "markup.underline.link.likec4",
+      "match": "\\bhttps?://[^\\s'\"]+"
+    },
+    "icons": {
+      "comment": "Bundled icon ids: `tech:nginx`, `aws:…`, `gcp:…`, …",
+      "match": "\\b(aws|azure|gcp|tech|bootstrap)(:)([\\w-]+)",
+      "captures": {
+        "1": {
+          "name": "support.constant.icon-pack.likec4"
+        },
+        "2": {
+          "name": "punctuation.separator.likec4"
+        },
+        "3": {
+          "name": "support.constant.icon.likec4"
+        }
+      }
+    },
+    "hex-colors": {
+      "name": "constant.other.color.rgb-value.hex.likec4",
+      "match": "#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})(?![\\w-])"
+    },
+    "tags": {
+      "name": "entity.name.tag.likec4",
+      "match": "#[A-Za-z_][\\w-]*"
+    },
+    "typed-arrow": {
+      "comment": "`a -[https]-> b`",
+      "match": "(-\\[)\\s*([A-Za-z_][\\w-]*)\\s*(\\]->)",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.arrow.likec4"
+        },
+        "2": {
+          "name": "entity.name.type.relationship.likec4"
+        },
+        "3": {
+          "name": "keyword.operator.arrow.likec4"
+        }
+      }
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "comment": "`element system`, `deploymentNode region`, `tag tls`, `relationship https`. Not `where tag is #x`.",
+          "match": "\\b(element|deploymentNode|tag|relationship)\\s+(?!is\\b)([A-Za-z_][\\w-]*)(?=\\s*(?:\\{|$|//))",
+          "captures": {
+            "1": {
+              "name": "storage.type.likec4"
+            },
+            "2": {
+              "name": "entity.name.type.likec4"
+            }
+          }
+        },
+        {
+          "comment": "`color testingBlue #0046BE` declares; `color testingBlue` inside a style block only refers.",
+          "match": "\\b(color)\\s+([A-Za-z_][\\w-]*)(?=\\s+#)",
+          "captures": {
+            "1": {
+              "name": "storage.type.likec4"
+            },
+            "2": {
+              "name": "entity.name.type.likec4"
+            }
+          }
+        },
+        {
+          "comment": "`view index`, `dynamic view firstRequest`, `deployment view prod`, `view internals of site`",
+          "match": "\\b(?:(dynamic|deployment)\\s+)?(view)\\s+([A-Za-z_]\\w*)",
+          "captures": {
+            "1": {
+              "name": "storage.modifier.likec4"
+            },
+            "2": {
+              "name": "storage.type.view.likec4"
+            },
+            "3": {
+              "name": "entity.name.function.view.likec4"
+            }
+          }
+        },
+        {
+          "comment": "`reader = actor 'Engineer'`",
+          "match": "\\b([A-Za-z_]\\w*)\\s*(=)(?!=)\\s*([A-Za-z_]\\w*)?",
+          "captures": {
+            "1": {
+              "name": "variable.other.definition.likec4"
+            },
+            "2": {
+              "name": "keyword.operator.assignment.likec4"
+            },
+            "3": {
+              "name": "entity.name.type.likec4"
+            }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.block.likec4",
+          "match": "\\b(specification|model|views|deployment|global|likec4lib)\\b(?=\\s*\\{)"
+        },
+        {
+          "name": "keyword.control.likec4",
+          "match": "\\b(import|from|extend|extends|instanceOf|of|include|exclude|with|where|style|autoLayout|group|parallel|par|navigateTo|metadata|link|rank|predicate|styleGroup)\\b"
+        },
+        {
+          "name": "keyword.operator.word.likec4",
+          "match": "\\b(and|or|not|is)\\b"
+        },
+        {
+          "name": "variable.language.likec4",
+          "match": "\\b(it|this|source|target)\\b"
+        },
+        {
+          "name": "support.type.property-name.likec4",
+          "match": "\\b(title|description|summary|technology|notes|notation|icon|color|shape|border|opacity|line|head|tail|multiple|size|padding|textSize|iconColor|iconSize|iconPosition|kind|tag)\\b"
+        },
+        {
+          "name": "constant.language.likec4",
+          "match": "\\b(rectangle|person|browser|mobile|cylinder|storage|queue|component|document|bucket|solid|dashed|dotted|none|normal|onormal|diamond|odiamond|crow|open|vee|dot|odot|primary|secondary|muted|amber|blue|gray|green|indigo|red|sky|slate|TopBottom|BottomTop|LeftRight|RightLeft|xsmall|small|medium|large|xlarge|xs|sm|md|lg|xl|true|false)\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "name": "constant.numeric.likec4",
+      "match": "\\b\\d+(?:\\.\\d+)?%?"
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arrow.likec4",
+          "match": "<->|->"
+        },
+        {
+          "name": "keyword.operator.wildcard.likec4",
+          "match": "\\.\\*\\*|\\.\\*|\\*\\*|\\*"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.section.block.begin.likec4",
+          "match": "\\{"
+        },
+        {
+          "name": "punctuation.section.block.end.likec4",
+          "match": "\\}"
+        },
+        {
+          "name": "punctuation.separator.comma.likec4",
+          "match": ","
+        },
+        {
+          "name": "punctuation.accessor.likec4",
+          "match": "\\."
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,42 @@
+---
+title: Fences
+description: Diagrams written in a ```likec4 code fence.
+---
+
+## Inline DSL
+
+Compiled and laid out at build time — a typo here fails the build.
+
+```likec4 title="Inline" height=320
+specification {
+  element box
+}
+model {
+  a = box 'Author' { icon tech:markdown }
+  b = box 'Build' { icon tech:astro }
+  c = box 'Reader'
+  a -> b 'writes'
+  b -> c 'serves'
+}
+views { view index { include * } }
+```
+
+## Picking a view
+
+With several views, `view="…"` chooses one; otherwise the first is used.
+
+```likec4 view="second" title="Second view" height=280 collapsible=false
+specification { element box }
+model { x = box 'X'  y = box 'Y'  x -> y }
+views {
+  view first { include x }
+  view second { include * }
+}
+```
+
+## From the project model
+
+An empty fence with `view="…"` is the same as `<LikeC4View>`.
+
+```likec4 view="pageLoad" title="A page load" height=360
+```

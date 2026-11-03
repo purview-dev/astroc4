@@ -1,0 +1,28 @@
+---
+title: Project views
+description: Views rendered from the model in src/likec4/.
+---
+
+import LikeC4View from 'astroc4/components/LikeC4View.astro';
+
+Every view here comes from `src/likec4/demo.c4`, compiled by `LikeC4VitePlugin`
+when the site builds. Switch the language to **Français** to see the plugin's
+strings come from `src/content/i18n/fr.json`.
+
+<LikeC4View viewId="index" height={560} />
+
+## Scoped
+
+<LikeC4View viewId="internals" title="Inside the docs site" height={420} />
+
+## Filtered by tag
+
+<LikeC4View viewId="publicOnly" collapsible={false} height={320} />
+
+## Dynamic
+
+<LikeC4View viewId="pageLoad" defaultOpen={false} />
+
+## Deployment
+
+<LikeC4View viewId="production" height={320} />

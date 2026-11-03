@@ -1,0 +1,18 @@
+{
+  "likec4.view.title": "Diagramme d’architecture",
+  "likec4.view.description": "Diagramme LikeC4 interactif pour cette section.",
+  "likec4.view.hint": "Cliquez sur un nœud du diagramme pour afficher ses détails.",
+  "likec4.view.badge": "Cliquez sur un nœud pour ouvrir la fenêtre",
+  "likec4.view.loading": "Chargement du diagramme d’architecture…",
+  "likec4.fence.title": "Diagramme",
+  "likec4.fence.hint": "Cliquez sur un nœud pour afficher ses détails.",
+  "likec4.fence.loading": "Chargement du diagramme…",
+  "likec4.error.title": "Impossible de charger ce diagramme.",
+  "likec4.error.body": "Réessayez, ou actualisez la page si le problème persiste.",
+  "likec4.error.retry": "Réessayer",
+  "likec4.error.viewIdRequired": "Un viewId LikeC4 est requis pour afficher le diagramme.",
+  "likec4.error.noProjects": "Aucun projet LikeC4 n’est disponible dans cet espace de travail.",
+  "likec4.error.unknownProject": "Projet LikeC4 inconnu « {projectId} ». Projets disponibles : {available}.",
+  "likec4.error.unresolvedProject": "Impossible de déterminer le projet LikeC4.",
+  "likec4.error.loadFailed": "Impossible de charger le projet LikeC4 « {projectId} »."
+}

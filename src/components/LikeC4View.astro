@@ -1,0 +1,80 @@
+---
+// LikeC4View.astro
+// path: src/components/LikeC4View.astro
+// Docs-facing wrapper around the LikeC4 React island. Use this from .mdx pages:
+//   import LikeC4View from 'astroc4/components/LikeC4View.astro';
+//   <LikeC4View viewId="index" />
+//   <LikeC4View viewId="edge" projectId="my-project" height={560} />
+
+import DiagramFrame from './DiagramFrame.astro';
+import DiagramShell from './DiagramShell.astro';
+import LikeC4ProjectView from './LikeC4ProjectView';
+import LoadingPlaceholder from './LoadingPlaceholder.astro';
+import { getIslandLabels, getTranslator } from './labels';
+
+interface Props {
+	/** View id inside the selected LikeC4 project. */
+	viewId: string;
+	/** Optional project id (maps to `likec4:react/<projectId>`). */
+	projectId?: string;
+	/** Shell heading. */
+	title?: string;
+	description?: string;
+	/** Rendered height in pixels. */
+	height?: number;
+	collapsible?: boolean;
+	defaultOpen?: boolean;
+}
+
+const t = getTranslator(Astro.locals.t);
+const labels = getIslandLabels(t, 'likec4.view.loading');
+
+const {
+	viewId,
+	projectId,
+	title = t('likec4.view.title'),
+	description = t('likec4.view.description'),
+	height = 480,
+	collapsible = true,
+	defaultOpen = true,
+} = Astro.props;
+---
+
+<DiagramShell
+	title={title}
+	description={description}
+	hint={t('likec4.view.hint')}
+	collapsible={collapsible}
+	defaultOpen={defaultOpen}
+>
+	<div class="likec4-badge">
+		<span aria-hidden="true">🖱️</span>
+		<span>{t('likec4.view.badge')}</span>
+	</div>
+
+	<DiagramFrame height={height}>
+		<LikeC4ProjectView viewId={viewId} projectId={projectId} labels={labels} client:only="react">
+			{
+				/* `slot="fallback"` is required: default-slot children of a `client:only`
+			    island are parked in an inert <template> and never painted. */
+			}
+			<LoadingPlaceholder slot="fallback" label={labels.loading} />
+		</LikeC4ProjectView>
+	</DiagramFrame>
+</DiagramShell>
+
+<style>
+	.likec4-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-bottom: 0.75rem;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 9999px;
+		background: var(--sl-color-bg);
+		padding: 0.25rem 0.75rem;
+		font-size: 0.75rem;
+		line-height: 1rem;
+		color: var(--sl-color-gray-2);
+	}
+</style>

@@ -1,0 +1,14 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
+    // LikeC4's renderer is React 19, so React is the only JSX runtime.
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "resolveJsonModule": true
+  },
+  // `../src` so `astro check --root playground` type-checks the package too.
+  "include": [".astro/types.d.ts", "**/*", "../src/**/*"],
+  "exclude": ["dist"]
+}

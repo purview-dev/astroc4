@@ -1,0 +1,33 @@
+---
+title: Highlighting
+description: LikeC4 source as code rather than as a diagram.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import demo from '../../likec4/demo.c4?raw';
+
+A ` ```likec4 ` fence becomes a diagram, so use the `c4` alias to show source:
+
+```c4
+specification {
+  color brand #0046BE
+  element system { style { shape rectangle color brand } }
+  tag public
+}
+model {
+  site = system 'Docs site' {
+    #public
+    icon tech:astro
+    link https://likec4.dev 'LikeC4'
+  }
+  reader -[https]-> site 'browses'
+}
+views {
+  view index { include * where tag is #public }
+  dynamic view walk { reader -> site 'GET /' }
+}
+```
+
+The whole playground model, through `<Code lang="likec4">`:
+
+<Code code={demo} lang="likec4" title="src/likec4/demo.c4" />

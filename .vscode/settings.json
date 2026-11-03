@@ -1,0 +1,17 @@
+{
+  // The LikeC4 extension bundles the language server (diagnostics, go-to-
+  // definition, hover, a live diagram preview). It claims .c4 itself; this
+  // keeps the association if another extension also wants the extension.
+  "files.associations": {
+    "*.c4": "likec4"
+  },
+  // So VS Code validates the project config and offers completions in it.
+  "json.schemas": [
+    {
+      "fileMatch": ["likec4.config.json", ".likec4rc", "likec4.config.json5"],
+      "url": "./node_modules/likec4/config/schema.json"
+    }
+  ],
+  // Lets the TextMate grammar in src/grammar/ be checked against its schema.
+  "json.validate.enable": true
+}

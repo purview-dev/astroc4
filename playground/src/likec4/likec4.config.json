@@ -1,0 +1,5 @@
+{
+  "$schema": "../../../node_modules/likec4/config/schema.json",
+  "name": "playground",
+  "title": "astroc4 playground"
+}

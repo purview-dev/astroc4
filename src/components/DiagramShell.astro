@@ -1,0 +1,121 @@
+---
+// DiagramShell.astro
+// path: src/components/DiagramShell.astro
+// Framed, optionally collapsible container around a diagram so it reads as a
+// deliberate block inside the prose rather than a loose widget.
+//
+// Plain CSS over Starlight's custom properties rather than utility classes: a
+// host site's Tailwind does not scan this package, so any class it did not
+// already generate would silently be unstyled.
+
+interface Props {
+	title: string;
+	description?: string;
+	hint?: string;
+	/** Whether the shell can be collapsed/expanded. */
+	collapsible?: boolean;
+	/** Initial open state when collapsible is enabled. */
+	defaultOpen?: boolean;
+}
+
+const { title, description, hint, collapsible = true, defaultOpen = true } = Astro.props;
+---
+
+<section class="not-content likec4-shell">
+	{
+		collapsible ? (
+			<details open={defaultOpen}>
+				<summary class="likec4-shell__header">
+					<div class="likec4-shell__heading">
+						<h3 class="likec4-shell__title">{title}</h3>
+						{description && <p class="likec4-shell__description">{description}</p>}
+						{hint && <p class="likec4-shell__hint">{hint}</p>}
+					</div>
+				</summary>
+
+				<div class="likec4-shell__body">
+					<slot />
+				</div>
+			</details>
+		) : (
+			<>
+				<header class="likec4-shell__header">
+					<h3 class="likec4-shell__title likec4-shell__title--block">{title}</h3>
+					{description && <p class="likec4-shell__description">{description}</p>}
+					{hint && <p class="likec4-shell__hint">{hint}</p>}
+				</header>
+
+				<div class="likec4-shell__body">
+					<slot />
+				</div>
+			</>
+		)
+	}
+</section>
+
+<style>
+	.likec4-shell {
+		margin-block: 1em;
+		overflow: hidden;
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.75rem;
+		background: var(--sl-color-bg-nav);
+	}
+
+	.likec4-shell__header {
+		border-bottom: 1px solid var(--sl-color-gray-5);
+		background: var(--sl-color-bg);
+		padding: 1em 1.25rem;
+		line-height: 1.4;
+	}
+
+	/* Use the native details/summary marker so this matches Starlight's own
+	   collapsible blocks instead of inventing a second disclosure style. */
+	summary.likec4-shell__header {
+		cursor: pointer;
+	}
+
+	.likec4-shell__heading {
+		display: inline-block;
+		vertical-align: top;
+	}
+
+	.likec4-shell__title {
+		display: inline;
+		margin: 0;
+		font-size: 1rem;
+		line-height: 1.5rem;
+		font-weight: 600;
+		color: var(--sl-color-white);
+	}
+
+	.likec4-shell__title--block {
+		display: block;
+	}
+
+	.likec4-shell__description {
+		margin: 0.25rem 0 0;
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		color: var(--sl-color-gray-2);
+	}
+
+	.likec4-shell__hint {
+		margin: 0.5rem 0 0;
+		font-size: 0.75rem;
+		line-height: 1rem;
+		font-weight: 500;
+		color: var(--sl-color-text-accent);
+	}
+
+	.likec4-shell__body {
+		padding: 1em 1.25rem;
+	}
+
+	@media (min-width: 48rem) {
+		.likec4-shell__header,
+		.likec4-shell__body {
+			padding-inline: 1.5rem;
+		}
+	}
+</style>

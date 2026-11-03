@@ -1,0 +1,67 @@
+---
+// LoadingPlaceholder.astro
+// path: src/components/LoadingPlaceholder.astro
+// Slot fallback rendered server-side while a `client:only` island hydrates.
+// Reserves roughly the right amount of space so the page doesn't jump.
+
+interface Props {
+	label: string;
+}
+
+const { label } = Astro.props;
+---
+
+<div class="likec4-loading" role="status" aria-live="polite" aria-busy="true">
+	<div class="likec4-loading__label">{label}</div>
+
+	<div class="likec4-loading__lines" aria-hidden="true">
+		<div class="likec4-loading__line" style="width: 75%"></div>
+		<div class="likec4-loading__line" style="width: 83.333%"></div>
+		<div class="likec4-loading__line" style="width: 66.667%"></div>
+	</div>
+</div>
+
+<style>
+	.likec4-loading {
+		border: 1px dashed var(--sl-color-gray-5);
+		border-radius: 0.5rem;
+		background: var(--sl-color-bg);
+		padding: 1.25rem;
+	}
+
+	.likec4-loading__label {
+		margin-bottom: 1rem;
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		font-weight: 500;
+		color: var(--sl-color-gray-2);
+	}
+
+	.likec4-loading__lines {
+		display: grid;
+		gap: 0.5rem;
+	}
+
+	.likec4-loading__line {
+		height: 1rem;
+		border-radius: 0.25rem;
+		background: var(--sl-color-gray-6);
+		animation: likec4-pulse 1.6s ease-in-out infinite;
+	}
+
+	@keyframes likec4-pulse {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.45;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.likec4-loading__line {
+			animation: none;
+		}
+	}
+</style>

@@ -1,0 +1,117 @@
+// demo.c4
+// path: playground/src/likec4/demo.c4
+// A small model that touches each feature the plugin has to render: bundled
+// icon packs, a self-hosted icon under public/, tags, typed relationships,
+// scoped and dynamic views, and a deployment view.
+
+specification {
+  color brand #0046BE
+
+  element actor {
+    style {
+      shape person
+    }
+  }
+  element system {
+    style {
+      color brand
+    }
+  }
+  element service
+  element store {
+    style {
+      shape storage
+    }
+  }
+
+  deploymentNode cloud
+  deploymentNode node
+
+  tag public
+  tag internal
+
+  relationship https {
+    title 'HTTPS'
+  }
+}
+
+model {
+  reader = actor 'Reader' {
+    description 'Someone reading the docs.'
+  }
+
+  site = system 'Docs site' {
+    #public
+    icon tech:astro
+    description '''
+    A Starlight site using `astroc4`.
+    '''
+
+    edge = service 'Edge cache' {
+      #public
+      icon tech:nginx
+      technology 'nginx'
+    }
+
+    web = service 'Web server' {
+      #internal
+      // Self-hosted: lives under public/, so it is served at /icons/demo.svg.
+      icon ../../public/icons/demo.svg
+      technology 'Node.js'
+    }
+
+    files = store 'Static files' {
+      #internal
+    }
+  }
+
+  reader -[https]-> edge 'browses'
+  edge -> web 'forwards cache misses'
+  web -> files 'reads'
+}
+
+deployment {
+  prod = cloud 'Production' {
+    cache = node 'edge-01' {
+      instanceOf edge
+    }
+    vm = node 'web-01' {
+      instanceOf web
+    }
+    disk = node 'storage-01' {
+      instanceOf files
+    }
+  }
+}
+
+views {
+  view index {
+    title 'Overview'
+    include *
+  }
+
+  view internals of site {
+    title 'Inside the docs site'
+    include site.**
+  }
+
+  view publicOnly {
+    title 'Public surface'
+    include
+      * where tag is #public
+  }
+
+  dynamic view pageLoad {
+    title 'A page load'
+    reader -> edge 'GET /'
+    edge -> web 'cache miss'
+    web -> files 'read index.html'
+    web -> edge '200'
+    edge -> reader 'cached'
+  }
+
+  deployment view production {
+    title 'Production'
+    include prod, prod.**
+  }
+}
