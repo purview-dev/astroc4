@@ -4,11 +4,12 @@ description: >-
   Use when working on astroc4's LikeC4 syntax highlighting or the committed grammar snapshot - the
   Langium to TextMate derivation, regenerating with grammar:sync, the snapshot parity test, choosing
   or pinning a grammar ref, the fetch and cache behaviour, and why the grammar is derived rather
-  than hand-maintained.
+  than hand-maintained. The official LikeC4 DSL skill explains the language this grammar tokenises.
 license: MIT
 metadata:
   product: astroc4
   repository: purview-dev/astroc4
+  companion-skills: likec4/likec4@likec4-dsl
 ---
 
 # astroc4: the syntax-highlighting grammar

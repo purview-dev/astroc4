@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **The skills and the guide point at the official LikeC4 DSL skill.** Astroc4
+  covers the integration — fences, components, highlighting — and not LikeC4's
+  language, so both `skills/` files now name
+  [`likec4/likec4@likec4-dsl`](https://skills.sh/likec4/likec4/likec4-dsl) as a
+  companion (`npx skills add https://github.com/likec4/likec4 --skill likec4-dsl`).
+  [Getting Started](docs/wiki/guide/Getting-Started.md#writing-the-model) explains
+  when to reach for it and lists the rules that fail a build: FQNs, cross-file
+  scoping, project discovery, Markdown properties.
+
 ### Changed
 
 - **The wiki is hierarchical.** `docs/wiki/` is now a landing `README.md` plus

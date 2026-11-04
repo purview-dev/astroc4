@@ -80,6 +80,26 @@ views { view index { include * } }
 Both forms draw the same island. The fence is compiled during the build, so a
 typo in the DSL fails `astro build` with the file name and the parser's message.
 
+## Writing the model
+
+The DSL inside a fence, or in a `.c4` file under `src/likec4`, is LikeC4's
+language rather than astroc4's: this package renders what you wrote, and fails the
+build when it cannot. If an agent is writing the model, give it the official
+LikeC4 DSL skill as well — it carries the rules that are easy to get wrong
+without a model in your head:
+
+```sh
+npx skills add https://github.com/likec4/likec4 --skill likec4-dsl
+```
+
+The ones that catch people out: FQNs must be unique per project and use dots
+(`payment.api` is not an identifier, `payment-api` is); scoping does not cross
+file boundaries, so a reference in another file needs the full path
+(`cloud.backend.api`); a project is the directory of the nearest config file
+(`likec4.config.json`, `.like4rc`); and `summary`/`description`/`notes` take
+Markdown in triple quotes. It also covers the CLI, which is what
+`bun run likec4:validate` wraps.
+
 ## Check it worked
 
 ```sh
