@@ -103,6 +103,24 @@ The scopes are TextMate-standard but LikeC4-specific (`keyword.control.likec4`,
 nearest-parent colours, which can look flat. Add rules for the scopes listed in
 [Syntax Highlighting](Syntax-Highlighting.md#scopes).
 
+## `Cannot find module …/@purview-dev/astroc4/dist/index.js`
+
+That version was published without its build output. `package.json` `exports`
+points at `dist/`, which is built (and gitignored), so a publish from a checkout
+that never ran `build:lib` produces a tarball with only `src/`. It happened once,
+to `1.0.0-prerelease.3`.
+
+Check what is installed before debugging anything else:
+
+```sh
+ls node_modules/@purview-dev/astroc4/dist/index.js
+```
+
+If it is missing, move to a version that has it (`1.0.0-prerelease.4` or later,
+`1.0.0-prerelease.2` for the older source-only layout). Publishes are now gated:
+the release job builds first, and `prepublishOnly` runs `scripts/check-dist.ts`,
+which refuses to publish when any `exports` target is missing.
+
 ## `bun run test:site` fails but everything else passes
 
 It packs the package and builds a consumer site in a temp directory, so it fails
