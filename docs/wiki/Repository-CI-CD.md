@@ -74,8 +74,10 @@ one. So the release workflow keeps it honest instead:
 | A stable release exists | the newest stable (its publish sets it) | the last prerelease |
 
 Moving the tag needs the **"Allow npm dist-tag"** permission on the trusted
-publisher (npm ≥ 11.21). Without it the workflow warns rather than failing, and
-the move can be done by hand:
+publisher (npm ≥ 11.21). It is granted for this package, so the publish job moves
+`latest` itself. Without it the step warns rather than failing, the registry
+answers `403 … This trusted publisher cannot manage dist-tags`, and the move has
+to be done by hand — which needs a browser 2FA approval:
 
 ```sh
 npm dist-tag add @purview-dev/astroc4@<version> latest
@@ -85,13 +87,10 @@ The step only moves `latest` while `latest` itself is a prerelease, so once
 `1.0.0` ships a `1.0.1-prerelease.1` can never pull the default install back onto
 a prerelease.
 
-As of `1.0.0-prerelease.4` the publisher still lacks that permission, so the
-workflow's move is refused with `403 … enable Allow npm dist-tag` and `latest`
-stays on `1.0.0-prerelease.2` — a working, `src`-based build. Until the
-permission is granted (or the move is done by hand, which needs a browser 2FA
-approval), `bun add @purview-dev/astroc4` installs `.2` rather than the newest
-prerelease. Both tags resolve to importable versions; only `pre`-tag pinning gets
-the newest layout.
+It also runs on `workflow_dispatch`, and that is how `latest` first reached
+`1.0.0-prerelease.4`: a dispatch re-runs the check without republishing anything
+(the publish step skips a version already on the registry), and the tag move
+succeeds over OIDC. Both tags now resolve `1.0.0-prerelease.4`.
 
 ### The published package is a build artifact
 

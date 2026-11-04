@@ -12,9 +12,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **`1.0.0-prerelease.3` was published without `dist/`** and cannot be imported:
   `exports` points at the built files, and the release job published a fresh
-  checkout without running `build:lib`. Use `1.0.0-prerelease.4`. `.3` needs
-  `npm deprecate @purview-dev/astroc4@1.0.0-prerelease.3 "…"`, which requires a
-  browser 2FA approval.
+  checkout without running `build:lib`. Use `1.0.0-prerelease.4`, which both
+  `latest` and `prerelease` now resolve. `.3` still deserves
+  `npm deprecate @purview-dev/astroc4@1.0.0-prerelease.3 "…"` (or the Deprecate
+  button on its npm page): the trusted publisher can publish and move tags, but
+  deprecation still needs a browser 2FA approval.
 - The release job now builds the package before publishing and fails if `dist/`
   is incomplete, and `prepublishOnly` runs `scripts/check-dist.ts`, which refuses
   to publish when any `exports` target is missing — whichever path invokes
