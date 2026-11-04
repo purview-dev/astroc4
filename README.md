@@ -1,4 +1,4 @@
-https://img.shields.io/npm/v/@purview-dev/astroc4
+[![npm version](https://img.shields.io/npm/v/@purview-dev/astroc4.svg)](https://www.npmjs.com/package/@purview-dev/astroc4)
 
 # astroc4
 
