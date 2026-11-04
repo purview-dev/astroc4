@@ -46,7 +46,17 @@ function run(command, commandArgs, options = {}) {
 	});
 }
 
+/** The Astro CLI entry point the consumer site installed, from its manifest. */
+function astroCli(where) {
+	const directory = join(where, 'node_modules', 'astro');
+	const { bin } = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
+
+	return join(directory, typeof bin === 'string' ? bin : bin.astro);
+}
+
 // ── Pack ────────────────────────────────────────────────────────────────────
+step(`Toolchain: node ${process.version}, bun ${execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim()}`);
+
 const work = mkdtempSync(join(tmpdir(), 'astroc4-site-'));
 const packed = join(work, 'packed');
 mkdirSync(packed);
@@ -208,12 +218,16 @@ done(`installed ${Object.keys(siteManifest.dependencies).length} dependencies`);
 
 if (runCheck) {
 	step('Type-checking the consumer site');
-	run('bun', ['x', 'astro', 'check'], { cwd: site });
+	// `node`, not `bun x`: Astro enforces its `engines` range against
+	// `process.version`, and Bun reports an emulated Node version there (22.23.3
+	// under Bun 1.4), which Astro refuses as soon as it raises its floor. A real
+	// consumer site runs the CLI under Node, so the test does too.
+	run('node', [astroCli(site), 'check'], { cwd: site });
 	done('astro check passed against the installed package');
 }
 
 step('Building the consumer site');
-run('bun', ['x', 'astro', 'build'], { cwd: site });
+run('node', [astroCli(site), 'build'], { cwd: site });
 
 // ── Assertions on the built HTML ────────────────────────────────────────────
 const html = readFileSync(join(site, 'dist', 'index.html'), 'utf8');
