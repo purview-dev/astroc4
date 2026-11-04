@@ -6,7 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [1.0.0-prerelease.3] - 2026-11-03
+## [1.0.0-prerelease.4] - 2026-11-04
+
+### Fixed
+
+- **`1.0.0-prerelease.3` was published without `dist/`** and cannot be imported:
+  `exports` points at the built files, and the release job published a fresh
+  checkout without running `build:lib`. That version is deprecated; use
+  `1.0.0-prerelease.4`.
+- The release job now builds the package before publishing and fails if `dist/`
+  is incomplete, and `prepublishOnly` runs `scripts/check-dist.ts`, which refuses
+  to publish when any `exports` target is missing — whichever path invokes
+  `npm publish`.
+
+## [1.0.0-prerelease.3] - 2026-11-04
 
 The package is TypeScript end to end. `src/` was JavaScript with JSDoc types plus
 hand-written `.d.mts` declaration files; it is now `.ts`, and `dist/` is built

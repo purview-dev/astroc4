@@ -77,6 +77,24 @@ jobs:
       - name: Grammar snapshot matches its derivation
         run: bun run grammar:check
 
+      # The published package is a build artifact: `exports` points at `dist/`,
+      # which is gitignored. Skipping this step publishes a tarball with no
+      # `dist/` at all — a version that cannot be imported, and cannot be
+      # republished under the same number.
+      - name: Build the package
+        run: bun run build:lib
+
+      - name: The build produced something publishable
+        run: |
+          set -euo pipefail
+
+          for file in dist/index.js dist/index.d.ts dist/expressive-code.js \
+                      dist/likec4.tmLanguage.json dist/like-c4.langium; do
+            test -f "$file" || { echo "::error::missing $file — refusing to publish"; exit 1; }
+          done
+
+          echo "dist/ carries the entry points, their declarations and the grammar data."
+
       - name: Read the version
         id: version
         run: |

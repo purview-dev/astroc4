@@ -1,6 +1,6 @@
 {
   "name": "@purview-dev/astroc4",
-  "version": "1.0.0-prerelease.3",
+  "version": "1.0.0-prerelease.4",
   "description": "Interactive LikeC4 architecture diagrams for Astro and Starlight: <LikeC4View>, ```likec4 fences, and LikeC4 syntax highlighting derived from the live Langium grammar.",
   "license": "MIT",
   "author": {
@@ -52,6 +52,7 @@
   ],
   "scripts": {
     "build:lib": "bun scripts/build.ts",
+    "prepublishOnly": "bun scripts/check-dist.ts",
     "dev": "bun run build:lib && cd playground && astro dev",
     "build": "bun run build:lib && cd playground && astro build",
     "preview": "cd playground && astro preview",
