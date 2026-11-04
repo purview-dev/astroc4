@@ -12,4 +12,10 @@ Everything you need to put diagrams on a page, then to shape them.
 | [Internationalization](Internationalization.md) | The UI strings and how a site overrides them. |
 | [Configuration Reference](Configuration-Reference.md) | Every option, default and environment variable. |
 
+The DSL itself is LikeC4's language, not this package's. When a model is being
+written — by you or by an agent — pair these pages with the official
+[LikeC4 DSL skill](https://skills.sh/likec4/likec4/likec4-dsl)
+(`npx skills add https://github.com/likec4/likec4 --skill likec4-dsl`); see
+[Writing the model](Getting-Started.md#writing-the-model).
+
 Back to the [documentation index](../README.md).

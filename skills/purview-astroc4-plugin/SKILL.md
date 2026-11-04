@@ -4,11 +4,13 @@ description: >-
   Use when adding or changing LikeC4 diagrams in an Astro or Starlight site with astroc4 - wiring the
   Starlight plugin, choosing between a ```likec4 fence and <LikeC4View>, understanding why
   highlighting needs no ec.config.mjs, diagnosing a diagram that renders but is uncoloured, or a
-  fence that stayed a code block.
+  fence that stayed a code block. Covers the integration, not the DSL: pair it with the official
+  LikeC4 DSL skill when the model itself is being written.
 license: MIT
 metadata:
   product: astroc4
   repository: purview-dev/astroc4
+  companion-skills: likec4/likec4@likec4-dsl
 ---
 
 # astroc4: diagrams in a Starlight site
@@ -55,6 +57,25 @@ Starlight's Expressive Code options from its `config:setup` hook. Consequences:
   and the plugin says so with a warning;
 - Starlight 0.42.8 is a hard floor — the hook argument and the `updateConfig`
   key it relies on do not exist earlier.
+
+## Writing the model: add the LikeC4 DSL skill
+
+This skill ends at the fence. What goes *inside* it is LikeC4's language, and the
+rules that bite are not visible from here — FQNs must be unique per project,
+scoping does not cross file boundaries, a project is the directory of the nearest
+`likec4.config.*` / `.like4rc`, Markdown properties need triple quotes.
+
+For that, install the official DSL skill alongside this one:
+
+```sh
+npx skills add https://github.com/likec4/likec4 --skill likec4-dsl
+```
+
+Pair them when a task writes a model rather than wires a page: authoring a `.c4`
+project in `src/likec4`, writing inline DSL in a fence, or fixing a
+`Could not resolve reference to …` error. Keep this skill for the integration
+question — which form to use, why nothing is coloured, why a fence stayed a code
+block. `npx skills find likec4` lists the alternatives if that one is unavailable.
 
 ## Diagnosing
 
