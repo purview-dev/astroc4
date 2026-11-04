@@ -84,21 +84,28 @@ typo in the DSL fails `astro build` with the file name and the parser's message.
 
 The DSL inside a fence, or in a `.c4` file under `src/likec4`, is LikeC4's
 language rather than astroc4's: this package renders what you wrote, and fails the
-build when it cannot. If an agent is writing the model, give it the official
-LikeC4 DSL skill as well — it carries the rules that are easy to get wrong
-without a model in your head:
+build when it cannot. LikeC4 publishes an agent skill that teaches exactly that —
+the complete DSL reference, plus the CLI — and it installs from the project's own
+site:
 
 ```sh
-npx skills add https://github.com/likec4/likec4 --skill likec4-dsl
+npx skills add https://likec4.dev/
 ```
 
-The ones that catch people out: FQNs must be unique per project and use dots
-(`payment.api` is not an identifier, `payment-api` is); scoping does not cross
-file boundaries, so a reference in another file needs the full path
-(`cloud.backend.api`); a project is the directory of the nearest config file
-(`likec4.config.json`, `.like4rc`); and `summary`/`description`/`notes` take
-Markdown in triple quotes. It also covers the CLI, which is what
-`bun run likec4:validate` wraps.
+That uses the Agent Skills Discovery protocol, so it works with Claude Code,
+Cursor, Windsurf and other agents that support it; see
+[AI Tools](https://likec4.dev/tooling/ai-tools/), which also documents the
+[LikeC4 MCP server](https://likec4.dev/tooling/ai-tools/#mcp-server) for querying
+an existing model in natural language.
+
+The rules that catch people out, and that fail `astro build` when you get them
+wrong: FQNs must be unique per project and use dots (`payment.api` is not an
+identifier, `payment-api` is); scoping does not cross file boundaries, so a
+reference in another file needs the full path (`cloud.backend.api`); a project is
+the directory of the nearest config file (`likec4.config.json`, `.like4rc`); and
+`summary`/`description`/`notes` take Markdown in triple quotes.
+
+## Check it worked
 
 ## Check it worked
 

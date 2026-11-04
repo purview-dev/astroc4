@@ -9,7 +9,7 @@ license: MIT
 metadata:
   product: astroc4
   repository: purview-dev/astroc4
-  companion-skills: likec4/likec4@likec4-dsl
+  companion-skills: likec4.dev@likec4-dsl
 ---
 
 # astroc4: the syntax-highlighting grammar

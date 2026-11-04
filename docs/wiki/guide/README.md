@@ -13,9 +13,9 @@ Everything you need to put diagrams on a page, then to shape them.
 | [Configuration Reference](Configuration-Reference.md) | Every option, default and environment variable. |
 
 The DSL itself is LikeC4's language, not this package's. When a model is being
-written — by you or by an agent — pair these pages with the official
-[LikeC4 DSL skill](https://skills.sh/likec4/likec4/likec4-dsl)
-(`npx skills add https://github.com/likec4/likec4 --skill likec4-dsl`); see
-[Writing the model](Getting-Started.md#writing-the-model).
+written — by you or by an agent — install LikeC4's own skill with
+`npx skills add https://likec4.dev/` and see
+[Writing the model](Getting-Started.md#writing-the-model) and LikeC4's
+[AI Tools](https://likec4.dev/tooling/ai-tools/) page.
 
 Back to the [documentation index](../README.md).

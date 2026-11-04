@@ -43,10 +43,10 @@ means a real defect.
 
 Neither covers LikeC4's own language. When writing the playground model in
 `playground/src/likec4/`, the DSL examples in `docs/wiki/`, or fixture `.c4`
-files, also use the official LikeC4 DSL skill
-(`npx skills add https://github.com/likec4/likec4 --skill likec4-dsl`): FQNs,
-cross-file scoping and the allowed top-level statements are its subject, and
-getting them wrong surfaces here as a build failure with a parser message.
+files, also install LikeC4's skill — `npx skills add https://likec4.dev/`, which
+serves `likec4-dsl` over the Agent Skills Discovery protocol. FQNs, cross-file
+scoping and the allowed top-level statements are its subject, and getting them
+wrong surfaces here as a build failure with a parser message.
 
 ## Verifying changes
 

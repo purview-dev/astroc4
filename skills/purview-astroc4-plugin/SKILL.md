@@ -10,7 +10,7 @@ license: MIT
 metadata:
   product: astroc4
   repository: purview-dev/astroc4
-  companion-skills: likec4/likec4@likec4-dsl
+  companion-skills: likec4.dev@likec4-dsl
 ---
 
 # astroc4: diagrams in a Starlight site
@@ -65,17 +65,24 @@ rules that bite are not visible from here — FQNs must be unique per project,
 scoping does not cross file boundaries, a project is the directory of the nearest
 `likec4.config.*` / `.like4rc`, Markdown properties need triple quotes.
 
-For that, install the official DSL skill alongside this one:
+LikeC4 publishes a skill that covers exactly that (`likec4-dsl`, the complete DSL
+reference: specification, model, views, deployment, predicates, CLI). Install it
+from the project's own site:
 
 ```sh
-npx skills add https://github.com/likec4/likec4 --skill likec4-dsl
+npx skills add https://likec4.dev/
 ```
+
+That endpoint uses the Agent Skills Discovery protocol, so it works with Claude
+Code, Cursor, Windsurf and any other agent that speaks it; the same skill also
+sits in `skills/likec4-dsl/` of the `likec4/likec4` repository, if the discovery
+endpoint is unreachable.
 
 Pair them when a task writes a model rather than wires a page: authoring a `.c4`
 project in `src/likec4`, writing inline DSL in a fence, or fixing a
 `Could not resolve reference to …` error. Keep this skill for the integration
 question — which form to use, why nothing is coloured, why a fence stayed a code
-block. `npx skills find likec4` lists the alternatives if that one is unavailable.
+block.
 
 ## Diagnosing
 
