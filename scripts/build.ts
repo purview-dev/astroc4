@@ -33,7 +33,7 @@ function run(command: string, args: string[]): void {
 
 await rm(DIST, { recursive: true, force: true });
 
-// 1. Bundle. Three entry points, ESM, Node target. `--packages external` keeps
+// 1. Bundle. Two entry points, ESM, Node target. `--packages external` keeps
 // every dependency out of the bundle — they are peer dependencies, so they must
 // resolve from the site, not from here. `import.meta.url` survives bundling
 // into `dist/index.js`, which is why the data files land in `dist/` below.
@@ -41,10 +41,6 @@ run('bun', [
 	'build',
 	'src/index.ts',
 	'src/expressive-code.ts',
-	// Shipped as its own entry point: `src/components/labels.ts` is published as
-	// source and imports `@purview-dev/astroc4/translations` at the site's build
-	// time, because the components are compiled by the consuming site.
-	'src/translations.ts',
 	'--root',
 	'src',
 	'--outdir',

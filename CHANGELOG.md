@@ -21,12 +21,14 @@ from it.
 - **`dist/` is the published layout.** `bun run build:lib` bundles the Node entry
   points with Bun, emits declarations from `tsc`, and copies the two grammar data
   files next to the bundle, where `import.meta.url` resolves them. `exports`
-  points the entry points, the grammar JSON and `./translations` at `dist/`, and
-  the components at `src/components/` — `.astro` and `.tsx` are compiled by the
-  consuming site. `dev`, `build`, `check` and `test:site` run `build:lib` first.
-- **`@purview-dev/astroc4/translations` is a public subpath.** `labels.ts` ships
-  as source and reads the strings from `dist/translations.js`, because a relative
-  import would point outside the published tree.
+  points the entry points and the grammar JSON at `dist/`, and the components at
+  `src/components/` — `.astro` and `.tsx` are compiled by the consuming site.
+  `dev`, `build`, `check` and `test:site` run `build:lib` first.
+- **The components ship as source, with `src/translations.ts` beside them.**
+  `labels.ts` imports `../translations.js`; a relative import has to resolve
+  inside the published tree, and keeping the strings as source (rather than a
+  `dist/` subpath) keeps the components self-contained and lets `vitest` run
+  without a build.
 - **The playground imports `dist/index.js`**, the artifact a site installs,
   instead of resolving `src/index.mjs`. That is also the only way it works: a
   `.ts` plugin loaded by `astro.config.mjs` ends up inside Vite's module runner,

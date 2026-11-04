@@ -65,6 +65,12 @@ function astroCli(where: string): string {
 step(`Toolchain: node ${process.version}, bun ${execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim()}`);
 
 const work = mkdtempSync(join(tmpdir(), 'astroc4-site-'));
+
+// The tarball is only as good as `dist/`: fail here rather than packing a
+// package whose `exports` point at files that do not exist.
+if (!existsSync(join(root, 'dist', 'index.js'))) {
+	throw new Error('dist/ is missing — run `bun run build:lib` (or `bun run test:site`) first');
+}
 const packed = join(work, 'packed');
 mkdirSync(packed);
 
@@ -238,13 +244,14 @@ for (const file of [
 	'dist/index.d.ts',
 	'dist/expressive-code.js',
 	'dist/expressive-code.d.ts',
-	'dist/translations.js',
-	'dist/translations.d.ts',
 	'dist/likec4.tmLanguage.json',
 	'dist/like-c4.langium',
 	'src/components/LikeC4View.astro',
 	'src/components/LikeC4Fence.astro',
 	'src/components/labels.ts',
+	// `labels.ts` imports it, so it has to ship: the components are published as
+	// source and compiled by the site.
+	'src/translations.ts',
 ]) {
 	if (!existsSync(join(site, 'node_modules', repo.name, file))) {
 		failures.push(`the tarball is missing ${file}`);

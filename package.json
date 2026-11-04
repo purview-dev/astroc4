@@ -41,17 +41,14 @@
       "import": "./dist/expressive-code.js"
     },
     "./grammar/likec4.tmLanguage.json": "./dist/likec4.tmLanguage.json",
-    "./translations": {
-      "types": "./dist/translations.d.ts",
-      "import": "./dist/translations.js"
-    },
     "./components/LikeC4View.astro": "./src/components/LikeC4View.astro",
     "./components/LikeC4Fence.astro": "./src/components/LikeC4Fence.astro"
   },
   "files": [
     "dist",
     "src/components",
-    "!src/components/__tests__"
+    "!src/components/__tests__",
+    "src/translations.ts"
   ],
   "scripts": {
     "build:lib": "bun scripts/build.ts",
