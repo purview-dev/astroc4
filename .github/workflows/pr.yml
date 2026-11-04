@@ -63,6 +63,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Astro enforces its `engines.node` floor against whatever CLI runs it, and
+      # the runner image's Node trails the newest requirement by a patch or two.
+      # Pin the real CLI so `bun run build`/`preview` and Playwright all agree.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
@@ -102,6 +109,14 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
+
+      # `test-site.ts` runs the consumer's Astro CLI with the *real* `node` (Bun
+      # reports an emulated Node version that Astro rejects), so the runner's Node
+      # has to satisfy Astro's floor. It is not this package's floor, which is why
+      # it is pinned here rather than derived from `engines`.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
 
       - uses: oven-sh/setup-bun@v2
         with:
