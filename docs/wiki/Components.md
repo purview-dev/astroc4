@@ -29,7 +29,7 @@ the frame's height so the page does not jump when it hydrates.
 
 ## `<LikeC4Fence>`
 
-The target of the fence transform. Authors do not import it; `src/fences.mjs`
+The target of the fence transform. Authors do not import it; `src/fences.ts`
 rewrites a ` ```likec4 ` fence into it and passes the model it compiled at build
 time as a JSON string.
 

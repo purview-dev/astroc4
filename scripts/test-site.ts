@@ -19,7 +19,7 @@
 // is being tested).
 
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,12 +31,19 @@ const args = process.argv.slice(2);
 const keep = args.includes('--keep');
 const runCheck = !args.includes('--no-check');
 
-const failures = [];
-const step = (message) => console.log(`\n» ${message}`);
-const done = (message) => console.log(`✓ ${message}`);
+const failures: string[] = [];
+const step = (message: string): void => console.log(`\n» ${message}`);
+const done = (message: string): void => console.log(`✓ ${message}`);
+
+/** Options for {@link run}. */
+interface RunOptions {
+	cwd?: string;
+	capture?: boolean;
+	env?: Record<string, string>;
+}
 
 /** Run a command, echoing it, with the temp site as the working directory. */
-function run(command, commandArgs, options = {}) {
+function run(command: string, commandArgs: string[], options: RunOptions = {}): void {
 	execFileSync(command, commandArgs, {
 		cwd: options.cwd ?? root,
 		stdio: options.capture ? ['ignore', 'pipe', 'inherit'] : 'inherit',
@@ -47,7 +54,7 @@ function run(command, commandArgs, options = {}) {
 }
 
 /** The Astro CLI entry point the consumer site installed, from its manifest. */
-function astroCli(where) {
+function astroCli(where: string): string {
 	const directory = join(where, 'node_modules', 'astro');
 	const { bin } = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
 
@@ -58,6 +65,12 @@ function astroCli(where) {
 step(`Toolchain: node ${process.version}, bun ${execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim()}`);
 
 const work = mkdtempSync(join(tmpdir(), 'astroc4-site-'));
+
+// The tarball is only as good as `dist/`: fail here rather than packing a
+// package whose `exports` point at files that do not exist.
+if (!existsSync(join(root, 'dist', 'index.js'))) {
+	throw new Error('dist/ is missing — run `bun run build:lib` (or `bun run test:site`) first');
+}
 const packed = join(work, 'packed');
 mkdirSync(packed);
 
@@ -66,7 +79,12 @@ const tarballName = execFileSync('npm', ['pack', '--silent', '--pack-destination
 	cwd: root,
 	encoding: 'utf8',
 	shell: process.platform === 'win32',
-}).trim().split(/\r?\n/).pop();
+})
+	.trim()
+	.split(/\r?\n/)
+	.pop();
+
+if (!tarballName) throw new Error('npm pack produced no tarball name');
 
 const tarball = join(packed, tarballName);
 done(`packed ${tarballName} (${readFileSync(tarball).length} bytes)`);
@@ -216,6 +234,30 @@ step('Installing the consumer site (registry + packed tarball)');
 run('bun', ['install'], { cwd: site });
 done(`installed ${Object.keys(siteManifest.dependencies).length} dependencies`);
 
+// What the tarball must carry, now that it is installed: the built entry points,
+// their declarations, the two grammar data files (`offline: true` reads them
+// from `dist/` at runtime — a missing copy would only fail for sites that
+// cannot reach GitHub), and the components as source.
+step('Checking the installed package');
+for (const file of [
+	'dist/index.js',
+	'dist/index.d.ts',
+	'dist/expressive-code.js',
+	'dist/expressive-code.d.ts',
+	'dist/likec4.tmLanguage.json',
+	'dist/like-c4.langium',
+	'src/components/LikeC4View.astro',
+	'src/components/LikeC4Fence.astro',
+	'src/components/labels.ts',
+	// `labels.ts` imports it, so it has to ship: the components are published as
+	// source and compiled by the site.
+	'src/translations.ts',
+]) {
+	if (!existsSync(join(site, 'node_modules', repo.name, file))) {
+		failures.push(`the tarball is missing ${file}`);
+	}
+}
+
 if (runCheck) {
 	step('Type-checking the consumer site');
 	// `node`, not `bun x`: Astro enforces its `engines` range against
@@ -233,11 +275,13 @@ run('node', [astroCli(site), 'build'], { cwd: site });
 const html = readFileSync(join(site, 'dist', 'index.html'), 'utf8');
 
 /** Distinct Shiki colour variables inside a `<pre data-language="…">` block. */
-function coloursOf(language) {
+function coloursOf(language: string): number | undefined {
 	const block = new RegExp(`<pre data-language="${language}"[^>]*>([\\s\\S]*?)</pre>`).exec(html);
 	if (!block) return undefined;
 
-	return new Set([...block[1].matchAll(/--0:(#[0-9A-Fa-f]{3,8})/g)].map((match) => match[1].toLowerCase())).size;
+	const body = block[1] ?? '';
+
+	return new Set([...body.matchAll(/--0:(#[0-9A-Fa-f]{3,8})/g)].map((match) => match[1]?.toLowerCase())).size;
 }
 
 // Astro scopes component styles, so the class attribute carries a hash:

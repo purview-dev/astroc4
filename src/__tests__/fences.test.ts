@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { likec4Fences, parseFenceMeta } from '../fences.mjs';
+import { likec4Fences, parseFenceMeta } from '../fences.js';
 
 describe('parseFenceMeta', () => {
 	it('returns nothing for an absent or empty meta string', () => {

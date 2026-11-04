@@ -4,7 +4,11 @@
 // the server and pass the islands plain strings, because `Astro.locals.t` does
 // not exist in the browser.
 
-import { translations } from '../translations.mjs';
+// Ships alongside this file: `files` publishes `src/components` *and*
+// `src/translations.ts`, so the components stay self-contained source. The
+// specifier keeps its `.js` extension because that is what the emitted
+// declarations carry and what the site's bundler maps back to this `.ts` file.
+import { translations } from '../translations.js';
 
 export type TranslationKey = keyof (typeof translations)['en'];
 export type Translate = (key: TranslationKey) => string;

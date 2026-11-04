@@ -6,7 +6,7 @@
 /// <reference types="likec4/vite-plugin-modules" />
 
 declare namespace StarlightApp {
-	type LikeC4UIStrings = (typeof import('./translations.mjs'))['translations']['en'];
+	type LikeC4UIStrings = (typeof import('./translations.js'))['translations']['en'];
 	// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- declaration merging
 	interface I18n extends LikeC4UIStrings {}
 }

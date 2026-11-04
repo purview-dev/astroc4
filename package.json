@@ -1,6 +1,6 @@
 {
   "name": "@purview-dev/astroc4",
-  "version": "1.0.0-prerelease.2",
+  "version": "1.0.0-prerelease.3",
   "description": "Interactive LikeC4 architecture diagrams for Astro and Starlight: <LikeC4View>, ```likec4 fences, and LikeC4 syntax highlighting derived from the live Langium grammar.",
   "license": "MIT",
   "author": {
@@ -32,29 +32,37 @@
   ],
   "type": "module",
   "exports": {
-    ".": "./src/index.mjs",
-    "./expressive-code": "./src/expressive-code.mjs",
-    "./grammar/likec4.tmLanguage.json": "./src/grammar/likec4.tmLanguage.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./expressive-code": {
+      "types": "./dist/expressive-code.d.ts",
+      "import": "./dist/expressive-code.js"
+    },
+    "./grammar/likec4.tmLanguage.json": "./dist/likec4.tmLanguage.json",
     "./components/LikeC4View.astro": "./src/components/LikeC4View.astro",
     "./components/LikeC4Fence.astro": "./src/components/LikeC4Fence.astro"
   },
   "files": [
-    "src",
-    "!src/**/__tests__",
-    "!src/**/__fixtures__"
+    "dist",
+    "src/components",
+    "!src/components/__tests__",
+    "src/translations.ts"
   ],
   "scripts": {
-    "dev": "cd playground && astro dev",
-    "build": "cd playground && astro build",
+    "build:lib": "bun scripts/build.ts",
+    "dev": "bun run build:lib && cd playground && astro dev",
+    "build": "bun run build:lib && cd playground && astro build",
     "preview": "cd playground && astro preview",
-    "check": "cd playground && astro check",
+    "check": "bun run build:lib && cd playground && astro check && cd .. && bunx tsc -p tsconfig.scripts.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:network": "ASTROC4_NETWORK=1 vitest run src/grammar/__tests__/network.test.ts",
-    "test:site": "bun scripts/test-site.mjs",
-    "test:smoke": "node scripts/smoke.mjs",
-    "grammar:sync": "bun scripts/sync-grammar.mjs",
-    "grammar:check": "bun scripts/sync-grammar.mjs --check",
+    "test:site": "bun run build:lib && bun scripts/test-site.ts",
+    "test:smoke": "bun scripts/smoke.ts",
+    "grammar:sync": "bun scripts/sync-grammar.ts",
+    "grammar:check": "bun scripts/sync-grammar.ts --check",
     "likec4:validate": "likec4 validate playground/src/likec4"
   },
   "peerDependencies": {

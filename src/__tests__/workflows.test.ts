@@ -130,7 +130,7 @@ describe('the PR workflow', () => {
 	});
 
 	it('runs the smoke test and the packed consumer site', () => {
-		expect(pr).toMatch(/scripts\/smoke\.mjs/);
+		expect(pr).toMatch(/scripts\/smoke\.ts/);
 		expect(pr).toMatch(/bun run test:site/);
 	});
 

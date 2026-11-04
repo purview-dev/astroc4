@@ -139,7 +139,7 @@ with the integration options, so its own languages and the plugin's coexist.
 
 ### Translating
 
-Add any key from `src/translations.mjs` to the site's
+Add any key from `src/translations.ts` to the site's
 `src/content/i18n/<lang>.json`. Placeholders are `{name}` — single braces,
 because some are filled in by the browser, not by i18next.
 
@@ -161,7 +161,7 @@ bun run test:site      # pack the tarball and build a real Starlight site from i
 bun run check          # astro check over playground/ and src/
 bun run grammar:check  # fail if the committed grammar snapshot is stale
 bun run build && bun run preview
-bun scripts/smoke.mjs http://localhost:4321   # headless: hydration, icons, highlighting, i18n
+bun scripts/smoke.ts http://localhost:4321   # headless: hydration, icons, highlighting, i18n
 ```
 
 `Justfile` wraps each of those (`just verify` runs what the PR workflow runs).

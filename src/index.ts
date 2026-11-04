@@ -1,5 +1,5 @@
-// index.mjs
-// path: src/index.mjs
+// index.ts
+// path: src/index.ts
 // Starlight plugin that renders LikeC4 architecture diagrams:
 //
 //   import astroc4 from '@purview-dev/astroc4';
@@ -26,12 +26,14 @@
 
 import { fileURLToPath } from 'node:url';
 
+import type { StarlightPlugin, StarlightUserConfig } from '@astrojs/starlight/types';
+import type { AstroConfig, AstroIntegration, AstroIntegrationLogger } from 'astro';
 import { LikeC4VitePlugin } from 'likec4/vite-plugin';
 
-import { likec4Fences, preloadLikeC4 } from './fences.mjs';
-import { resolveLikeC4Grammar } from './grammar/source.mjs';
-import { LANGUAGE_ALIASES, LANGUAGE_NAME } from './grammar/textmate.mjs';
-import { translations } from './translations.mjs';
+import { likec4Fences, preloadLikeC4 } from './fences.js';
+import { resolveLikeC4Grammar } from './grammar/source.js';
+import { LANGUAGE_ALIASES, LANGUAGE_NAME } from './grammar/textmate.js';
+import { translations } from './translations.js';
 
 /**
  * The published package name. Scoped because npm refuses the unscoped
@@ -40,14 +42,55 @@ import { translations } from './translations.mjs';
  */
 const PACKAGE_NAME = '@purview-dev/astroc4';
 
-/** @typedef {import('./index.d.mts').StarlightLikeC4Options} StarlightLikeC4Options */
-/** @typedef {import('./index.d.mts').LikeC4HighlightingOptions} LikeC4HighlightingOptions */
-
 /**
- * @param {StarlightLikeC4Options} [options]
- * @returns {import('@astrojs/starlight/types').StarlightPlugin}
+ * LikeC4 syntax highlighting, derived from the Langium grammar in
+ * `likec4/likec4` and registered with the site's Expressive Code.
  */
-export default function starlightLikeC4(options = {}) {
+export interface LikeC4HighlightingOptions {
+	/**
+	 * Branch, tag or commit SHA to read `like-c4.langium` from.
+	 * Defaults to `main`; pin a tag (`v1.59.4`) or a SHA for reproducible CI.
+	 * Also read from `ASTROC4_REF`.
+	 */
+	ref?: string;
+	/** Repository to read from. Defaults to `likec4/likec4`. */
+	repo?: string;
+	/** Use the bundled snapshot and never touch the network. Also `ASTROC4_OFFLINE=1`. */
+	offline?: boolean;
+	/**
+	 * What to do when the grammar cannot be fetched. Defaults to `fail`, so
+	 * `astro build` and `astro check` fail like any other build error.
+	 * A `ref` that does not exist always fails.
+	 */
+	onError?: 'fail' | 'warn' | 'silent';
+	/** Seconds a cached fetch stays fresh. Defaults to an hour. */
+	cacheTtl?: number;
+	/** Ignore the cache and refetch. */
+	refresh?: boolean;
+	/** Where to cache. Defaults to `node_modules/.cache/astroc4`. */
+	cacheDir?: string;
+	/** Raw host to read from, for mirrors. Defaults to raw.githubusercontent.com. */
+	baseUrl?: string;
+	/** Request timeout in milliseconds. Defaults to 15000. */
+	timeout?: number;
+}
+
+export interface StarlightLikeC4Options {
+	/**
+	 * Passed through to `LikeC4VitePlugin` — e.g. `{ workspace: 'diagrams' }` to
+	 * look for .c4 files somewhere other than the site root.
+	 */
+	vitePlugin?: Parameters<typeof LikeC4VitePlugin>[0];
+	/** Render ```likec4 fences in .mdx pages as diagrams. Defaults to `true`. */
+	fences?: boolean;
+	/**
+	 * Highlight ```c4 / ```likec4 source. Defaults to `true`; `false` leaves
+	 * Expressive Code entirely to the site.
+	 */
+	highlighting?: boolean | LikeC4HighlightingOptions;
+}
+
+export default function starlightLikeC4(options: StarlightLikeC4Options = {}): StarlightPlugin {
 	return {
 		name: PACKAGE_NAME,
 		hooks: {
@@ -66,11 +109,24 @@ export default function starlightLikeC4(options = {}) {
 					expressiveCode: config.expressiveCode,
 					updateConfig,
 					logger,
-					options: options.highlighting ?? {},
+					// `true` means "on with defaults"; only an object carries options.
+					options: typeof options.highlighting === 'object' ? options.highlighting : {},
 				});
 			},
 		},
 	};
+}
+
+/** What Starlight's `config:setup` hook offers, narrowed to what is used here. */
+type StarlightConfigUpdate = Partial<Omit<StarlightUserConfig, 'routeMiddleware'>>;
+
+/** Everything `injectHighlighting` needs, assembled by the hook below. */
+interface HighlightingContext {
+	root: string;
+	expressiveCode: unknown;
+	updateConfig: (config: StarlightConfigUpdate) => void;
+	logger: AstroIntegrationLogger;
+	options: LikeC4HighlightingOptions;
 }
 
 /**
@@ -82,16 +138,14 @@ export default function starlightLikeC4(options = {}) {
  * `astro check` and `astro sync` exactly like any other build error. Sites that
  * cannot reach github.com on every build opt out with `offline: true` or
  * `onError: 'warn'`.
- *
- * @param {{
- *   root: string,
- *   expressiveCode: unknown,
- *   updateConfig: (config: { expressiveCode?: unknown }) => void,
- *   logger: import('astro').AstroIntegrationLogger,
- *   options: LikeC4HighlightingOptions,
- * }} context
  */
-async function injectHighlighting({ root, expressiveCode, updateConfig, logger, options }) {
+async function injectHighlighting({
+	root,
+	expressiveCode,
+	updateConfig,
+	logger,
+	options,
+}: HighlightingContext) {
 	if (expressiveCode === false) {
 		logger.warn(
 			'LikeC4 syntax highlighting is skipped: `expressiveCode: false` disables the code blocks it ' +
@@ -108,7 +162,11 @@ async function injectHighlighting({ root, expressiveCode, updateConfig, logger, 
 		aliases: [...LANGUAGE_ALIASES],
 	};
 
-	updateConfig({ expressiveCode: withLikeC4Language(expressiveCode, registration) });
+	updateConfig({
+		// `withLikeC4Language` keeps the option's shape generic so it stays usable
+		// outside Starlight; every field it returns is one Expressive Code accepts.
+		expressiveCode: withLikeC4Language(expressiveCode, registration) as StarlightConfigUpdate['expressiveCode'],
+	});
 
 	const { repo, ref, sha, source: from } = source.meta;
 	logger.info(
@@ -127,27 +185,26 @@ async function injectHighlighting({ root, expressiveCode, updateConfig, logger, 
  * Expressive Code concatenates `shiki.langs` when it merges these options with
  * an `ec.config.mjs`, so a site's own languages survive either way.
  *
- * @param {unknown} expressiveCode The site's `expressiveCode` option.
- * @param {Record<string, unknown>} registration Shiki language registration.
- * @returns {Record<string, unknown> & { shiki: { langs: unknown[] } }}
+ * @param expressiveCode The site's `expressiveCode` option.
+ * @param registration Shiki language registration.
  */
-export function withLikeC4Language(expressiveCode, registration) {
+export function withLikeC4Language(
+	expressiveCode: unknown,
+	registration: Record<string, unknown>,
+): Record<string, unknown> & { shiki: { langs: unknown[] } } {
 	const current = isObject(expressiveCode) ? expressiveCode : {};
 	const shiki = isObject(current.shiki) ? current.shiki : {};
-	const langs = Array.isArray(shiki.langs) ? [...shiki.langs] : [];
+	const langs: unknown[] = Array.isArray(shiki.langs) ? [...shiki.langs] : [];
 	const existing = langs.findIndex(isLikeC4Language);
 
 	if (existing === -1) langs.push(registration);
 	else langs[existing] = registration;
 
-	return /** @type {Record<string, unknown> & { shiki: { langs: unknown[] } }} */ ({
-		...current,
-		shiki: { ...shiki, langs },
-	});
+	return { ...current, shiki: { ...shiki, langs } };
 }
 
 /** A Shiki `langs` entry that already covers LikeC4, as an id or a registration. */
-function isLikeC4Language(entry) {
+function isLikeC4Language(entry: unknown): boolean {
 	if (typeof entry === 'string') return entry === LANGUAGE_NAME || LANGUAGE_ALIASES.includes(entry);
 	if (!isObject(entry)) return false;
 
@@ -156,16 +213,12 @@ function isLikeC4Language(entry) {
 	return Array.isArray(entry.aliases) && entry.aliases.some((alias) => LANGUAGE_ALIASES.includes(alias));
 }
 
-function isObject(value) {
+function isObject(value: unknown): value is Record<string, any> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 
-/**
- * @param {StarlightLikeC4Options} options
- * @returns {import('astro').AstroIntegration}
- */
-function likec4Integration({ vitePlugin = {}, fences = true }) {
+function likec4Integration({ vitePlugin = {}, fences = true }: StarlightLikeC4Options): AstroIntegration {
 	return {
 		name: `${PACKAGE_NAME}/integration`,
 		hooks: {
@@ -197,7 +250,11 @@ function likec4Integration({ vitePlugin = {}, fences = true }) {
  * Append the fence transform to the site's existing Sätteri processor, keeping
  * whatever Starlight and other integrations already registered on it.
  */
-async function registerFences(config, updateConfig, logger) {
+async function registerFences(
+	config: AstroConfig,
+	updateConfig: (config: Record<string, unknown>) => void,
+	logger: AstroIntegrationLogger,
+): Promise<void> {
 	const { satteri, isSatteriProcessor } = await import('@astrojs/markdown-satteri');
 	const existing = config.markdown?.processor;
 

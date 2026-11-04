@@ -9,7 +9,8 @@
     "ProjectType": "Web",
     "WebInstallCommand": "bun install --frozen-lockfile",
     // One command, ordered to fail fastest: a grammar snapshot that drifted from
-    // its derivation first, then the type-check, then the playground build.
+    // its derivation first, then the type-check (which builds the library, then
+    // checks src, the playground and the scripts), then the playground build.
     "WebBuildCommand": "bun run grammar:check && bun run check && bun run build",
     "WebTestCommand": "bun run test",
     // No linter or formatter is configured here, and the Web defaults
