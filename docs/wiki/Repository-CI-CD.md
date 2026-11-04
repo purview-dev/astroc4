@@ -78,12 +78,30 @@ publisher (npm ≥ 11.21). Without it the workflow warns rather than failing, an
 the move can be done by hand:
 
 ```sh
-npm dist-tag add @purview-dev/astroc4@1.0.0-prerelease.2 latest
+npm dist-tag add @purview-dev/astroc4@<version> latest
 ```
 
 The step only moves `latest` while `latest` itself is a prerelease, so once
 `1.0.0` ships a `1.0.1-prerelease.1` can never pull the default install back onto
 a prerelease.
+
+As of `1.0.0-prerelease.4` the publisher still lacks that permission, so the
+workflow's move is refused with `403 … enable Allow npm dist-tag` and `latest`
+stays on `1.0.0-prerelease.2` — a working, `src`-based build. Until the
+permission is granted (or the move is done by hand, which needs a browser 2FA
+approval), `bun add @purview-dev/astroc4` installs `.2` rather than the newest
+prerelease. Both tags resolve to importable versions; only `pre`-tag pinning gets
+the newest layout.
+
+### The published package is a build artifact
+
+`exports` points at `dist/`, which is gitignored. The publish job therefore runs
+`bun run build:lib` and refuses to continue unless `dist/` carries the entry
+points, their declarations and the grammar data — `1.0.0-prerelease.3` shipped
+without them and could not be imported, because the job published a fresh
+checkout straight after the tests. `prepublishOnly` runs
+`scripts/check-dist.ts`, which walks the `exports` map and fails when any target
+is missing, so a local `npm publish` cannot repeat it either.
 
 ### Idempotency
 
