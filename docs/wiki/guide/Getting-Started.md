@@ -94,7 +94,7 @@ Things to look for:
 - a ` ```c4 ` fence on some page renders in several colours.
 
 If the diagrams render but the colours do not, see
-[Troubleshooting](Troubleshooting.md).
+[Troubleshooting](../Troubleshooting.md).
 
 ## Next
 
