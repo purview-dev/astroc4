@@ -135,9 +135,11 @@ missing). If the organisation name is unavailable, the package can live under
 the personal scope instead: `@kieronlanning/astroc4`, which changes
 `package.json` and the specifiers in `src/index.ts` and `src/fences.ts` only.
 
-The publish job runs in the GitHub **environment `npm`**, which is a deployment
-gate: a required reviewer approves each release, and the OIDC token carries
-`environment: npm` as a claim.
+The publish job runs in the GitHub **environment `npm`**. It declares no
+required reviewer, so a merged version bump publishes unattended; the environment
+exists to keep a deployment record per release and to restrict the job to
+protected branches (`main`). The OIDC token carries `environment: npm` as a
+claim, which is what lets the trusted publisher be narrowed to it later.
 
 Leaving the trusted publisher's `Environment name` **empty works** — verified by
 running the workflow in this environment: the OIDC exchange against a publisher
@@ -150,7 +152,7 @@ connection, so that means deleting and re-creating it.
 | Organization or user | `purview-dev` |
 | Repository | `astroc4` |
 | Workflow filename | `release.yml` |
-| Environment name | *empty, or `npm` to narrow it to the gated job* |
+| Environment name | *empty, or `npm` to narrow it to the publish job* |
 | Allow npm publish | ticked |
 | Allow npm dist-tag | ticked |
 
@@ -201,7 +203,7 @@ published:
    | Organization or user | `purview-dev` |
    | Repository | `astroc4` |
    | Workflow filename | `release.yml` |
-   | Environment name | *(empty — the publish job declares no environment)* |
+   | Environment name | *(empty — this repository's publish job runs in `npm`, which an empty claim matches)* |
 
 3. Bump the version and merge; `release.yml` publishes the next one with no
    secret involved.
@@ -225,7 +227,7 @@ changes which filename is validated.
 
 | Name | Kind | Used for |
 | --- | --- | --- |
-| `npm` | environment | Deployment gate on the publish job: a required reviewer approves each release, and the OIDC token carries `environment: npm` for the trusted publisher to match. |
+| `npm` | environment | The publish job runs in it: a deployment record per release, restricted to protected branches. No required reviewer, so merging a version bump publishes without a prompt. |
 | `secrets: inherit` | — | Forwards the organisation NuGet secrets the shared workflows expect, even though this repository publishes none. |
 | `PURVIEW_NUGET_SOURCE_MAPPING` | variable | Organisation feed mapping; forwarded by the shared workflows. |
 

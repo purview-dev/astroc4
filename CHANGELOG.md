@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- Releases no longer wait for a deployment approval: the `npm` environment keeps
+  its deployment record and its protected-branch restriction, but the required
+  reviewer is gone, so merging a version bump publishes unattended. `main`'s
+  branch protection (required checks, linear history) is the checkpoint, and the
+  publish is idempotent — a re-run or a dispatch republishes nothing.
+
 ## [1.0.0-prerelease.4] - 2026-11-04
 
 ### Fixed
