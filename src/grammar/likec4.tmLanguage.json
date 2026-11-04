@@ -4,7 +4,7 @@
     "repo": "likec4/likec4",
     "ref": "main",
     "sha": "da5af77245f9",
-    "by": "astroc4/scripts/sync-grammar.mjs"
+    "by": "astroc4/scripts/sync-grammar.ts"
   },
   "name": "likec4",
   "displayName": "LikeC4",
@@ -163,7 +163,7 @@
       "match": "\\bhttps?://[^\\s'\"]+"
     },
     "icons": {
-      "comment": "Bundled icon ids: `tech:nginx`, `aws:…`, `gcp:…`, …",
+      "comment": "Bundled icon ids: `tech:nginx`, `aws:â€¦`, `gcp:â€¦`, â€¦",
       "match": "\\b(aws|azure|bootstrap|gcp|md|tech)(:)([\\w-]+)",
       "captures": {
         "1": {
@@ -261,7 +261,7 @@
     "keywords": {
       "patterns": [
         {
-          "comment": "Keywords that open a block: `model { … }`.",
+          "comment": "Keywords that open a block: `model { â€¦ }`.",
           "name": "keyword.control.block.likec4",
           "match": "\\b(?:add|deployment|diff|dynamicPredicateGroup|global|group|likec4lib|model|predicateGroup|rank|remove|specification|style|styleGroup|views)\\b(?=\\s*\\{)"
         },

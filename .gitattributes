@@ -3,7 +3,7 @@
 * text=auto
 
 # ---------------------------------------------------------------------------
-# Source: TypeScript, Astro and the package's own .mjs entry points.
+# Source: TypeScript, Astro, and plain .mjs for config files.
 # No eol= means each dev's core.autocrlf / core.eol decides; .editorconfig is
 # the authority, and `end_of_line = lf` there matches what the tools write.
 # ---------------------------------------------------------------------------

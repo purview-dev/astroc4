@@ -27,17 +27,22 @@ import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
+import type { MdastPluginEntry, PluginFactoryContext } from 'satteri';
+
 const require = createRequire(import.meta.url);
 
 // `likec4`'s Node API is deliberately NOT imported at module scope. It pulls in
 // Langium, chevrotain, an LSP and the WASM layout engine, and this module is
-// loaded as part of the site's astro.config.mjs — on a cold start that was
+// loaded as part of the site's astro.config — on a cold start that was
 // enough to make Astro report "Configuration file updated. Restarting...", and the restart
 // killed the content-layer transport, leaving every page a 500. Load it lazily
 // so the cost is paid only when a page actually contains an inline fence.
-let likec4ApiPromise;
+let likec4ApiPromise: Promise<LikeC4Api> | undefined;
 
-function loadLikeC4() {
+/** The one thing this module needs from `likec4`'s Node API. */
+type LikeC4Api = typeof import('likec4').LikeC4;
+
+function loadLikeC4(): Promise<LikeC4Api> {
 	// A plain `require('likec4')` rather than `import('likec4')`: Vite's SSR
 	// module runner intercepts dynamic `import()` from any module it loaded
 	// (this one included) to route it through the runner's own module graph —
@@ -65,7 +70,7 @@ function loadLikeC4() {
  * `astro:config:setup` for builds only — the module-scope comment above
  * `loadLikeC4` explains why eager-loading it in dev is unsafe.
  */
-export function preloadLikeC4() {
+export function preloadLikeC4(): Promise<LikeC4Api> {
 	return loadLikeC4();
 }
 
@@ -77,24 +82,44 @@ const PROJECT_COMPONENT = '__LikeC4View';
 
 // Package specifiers, not relative paths: the import is written into the page
 // being compiled, so it has to resolve from the site, not from this file.
-/** The published package name; see the comment on `PACKAGE_NAME` in index.mjs. */
+/** The published package name; see the comment on `PACKAGE_NAME` in index.ts. */
 const PACKAGE_NAME = '@purview-dev/astroc4';
 
 const IMPORTS = {
 	[INLINE_COMPONENT]: `${PACKAGE_NAME}/components/LikeC4Fence.astro`,
 	[PROJECT_COMPONENT]: `${PACKAGE_NAME}/components/LikeC4View.astro`,
-};
+} as const;
+
+/** The fence components a page can need. */
+type ComponentName = keyof typeof IMPORTS;
+
+/** What a fence's layout produces: the serialised model and its view ids. */
+interface Layout {
+	dump: any;
+	viewIds: string[];
+}
 
 /**
  * Compiling a snippet costs ~250ms (a Langium workspace per call) and the same
  * page is re-rendered on every dev edit, so key on the source: a build pays
  * that once per distinct snippet, not once per render.
  */
-const layoutCache = new Map();
+const layoutCache = new Map<string, Layout>();
+
+/** The `key="value"` pairs a fence's meta string can carry. */
+export interface FenceMeta {
+	title?: string;
+	description?: string;
+	height?: string;
+	collapsible?: string;
+	defaultOpen?: string;
+	view?: string;
+	[key: string]: string | undefined;
+}
 
 /** Parse `key="value"` / `key=value` pairs from the fence's meta string. */
-export function parseFenceMeta(meta) {
-	const options = {};
+export function parseFenceMeta(meta: string | null | undefined): FenceMeta {
+	const options: FenceMeta = {};
 
 	if (!meta) return options;
 
@@ -102,13 +127,16 @@ export function parseFenceMeta(meta) {
 	let match;
 
 	while ((match = pattern.exec(meta)) !== null) {
-		options[match[1]] = match[2] ?? match[3] ?? match[4] ?? '';
+		const key = match[1];
+		if (!key) continue;
+
+		options[key] = match[2] ?? match[3] ?? match[4] ?? '';
 	}
 
 	return options;
 }
 
-async function layoutSnippet(source) {
+async function layoutSnippet(source: string): Promise<Layout> {
 	const key = createHash('sha256').update(source).digest('hex');
 	const cached = layoutCache.get(key);
 
@@ -122,7 +150,7 @@ async function layoutSnippet(source) {
 		// every token it expected, which runs to hundreds of lines.
 		const detail = likec4
 			.getErrors()
-			.map((error) => String(error.message).split('\n')[0].trim())
+			.map((error) => String(error.message).split('\n')[0]?.trim() ?? '')
 			.slice(0, 3)
 			.join('; ');
 
@@ -133,14 +161,21 @@ async function layoutSnippet(source) {
 	// `$data` is the plain serialisable model; `$model` is its deprecated alias.
 	const dump = JSON.parse(JSON.stringify(model.$data));
 
-	const result = { dump, viewIds: Object.keys(dump.views ?? {}) };
+	const result: Layout = { dump, viewIds: Object.keys(dump.views ?? {}) };
 	layoutCache.set(key, result);
 
 	return result;
 }
 
+/** A JSX attribute, as the MDX compiler wants it. */
+interface JsxAttribute {
+	type: 'mdxJsxAttribute';
+	name: string;
+	value: string;
+}
+
 /** ESTree for `import <local> from '<source>';`, as the MDX compiler expects. */
-function importNode(local, source) {
+function importNode(local: string, source: string) {
 	return {
 		type: 'mdxjsEsm',
 		value: `import ${local} from ${JSON.stringify(source)};`,
@@ -163,13 +198,13 @@ function importNode(local, source) {
 	};
 }
 
-function attributes(pairs) {
+function attributes(pairs: Record<string, string | undefined>): JsxAttribute[] {
 	return Object.entries(pairs)
 		.filter(([, value]) => value !== undefined && value !== null && value !== '')
 		.map(([name, value]) => ({ type: 'mdxJsxAttribute', name, value: String(value) }));
 }
 
-function describe(fileURL) {
+function describe(fileURL: URL | undefined): string {
 	if (!fileURL) return 'a content file';
 
 	try {
@@ -180,12 +215,9 @@ function describe(fileURL) {
 }
 
 // region plugin
-/**
- * @returns {import('satteri').MdastPluginEntry}
- */
-export function likec4Fences() {
+export function likec4Fences(): MdastPluginEntry {
 	// A factory runs once per document, so `used` is safely per-file.
-	return (factory) => {
+	return (factory: PluginFactoryContext) => {
 		// Astro only supports components in .mdx. Leaving the fence as a code
 		// block is the graceful outcome, but say so — a silent code block where
 		// a diagram was intended is easy to miss in review.
@@ -207,7 +239,7 @@ export function likec4Fences() {
 
 		if (!factory.source.includes('```' + FENCE_LANG)) return null;
 
-		const used = new Set();
+		const used = new Set<ComponentName>();
 
 		return {
 			name: 'likec4-fences',
@@ -249,7 +281,9 @@ export function likec4Fences() {
 				try {
 					layout = await layoutSnippet(source);
 				} catch (error) {
-					throw new Error(`${where} is not valid LikeC4 — ${error.message}`);
+					throw new Error(
+						`${where} is not valid LikeC4 — ${error instanceof Error ? error.message : String(error)}`,
+					);
 				}
 
 				const viewId = options.view ?? layout.viewIds[0];

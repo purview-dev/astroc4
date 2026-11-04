@@ -16,6 +16,7 @@ const failures = [];
 /** Dev-server noise, not defects. */
 const IGNORED_CONSOLE = [/Outdated Optimize Dep/i, /\[vite\] (connecting|connected)/i];
 
+
 const browser = await chromium.launch();
 const page = await browser.newPage();
 
@@ -32,10 +33,10 @@ page.on('console', (message) => {
 const NODE = '[data-likec4-node], .react-flow__node';
 
 let packIconCount = 0;
-const imageIconSrcs = new Set();
+const imageIconSrcs = new Set<string>();
 
 /** Open every diagram on the page (collapsed ones never mount) and wait for nodes. */
-async function checkDiagrams(pathname, { expected }) {
+async function checkDiagrams(pathname: string, { expected }: { expected: number }): Promise<void> {
 	await page.goto(`${baseUrl}${pathname}`, { waitUntil: 'networkidle' });
 
 	const frames = page.locator('.likec4-frame');
@@ -49,7 +50,10 @@ async function checkDiagrams(pathname, { expected }) {
 		const frame = frames.nth(i);
 		const details = frame.locator('xpath=ancestor::details[1]');
 
-		if ((await details.count()) > 0 && !(await details.first().evaluate((el) => el.open))) {
+		if (
+			(await details.count()) > 0 &&
+			!(await details.first().evaluate((el) => (el as HTMLDetailsElement).open))
+		) {
 			await details.first().evaluate((el) => el.setAttribute('open', ''));
 		}
 
@@ -77,7 +81,7 @@ async function checkDiagrams(pathname, { expected }) {
 }
 
 /** Every `role="alert"` message rendered inside a diagram frame. */
-async function alertsOn(pathname) {
+async function alertsOn(pathname: string): Promise<string[]> {
 	await page.goto(`${baseUrl}${pathname}`, { waitUntil: 'networkidle' });
 	const alerts = page.locator('.likec4-frame [role="alert"]');
 	await alerts.first().waitFor({ state: 'attached', timeout: 15_000 });
@@ -85,7 +89,7 @@ async function alertsOn(pathname) {
 	return alerts.allTextContents();
 }
 
-function expectText(where, actual, expected) {
+function expectText(where: string, actual: string[], expected: string): void {
 	if (actual.some((text) => text.includes(expected))) {
 		console.log(`✓ ${where}: "${expected}"`);
 	} else {

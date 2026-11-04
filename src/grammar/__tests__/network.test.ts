@@ -10,8 +10,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { parseLangium } from '../langium.mjs';
-import { fetchLangiumSource } from '../source.mjs';
+import { parseLangium } from '../langium.js';
+import { fetchLangiumSource } from '../source.js';
 
 const enabled = process.env.ASTROC4_NETWORK === '1';
 

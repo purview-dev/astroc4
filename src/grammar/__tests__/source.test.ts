@@ -11,7 +11,7 @@ import {
 	grammarSha,
 	resolveLikeC4Grammar,
 	validateRef,
-} from '../source.mjs';
+} from '../source.js';
 
 const mini = readFileSync(new URL('../__fixtures__/mini.langium', import.meta.url), 'utf8');
 

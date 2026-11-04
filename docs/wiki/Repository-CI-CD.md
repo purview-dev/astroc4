@@ -10,7 +10,7 @@ here.
 | --- | --- |
 | `Build and test` | Calls `purview-dev/build/.github/workflows/purview-build.yml@main` — the organisation gate. `.config/purview-build.json` declares `ProjectType: Web`, so it installs with Bun, runs the build command below, then the test command. `run-pack: false` and `validate-pack: false`: this repository ships no NuGet package. |
 | `Live grammar` | `bun run test:network` — the only test that talks to likec4/likec4. |
-| `Browser smoke test` | Builds the playground, starts `astro preview`, runs `scripts/smoke.mjs` against it with Chromium installed. Uploads `preview.log` on failure. |
+| `Browser smoke test` | Builds the playground, starts `astro preview`, runs `scripts/smoke.ts` against it with Chromium installed. Uploads `preview.log` on failure. |
 | `Packed consumer site` | `bun run test:site`: pack the tarball, install it into a throwaway Starlight site and build that. |
 
 ### `.config/purview-build.json`
@@ -116,7 +116,7 @@ GitHub org name, not the same thing on npm; create it at
 <https://www.npmjs.com/org/create> if `npm org ls purview-dev` reports it
 missing). If the organisation name is unavailable, the package can live under
 the personal scope instead: `@kieronlanning/astroc4`, which changes
-`package.json` and the specifiers in `src/index.mjs` and `src/fences.mjs` only.
+`package.json` and the specifiers in `src/index.ts` and `src/fences.ts` only.
 
 The publish job runs in the GitHub **environment `npm`**, which is a deployment
 gate: a required reviewer approves each release, and the OIDC token carries
@@ -238,7 +238,7 @@ release time.
 | --- | --- |
 | `Build and test` | `just verify` — the same chain as `WebBuildCommand` then `WebTestCommand` |
 | `Live grammar` | `bun run test:network` |
-| `Browser smoke test` | `bun run preview` then `bun scripts/smoke.mjs http://localhost:4321` |
+| `Browser smoke test` | `bun run preview` then `bun scripts/smoke.ts http://localhost:4321` |
 | `Packed consumer site` | `bun run test:site` |
 
 `Justfile` wraps each of them.

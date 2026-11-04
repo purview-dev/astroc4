@@ -108,5 +108,6 @@ nearest-parent colours, which can look flat. Add rules for the scopes listed in
 It packs the package and builds a consumer site in a temp directory, so it fails
 for reasons the playground cannot see: `files` missing something, an `exports`
 subpath pointing at a file that is not published, a peer dependency not declared,
-a `.d.mts` that does not resolve against the consumer's `node_modules`. Re-run
-with `--keep` to inspect the site it built.
+a declaration that does not resolve against the consumer's `node_modules`, or a
+`dist/` file the build forgets to copy. Re-run with `--keep` to inspect the site
+it built.

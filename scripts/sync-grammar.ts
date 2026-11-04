@@ -16,15 +16,15 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 
-import { parseLangium } from '../src/grammar/langium.mjs';
+import { parseLangium } from '../src/grammar/langium.js';
 import {
 	DEFAULT_REF,
 	DEFAULT_REPO,
 	fetchLangiumSource,
 	grammarSha,
 	validateRef,
-} from '../src/grammar/source.mjs';
-import { buildTmLanguage } from '../src/grammar/textmate.mjs';
+} from '../src/grammar/source.js';
+import { buildTmLanguage } from '../src/grammar/textmate.js';
 
 const LANGIUM_FILE = new URL('../src/grammar/like-c4.langium', import.meta.url);
 const GRAMMAR_FILE = new URL('../src/grammar/likec4.tmLanguage.json', import.meta.url);
@@ -43,7 +43,7 @@ const repo = argument('--repo') ?? DEFAULT_REPO;
 try {
 	validateRef(ref);
 } catch (error) {
-	console.error(`✗ ${error.message}`);
+	console.error(`✗ ${error instanceof Error ? error.message : String(error)}`);
 	process.exit(1);
 }
 
@@ -126,7 +126,10 @@ async function sync() {
 }
 
 /** The provenance to record in the generated grammar. */
-function provenance(committed, fallback) {
+function provenance(
+	committed: { $generated?: { repo?: string; ref?: string; sha?: string } },
+	fallback: { repo: string; ref: string },
+): { repo: string; ref: string; sha: string | undefined } {
 	const generated = committed.$generated;
 
 	return {
@@ -137,8 +140,8 @@ function provenance(committed, fallback) {
 }
 
 /** Human-readable differences, so a regenerated snapshot is reviewable. */
-function diff(before, after) {
-	const differences = [];
+function diff(before: unknown, after: unknown): string[] {
+	const differences: string[] = [];
 	const keywords = new Set(wordsOf(before));
 	const next = new Set(wordsOf(after));
 
@@ -152,12 +155,12 @@ function diff(before, after) {
 }
 
 /** Every word inside a `match` alternation, for the diff above. */
-function wordsOf(grammar) {
+function wordsOf(grammar: unknown): Set<string> {
 	const source = JSON.stringify(grammar ?? {});
-	const words = new Set();
+	const words = new Set<string>();
 
 	for (const match of source.matchAll(/\\\\b\(\?:([^)]+)\)/g)) {
-		for (const word of match[1].split('|')) {
+		for (const word of (match[1] ?? '').split('|')) {
 			if (/^[A-Za-z_]\w*$/.test(word)) words.add(word);
 		}
 	}
@@ -165,7 +168,7 @@ function wordsOf(grammar) {
 	return words;
 }
 
-function argument(name) {
+function argument(name: string): string | undefined {
 	const index = args.indexOf(name);
 
 	if (index === -1) return undefined;

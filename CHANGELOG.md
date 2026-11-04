@@ -6,6 +6,37 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.0.0-prerelease.3] - 2026-11-03
+
+The package is TypeScript end to end. `src/` was JavaScript with JSDoc types plus
+hand-written `.d.mts` declaration files; it is now `.ts`, and `dist/` is built
+from it.
+
+### Changed
+
+- **Sources are TypeScript.** Every module in `src/` (the plugin, the fences, the
+  grammar derivation, the translations) is annotated TypeScript. The two
+  hand-written declaration files are gone: `tsc` generates them from the
+  implementation, so a signature can no longer drift from the code.
+- **`dist/` is the published layout.** `bun run build:lib` bundles the Node entry
+  points with Bun, emits declarations from `tsc`, and copies the two grammar data
+  files next to the bundle, where `import.meta.url` resolves them. `exports`
+  points the entry points, the grammar JSON and `./translations` at `dist/`, and
+  the components at `src/components/` — `.astro` and `.tsx` are compiled by the
+  consuming site. `dev`, `build`, `check` and `test:site` run `build:lib` first.
+- **`@purview-dev/astroc4/translations` is a public subpath.** `labels.ts` ships
+  as source and reads the strings from `dist/translations.js`, because a relative
+  import would point outside the published tree.
+- **The playground imports `dist/index.js`**, the artifact a site installs,
+  instead of resolving `src/index.mjs`. That is also the only way it works: a
+  `.ts` plugin loaded by `astro.config.mjs` ends up inside Vite's module runner,
+  whose dynamic `import()` of `@astrojs/markdown-satteri` fails with "module
+  runner has been closed".
+- The scripts in `scripts/` are TypeScript too, type-checked by `bun run check`
+  through `tsconfig.scripts.json`, and run with `bun` (`test:smoke` used `node`).
+- `test:site` now also asserts what the tarball carries: the built entry points,
+  their declarations, both grammar data files and the components as source.
+
 ## [1.0.0-prerelease.2] - 2026-11-03
 
 First version published by CI, over npm trusted publishing (OIDC): no token is

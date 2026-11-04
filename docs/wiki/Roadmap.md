@@ -27,7 +27,7 @@ DSL or name a view of the one compiled project:
   the compiled project.
 
 Nothing in Phase 1 blocks this: fences already funnel through one meta parser
-(`parseFenceMeta`), one transform (`src/fences.mjs`) and one component pair
+(`parseFenceMeta`), one transform (`src/fences.ts`) and one component pair
 (`LikeC4Fence.astro` / `LikeC4View.astro`), so a third target slots in beside
 the existing two.
 

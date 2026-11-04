@@ -19,8 +19,8 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { parseLangium } from './langium.mjs';
-import { buildTmLanguage } from './textmate.mjs';
+import { parseLangium } from './langium.js';
+import { buildTmLanguage, type TmGrammar } from './textmate.js';
 
 /** Upstream repository and the paths the grammar is read from. */
 export const DEFAULT_REPO = 'likec4/likec4';
@@ -37,59 +37,80 @@ const BUNDLED_LANGIUM = new URL('./like-c4.langium', import.meta.url);
 /** The refs a repository actually has: branches, tags, `a1b2c3d`. */
 const REF_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
 
-/** @typedef {'fail' | 'warn' | 'silent'} OnError */
+export type OnError = 'fail' | 'warn' | 'silent';
 
-/**
- * @typedef {object} GrammarSourceOptions
- * @property {string} [repo] Repository to read from. Defaults to likec4/likec4.
- * @property {string} [ref] Branch, tag or commit SHA. Defaults to `main`.
- * @property {boolean} [offline] Use the bundled snapshot, never the network.
- * @property {OnError} [onError] What to do when the grammar cannot be fetched.
- * @property {number} [cacheTtl] Seconds a cached fetch stays fresh.
- * @property {boolean} [refresh] Ignore the cache and refetch.
- * @property {string} [baseUrl] Raw file host, for mirrors and proxies.
- * @property {number} [timeout] Request timeout in milliseconds.
- * @property {string} [root] Site root, for the default cache directory.
- * @property {string} [cacheDir] Where to cache, overriding the default.
- * @property {NodeJS.ProcessEnv} [env] Environment, for `ASTROC4_*` overrides.
- * @property {{ info?: Function, warn?: Function }} [logger] Astro's logger.
- * @property {typeof fetch} [fetchImpl] Injected in tests.
- * @property {string} [bundledLangiumPath] Bundled Langium text, for tests.
- */
+/** Everything the resolver accepts. The site only ever sets a few of these. */
+export interface GrammarSourceOptions {
+	/** Repository to read from. Defaults to likec4/likec4. */
+	repo?: string;
+	/** Branch, tag or commit SHA. Defaults to `main`. */
+	ref?: string;
+	/** Use the bundled snapshot, never the network. */
+	offline?: boolean;
+	/** What to do when the grammar cannot be fetched. */
+	onError?: OnError;
+	/** Seconds a cached fetch stays fresh. */
+	cacheTtl?: number;
+	/** Ignore the cache and refetch. */
+	refresh?: boolean;
+	/** Raw file host, for mirrors and proxies. */
+	baseUrl?: string;
+	/** Request timeout in milliseconds. */
+	timeout?: number;
+	/** Site root, for the default cache directory. */
+	root?: string;
+	/** Where to cache, overriding the default. */
+	cacheDir?: string;
+	/** Environment, for `ASTROC4_*` overrides. */
+	env?: NodeJS.ProcessEnv;
+	/** Astro's logger. */
+	logger?: { info?: (message: string) => void; warn?: (message: string) => void };
+	/** Injected in tests. */
+	fetchImpl?: typeof fetch;
+	/** Bundled Langium text, for tests. */
+	bundledLangiumPath?: string;
+}
 
-/**
- * @typedef {object} GrammarMeta
- * @property {string} repo
- * @property {string} ref
- * @property {'network' | 'cache' | 'bundled'} source Where it came from.
- * @property {number} fetchedAt
- * @property {string} [etag]
- * @property {string} sha Content hash of the Langium source.
- * @property {string} [reason] Why the bundled snapshot was used.
- */
+/** Where a grammar came from, for logs and tests. */
+export interface GrammarMeta {
+	repo: string;
+	ref: string;
+	/** Where it came from. */
+	source: 'network' | 'cache' | 'bundled';
+	fetchedAt: number;
+	etag?: string | undefined;
+	/** Content hash of the Langium source. */
+	sha: string;
+	/** Why the bundled snapshot was used. */
+	reason?: string;
+}
 
-/**
- * @typedef {object} GrammarSource
- * @property {Record<string, unknown>} grammar The TextMate grammar for Shiki.
- * @property {string} langium The Langium source it was derived from.
- * @property {GrammarMeta} meta Where it came from, for logs and tests.
- */
+export interface GrammarSource {
+	/** The TextMate grammar for Shiki. */
+	grammar: TmGrammar;
+	/** The Langium source it was derived from. */
+	langium: string;
+	/** Where it came from, for logs and tests. */
+	meta: GrammarMeta;
+}
+
+/** A repo and ref, which is all a cache entry is keyed on. */
+interface GrammarIdentity {
+	repo: string;
+	ref: string;
+}
 
 /** Raised for a ref this repository cannot have — always a user error. */
 export class GrammarRefError extends Error {
-	name = 'GrammarRefError';
+	override name = 'GrammarRefError';
 }
 
 /** Raised when the grammar could not be fetched, or came back unusable. */
 export class GrammarFetchError extends Error {
-	name = 'GrammarFetchError';
+	override name = 'GrammarFetchError';
 }
 
-/**
- * @param {GrammarSourceOptions} [options]
- * @returns {Promise<GrammarSource>}
- */
-export async function resolveLikeC4Grammar(options = {}) {
+export async function resolveLikeC4Grammar(options: GrammarSourceOptions = {}): Promise<GrammarSource> {
 	const env = options.env ?? process.env;
 	const repo = options.repo ?? DEFAULT_REPO;
 	const ref = env.ASTROC4_REF || options.ref || DEFAULT_REF;
@@ -147,23 +168,27 @@ export async function resolveLikeC4Grammar(options = {}) {
 			);
 		}
 
-		await writeCache(options, { repo, ref }, { ...cache, fresh: true });
+		await writeCache(options, { repo, ref }, cache);
 
 		return derive(cache.langium, { repo, ref, source: 'cache', fetchedAt: cache.fetchedAt, etag: cache.etag });
 	}
 
 	const result = derive(fetched.text, { repo, ref, source: 'network', etag: fetched.etag });
-	await writeCache(options, { repo, ref }, { ...result, langium: fetched.text, etag: fetched.etag });
+	await writeCache(options, { repo, ref }, { langium: fetched.text, etag: fetched.etag });
 
 	return result;
 }
 
-/**
- * @param {string} langium
- * @param {{ repo: string, ref: string, source: 'network' | 'cache' | 'bundled', fetchedAt?: number, etag?: string }} info
- * @returns {GrammarSource}
- */
-function derive(langium, info) {
+/** Where a derivation came from, before it becomes `GrammarMeta`. */
+interface DeriveInfo {
+	repo: string;
+	ref: string;
+	source: 'network' | 'cache' | 'bundled';
+	fetchedAt?: number;
+	etag?: string | undefined;
+}
+
+function derive(langium: string, info: DeriveInfo): GrammarSource {
 	let vocabulary;
 
 	try {
@@ -197,11 +222,9 @@ function derive(langium, info) {
  * the committed `like-c4.langium`, so it matches `likec4.tmLanguage.json` (the
  * snapshot test asserts exactly that). Its provenance is the snapshot's own,
  * not the ref that was asked for.
- * @param {string} reason Why it is being used, surfaced in logs.
- * @param {GrammarSourceOptions} options
- * @returns {Promise<GrammarSource>}
+ * @param reason Why it is being used, surfaced in logs.
  */
-async function bundled(reason, options) {
+async function bundled(reason: string, options: GrammarSourceOptions): Promise<GrammarSource> {
 	const path = options.bundledLangiumPath ?? fileURLToPath(BUNDLED_LANGIUM);
 	const snapshot = await bundledProvenance();
 
@@ -217,7 +240,7 @@ async function bundled(reason, options) {
 }
 
 /** `$generated` from the shipped grammar, so logs name the real snapshot. */
-async function bundledProvenance() {
+async function bundledProvenance(): Promise<{ repo?: string; ref?: string }> {
 	try {
 		const { $generated } = JSON.parse(await readFile(fileURLToPath(BUNDLED_GRAMMAR), 'utf8'));
 
@@ -228,7 +251,7 @@ async function bundledProvenance() {
 }
 
 /** Short content hash — the identity that actually changes highlighting. */
-export function grammarSha(source) {
+export function grammarSha(source: string): string {
 	return createHash('sha256').update(source).digest('hex').slice(0, 12);
 }
 
@@ -236,9 +259,8 @@ export function grammarSha(source) {
 
 /**
  * Rejects anything that cannot name a ref, before it reaches the network.
- * @param {string} ref
  */
-export function validateRef(ref) {
+export function validateRef(ref: string): string {
 	if (typeof ref !== 'string' || ref.length === 0) {
 		throw new GrammarRefError('the LikeC4 grammar `ref` must be a branch, tag or commit SHA');
 	}
@@ -257,11 +279,12 @@ export function validateRef(ref) {
 
 // region fetch
 
-/**
- * @param {GrammarSourceOptions & { repo: string, ref: string, etag?: string }} options
- * @returns {Promise<{ text: string, etag?: string } | { notModified: true }>}
- */
-export async function fetchLangiumSource(options) {
+/** What a fetch returns: the text, or the news that the ETag still matches. */
+export type FetchResult = { text: string; etag?: string | undefined } | { notModified: true };
+
+export async function fetchLangiumSource(
+	options: GrammarSourceOptions & { repo: string; ref: string; etag?: string | undefined },
+): Promise<FetchResult> {
 	const repo = options.repo;
 	const ref = options.ref;
 	const baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
@@ -269,8 +292,7 @@ export async function fetchLangiumSource(options) {
 	const timeout = options.timeout ?? 15_000;
 	const request = options.fetchImpl ?? fetch;
 
-	/** @type {Record<string, string>} */
-	const headers = { 'user-agent': 'astroc4', accept: 'text/plain' };
+	const headers: Record<string, string> = { 'user-agent': 'astroc4', accept: 'text/plain' };
 	if (options.etag) headers['if-none-match'] = options.etag;
 
 	let response;
@@ -317,10 +339,8 @@ export async function fetchLangiumSource(options) {
 /**
  * Cache location: `node_modules/.cache/astroc4`, which every Astro project
  * already ignores. One file per repo@ref, so switching `ref` never thrashes.
- * @param {GrammarSourceOptions} options
- * @param {{ repo: string, ref: string }} identity
  */
-function cachePath(options, identity) {
+function cachePath(options: GrammarSourceOptions, identity: GrammarIdentity): string {
 	const dir =
 		options.cacheDir ?? join(options.root ?? process.cwd(), 'node_modules', '.cache', 'astroc4');
 	const key = createHash('sha256').update(`${identity.repo}@${identity.ref}`).digest('hex').slice(0, 16);
@@ -328,12 +348,20 @@ function cachePath(options, identity) {
 	return join(dir, `grammar-${key}.json`);
 }
 
-/**
- * @param {GrammarSourceOptions} options
- * @param {{ repo: string, ref: string }} identity
- * @returns {Promise<{ langium: string, etag?: string, fetchedAt: number, fresh: boolean } | undefined>}
- */
-async function readCache(options, identity) {
+/** What a cache file holds. */
+type CacheWriteEntry = { langium: string; etag?: string | undefined };
+/** A cache entry, plus whether it is still inside its TTL. */
+interface CacheEntry extends CacheWriteEntry {
+	fetchedAt: number;
+}
+interface FreshCacheEntry extends CacheEntry {
+	fresh: boolean;
+}
+
+async function readCache(
+	options: GrammarSourceOptions,
+	identity: GrammarIdentity,
+): Promise<FreshCacheEntry | undefined> {
 	let raw;
 
 	try {
@@ -368,11 +396,12 @@ async function readCache(options, identity) {
 /**
  * Best effort: a read-only `node_modules` must not fail a build, it only means
  * the next one has to fetch again.
- * @param {GrammarSourceOptions} options
- * @param {{ repo: string, ref: string }} identity
- * @param {{ langium: string, etag?: string }} entry
  */
-async function writeCache(options, identity, entry) {
+async function writeCache(
+	options: GrammarSourceOptions,
+	identity: GrammarIdentity,
+	entry: CacheWriteEntry,
+): Promise<void> {
 	const path = cachePath(options, identity);
 	const temporary = `${path}.${process.pid}.tmp`;
 
@@ -402,7 +431,7 @@ async function writeCache(options, identity, entry) {
 
 // endregion
 
-function isTruthy(value) {
+function isTruthy(value: string | undefined): boolean {
 	return typeof value === 'string' && /^(1|true|yes|on)$/i.test(value.trim());
 }
 

@@ -51,7 +51,7 @@ test-site:
 # Browser smoke test against a running preview server (start `just preview` first)
 [group('Verify')]
 smoke url="http://localhost:4321":
-    bun scripts/smoke.mjs {{url}}
+    bun scripts/smoke.ts {{url}}
 
 # Fail if the committed grammar snapshot is stale
 [group('Grammar')]
@@ -61,7 +61,7 @@ grammar-check:
 # Regenerate the grammar snapshot from likec4/likec4 (default ref: main)
 [group('Grammar')]
 grammar-sync ref="main":
-    bun scripts/sync-grammar.mjs --ref {{ref}}
+    bun scripts/sync-grammar.ts --ref {{ref}}
 
 # Validate the playground's LikeC4 model
 [group('Grammar')]

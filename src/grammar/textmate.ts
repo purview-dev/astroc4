@@ -4,10 +4,10 @@
 // from the live Langium grammar (./langium.mjs).
 //
 // Two layers:
-//   - generated — every word list: blocks, keywords, property names and closed
+//   - generated â€” every word list: blocks, keywords, property names and closed
 //     value domains. These are exactly the lists that go stale when the
 //     language grows (`agent` was added to `ElementShape` after v1.59.4).
-//   - structural — how LikeC4 source is *shaped* rather than which words it
+//   - structural â€” how LikeC4 source is *shaped* rather than which words it
 //     uses: comments, quoted and triple-quoted strings, `#tag` vs `#hex`,
 //     `tech:astro` icons, `-[https]->` arrows, `element system` declarations.
 //     These are curated here because a Langium rule does not say how a token
@@ -16,6 +16,8 @@
 // The result must stay plain JSON: Expressive Code JSON-round-trips integration
 // options before the `<Code>` component renders them, and throws on functions
 // or RegExp instances.
+
+import type { Vocabulary } from './langium.js';
 
 /** Scope name of the grammar, as upstream's VS Code extension uses it. */
 export const SCOPE_NAME = 'source.likec4';
@@ -55,43 +57,46 @@ const VARIABLE_DOMAINS = ['Participant'];
 /** Operators whose scope is a word, kept curated: they are not all literals. */
 const OPERATOR_WORDS = ['and', 'or', 'not', 'is'];
 
-/** Used when the grammar cannot be read — never expected, never silent. */
+/** Used when the grammar cannot be read â€” never expected, never silent. */
 const FALLBACK_ICON_PACKS = ['aws', 'azure', 'bootstrap', 'gcp', 'tech'];
 
-/**
- * @typedef {object} TmPattern
- * @property {string} [name]
- * @property {string} [comment]
- * @property {string} [include]
- * @property {string} [match]
- * @property {string} [begin]
- * @property {string} [end]
- * @property {string} [contentName]
- * @property {Record<string, { name: string }>} [captures]
- * @property {Record<string, { name: string }>} [beginCaptures]
- * @property {Record<string, { name: string }>} [endCaptures]
- * @property {TmPattern[]} [patterns]
- */
+/** One TextMate pattern. `match`/`begin`/`end` are regex *source*, not `RegExp`. */
+export interface TmPattern {
+	name?: string;
+	comment?: string;
+	include?: string;
+	match?: string;
+	begin?: string;
+	end?: string;
+	contentName?: string;
+	captures?: Record<string, { name: string }>;
+	beginCaptures?: Record<string, { name: string }>;
+	endCaptures?: Record<string, { name: string }>;
+	patterns?: TmPattern[];
+}
 
-/**
- * A TextMate grammar: JSON all the way down, never a `RegExp`.
- * @typedef {object} TmGrammar
- * @property {string} $schema
- * @property {string} name
- * @property {string} displayName
- * @property {string} scopeName
- * @property {string[]} fileTypes
- * @property {TmPattern[]} patterns
- * @property {Record<string, any>} repository
- * @property {{ repo: string, ref: string, sha?: string, by: string }} [$generated]
- */
+/** A TextMate grammar: JSON all the way down, never a `RegExp`. */
+export interface TmGrammar {
+	$schema: string;
+	name: string;
+	displayName: string;
+	scopeName: string;
+	fileTypes: string[];
+	patterns: TmPattern[];
+	// Each repository entry is a pattern group; the tests index into them.
+	repository: Record<string, any>;
+	$generated?: { repo: string; ref: string; sha?: string; by: string };
+}
 
-/**
- * @param {import('./langium.mjs').Vocabulary} vocabulary
- * @param {{ repo?: string, ref?: string, sha?: string }} [meta] Provenance.
- * @returns {TmGrammar} A TextMate grammar, JSON-serialisable.
- */
-export function buildTmLanguage(vocabulary, meta = {}) {
+/** Where the grammar came from, written into the snapshot's `$generated`. */
+export interface TmProvenance {
+	repo?: string;
+	ref?: string;
+	sha?: string;
+}
+
+/** Turns a vocabulary into a TextMate grammar, JSON-serialisable. */
+export function buildTmLanguage(vocabulary: Vocabulary, meta: TmProvenance = {}): TmGrammar {
 	const control = uniqueDomain(vocabulary, KEYWORD_DOMAINS);
 	const variables = uniqueDomain(vocabulary, VARIABLE_DOMAINS);
 	const icons = vocabulary.icons.length > 0 ? vocabulary.icons : FALLBACK_ICON_PACKS;
@@ -100,8 +105,7 @@ export function buildTmLanguage(vocabulary, meta = {}) {
 	// instanceOf a` must not paint `instanceOf` as a type.
 	const reserved = alternationOf([...vocabulary.keywords, ...vocabulary.blocks, ...control]);
 
-	/** @type {TmGrammar} */
-	const grammar = {
+	const grammar: TmGrammar = {
 		$schema: TMLANGUAGE_SCHEMA,
 		...(meta.repo && meta.ref
 			? {
@@ -109,7 +113,7 @@ export function buildTmLanguage(vocabulary, meta = {}) {
 						repo: meta.repo,
 						ref: meta.ref,
 						...(meta.sha ? { sha: meta.sha } : {}),
-						by: 'astroc4/scripts/sync-grammar.mjs',
+						by: 'astroc4/scripts/sync-grammar.ts',
 					},
 				}
 			: {}),
@@ -155,7 +159,7 @@ export function buildTmLanguage(vocabulary, meta = {}) {
 			repo: meta.repo,
 			ref: meta.ref,
 			...(meta.sha ? { sha: meta.sha } : {}),
-			by: 'astroc4/scripts/sync-grammar.mjs',
+			by: 'astroc4/scripts/sync-grammar.ts',
 		};
 	}
 
@@ -182,11 +186,11 @@ function comments() {
 }
 
 /**
- * `'…'`, `"…"`, and the markdown strings `''' … '''` / `""" … """` that
+ * `'â€¦'`, `"â€¦"`, and the markdown strings `''' â€¦ '''` / `""" â€¦ """` that
  * LikeC4 uses for descriptions.
  */
 function strings() {
-	const triple = (quote) => ({
+	const triple = (quote: string): TmPattern => ({
 		name: 'string.quoted.triple.likec4',
 		begin: quote.repeat(3),
 		end: quote.repeat(3),
@@ -194,7 +198,7 @@ function strings() {
 		endCaptures: { 0: { name: 'punctuation.definition.string.end.likec4' } },
 	});
 
-	const single = (quote, name) => ({
+	const single = (quote: string, name: string): TmPattern => ({
 		name,
 		begin: quote,
 		end: `${quote}|$`,
@@ -220,11 +224,10 @@ function urls() {
 /**
  * Icon ids (`tech:astro`, `aws:lambda`). The packs come from the `LIB_ICON`
  * terminal, so a pack added upstream highlights without touching this package.
- * @param {string[]} packs
  */
-function iconIds(packs) {
+function iconIds(packs: string[]): TmPattern {
 	return {
-		comment: 'Bundled icon ids: `tech:nginx`, `aws:…`, `gcp:…`, …',
+		comment: 'Bundled icon ids: `tech:nginx`, `aws:â€¦`, `gcp:â€¦`, â€¦',
 		match: `\\b(${alternationOf(packs)})(:)([\\w-]+)`,
 		captures: {
 			1: { name: 'support.constant.icon-pack.likec4' },
@@ -234,7 +237,7 @@ function iconIds(packs) {
 	};
 }
 
-/** `#0046BE` is a colour, `#compute` is a tag — hex first, so it wins. */
+/** `#0046BE` is a colour, `#compute` is a tag â€” hex first, so it wins. */
 function hexColours() {
 	return {
 		name: 'constant.other.color.rgb-value.hex.likec4',
@@ -246,7 +249,7 @@ function tags() {
 	return { name: 'entity.name.tag.likec4', match: '#[A-Za-z_][\\w-]*' };
 }
 
-/** `a -[https]-> b` — the relationship kind inside the connector. */
+/** `a -[https]-> b` â€” the relationship kind inside the connector. */
 function typedArrow() {
 	return {
 		comment: '`a -[https]-> b`',
@@ -264,11 +267,11 @@ function typedArrow() {
  * referred to is not. Runs before the keyword patterns so `element system`
  * reads as a declaration rather than as two keywords.
  *
- * @param {string} reserved Alternation of syntax words (`instanceOf`, `extend`,
- *   …), so `deployed = instanceOf a` scopes `instanceOf` as a keyword rather
- *   than as the element kind the name is being assigned.
+ * `reserved` is the alternation of syntax words (`instanceOf`, `extend`, â€¦), so
+ * `deployed = instanceOf a` scopes `instanceOf` as a keyword rather than as the
+ * element kind the name is being assigned.
  */
-function declarations(reserved) {
+function declarations(reserved: string): TmPattern {
 	const notReserved = reserved ? `(?!(?:${reserved})\\b)` : '';
 
 	return {
@@ -322,22 +325,20 @@ function declarations(reserved) {
  * operator words before keywords (`is`, `not`), variables before value domains
  * (so `source`/`target` stay variables even though `RankValue` reuses `source`).
  *
- * @param {import('./langium.mjs').Vocabulary & { control: string[], variables: string[] }} vocabulary
  */
-function keywords(vocabulary) {
-	/** @type {Record<string, unknown>[]} */
-	const patterns = [];
+function keywords(vocabulary: Vocabulary & { control: string[]; variables: string[] }): TmPattern {
+	const patterns: TmPattern[] = [];
 
 	const blocks = alternationOf(vocabulary.blocks);
 	if (blocks) {
 		patterns.push({
-			comment: 'Keywords that open a block: `model { … }`.',
+			comment: 'Keywords that open a block: `model { â€¦ }`.',
 			name: 'keyword.control.block.likec4',
 			match: `\\b(?:${blocks})\\b(?=\\s*\\{)`,
 		});
 	}
 
-	// Blocks repeat in the keyword list on purpose: `predicateGroup mine { … }`
+	// Blocks repeat in the keyword list on purpose: `predicateGroup mine { â€¦ }`
 	// is not followed by `{`, and still has to colour as a keyword. The block
 	// pattern above wins wherever the brace is there.
 	const control = alternationOf([...vocabulary.keywords, ...vocabulary.control, ...vocabulary.blocks]);
@@ -377,10 +378,9 @@ function numbers() {
 
 /**
  * Relationship connectors, longest first so `]->` wins over `->`.
- * @param {string[]} arrows
  */
-function operators(arrows) {
-	const patterns = [];
+function operators(arrows: string[]): TmPattern {
+	const patterns: TmPattern[] = [];
 
 	const connectors = alternationOf(arrows);
 	if (connectors) {
@@ -411,10 +411,8 @@ function punctuation() {
  * Every value of the named domains, deduplicated and sorted. Missing domains
  * are skipped rather than failing: upstream is free to rename a rule, and a
  * renamed domain still reaches the grammar through `keywords`.
- * @param {import('./langium.mjs').Vocabulary} vocabulary
- * @param {string[]} names
  */
-function uniqueDomain(vocabulary, names) {
+function uniqueDomain(vocabulary: Vocabulary, names: string[]): string[] {
 	const values = names.flatMap((name) => vocabulary.enums[name] ?? []);
 
 	return [...new Set(values)].sort((a, b) => a.localeCompare(b));
@@ -423,13 +421,12 @@ function uniqueDomain(vocabulary, names) {
 /**
  * `['a', 'b']` -> `a|b`, escaped for a TextMate regex. Returns '' for an empty
  * list so callers can skip the pattern instead of emitting `\b(?:)\b`.
- * @param {string[]} values
  */
-function alternationOf(values) {
+function alternationOf(values: string[]): string {
 	return values.map(escapeRegExp).join('|');
 }
 
-function escapeRegExp(value) {
+function escapeRegExp(value: string): string {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 

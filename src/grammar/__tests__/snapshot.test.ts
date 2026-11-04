@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { parseLangium } from '../langium.mjs';
-import { grammarSha } from '../source.mjs';
-import { buildTmLanguage } from '../textmate.mjs';
+import { parseLangium } from '../langium.js';
+import { grammarSha } from '../source.js';
+import { buildTmLanguage } from '../textmate.js';
 
 const langium = readFileSync(new URL('../like-c4.langium', import.meta.url), 'utf8');
 const committed = JSON.parse(readFileSync(new URL('../likec4.tmLanguage.json', import.meta.url), 'utf8'));
@@ -21,7 +21,7 @@ describe('the committed grammar snapshot', () => {
 			repo: 'likec4/likec4',
 			ref: expect.any(String),
 			sha: grammarSha(langium),
-			by: 'astroc4/scripts/sync-grammar.mjs',
+			by: 'astroc4/scripts/sync-grammar.ts',
 		});
 	});
 });

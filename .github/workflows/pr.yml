@@ -90,7 +90,7 @@ jobs:
             sleep 1
           done
 
-          bun scripts/smoke.mjs http://localhost:4321
+          bun scripts/smoke.ts http://localhost:4321
 
       - name: Preview log
         if: failure()
@@ -112,7 +112,8 @@ jobs:
       # What ships, not what is in the working tree: `npm pack`, then a
       # throwaway Starlight site outside the repository installs the tarball
       # from the registry, type-checks against its declaration files and
-      # builds. The playground self-references the package through `exports`,
-      # so it cannot catch a broken `files` field or a missing `.d.mts`.
+      # builds. The playground imports `dist/` from the repository, so it cannot
+      # catch a broken `files` field, a missing `dist/` file, or an `exports`
+      # subpath that does not resolve.
       - name: Build a real Starlight site from the packed package
         run: bun run test:site

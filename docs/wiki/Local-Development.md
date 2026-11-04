@@ -13,15 +13,16 @@ pack step.
 
 | Script | What it does |
 | --- | --- |
-| `bun run dev` | Playground dev server on port 4321. |
-| `bun run build` | Static build of the playground. |
+| `bun run build:lib` | Bundle `src/` into `dist/` (Bun for the JS, `tsc` for the `.d.ts`, plus the two grammar data files). |
+| `bun run dev` | `build:lib`, then the playground dev server on port 4321. |
+| `bun run build` | `build:lib`, then a static build of the playground. |
 | `bun run preview` | Serve the built playground. |
-| `bun run check` | `astro check` over `playground/` and `src/` (the tsconfig includes `../src`). |
+| `bun run check` | `astro check` over `playground/` and `src/`, then `tsc` over `scripts/`. |
 | `bun run test` | Vitest: the scanner, the generator, the snapshot, the fetch policy, the plugin hooks, the fence transform. Hermetic. |
 | `bun run test:watch` | The same, in watch mode. |
 | `bun run test:network` | Adds the live check against `likec4/likec4`. The only test that needs the network. |
-| `bun run test:site` | `npm pack`, then build a throwaway Starlight site from the tarball. Needs the registry. |
-| `bun run test:smoke` | `scripts/smoke.mjs` against a running server (Playwright). |
+| `bun run test:site` | `build:lib`, `npm pack`, then build a throwaway Starlight site from the tarball. Needs the registry. |
+| `bun run test:smoke` | `scripts/smoke.ts` against a running server (Playwright). |
 | `bun run grammar:sync` | Regenerate `src/grammar/like-c4.langium` + `likec4.tmLanguage.json` from `main`. `--ref <tag>` for a release. |
 | `bun run grammar:check` | Fail if the committed snapshot is stale. |
 | `bun run likec4:validate` | `likec4 validate` over the playground model. |
@@ -35,7 +36,7 @@ route.
 ```sh
 bun run test && bun run check && bun run build
 bun run preview &
-bun scripts/smoke.mjs http://localhost:4321
+bun scripts/smoke.ts http://localhost:4321
 ```
 
 The static build passes even when islands fail to hydrate, so the smoke test is
@@ -43,13 +44,13 @@ not optional: it is the only thing that proves the diagrams draw, the icons
 resolve, the fences became diagrams and the highlighting reached Expressive Code
 (it asserts at least four colours per code block).
 
-For anything that touches packaging — `exports`, `files`, a new `.d.mts`, a peer
-dependency — also run `bun run test:site`. The playground resolves the package by
-name from the repository itself, so it cannot see a broken tarball.
+For anything that touches packaging — `exports`, `files`, a peer dependency, how
+`dist/` is laid out — also run `bun run test:site`. The playground imports
+`dist/index.js` from the repository, so it cannot see a broken tarball.
 
 ## Working on the grammar
 
-1. Change `src/grammar/langium.mjs` or `src/grammar/textmate.mjs`.
+1. Change `src/grammar/langium.ts` or `src/grammar/textmate.ts`.
 2. `bun run test` — `snapshot.test.ts` will fail, because the committed JSON no
    longer matches its derivation.
 3. `bun run grammar:sync` and commit both files.

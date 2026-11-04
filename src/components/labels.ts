@@ -4,7 +4,10 @@
 // the server and pass the islands plain strings, because `Astro.locals.t` does
 // not exist in the browser.
 
-import { translations } from '../translations.mjs';
+// The package name, not a relative path: this file ships as source inside
+// `src/components/`, and the strings it needs live in `dist/translations.js`.
+// A relative `../translations.js` would point outside the published tree.
+import { translations } from '@purview-dev/astroc4/translations';
 
 export type TranslationKey = keyof (typeof translations)['en'];
 export type Translate = (key: TranslationKey) => string;

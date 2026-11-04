@@ -155,6 +155,6 @@ grep -o 'data-language="c4"' dist/**/*.html | head
 
 Expressive Code emits `<pre data-language="c4">` with per-token colour variables
 (`--0:#…`). One colour means the grammar never reached Shiki; several means it
-did. `scripts/smoke.mjs`, which CI runs, asserts at least four distinct colours
+did. `scripts/smoke.ts`, which CI runs, asserts at least four distinct colours
 per block in a real browser.
 

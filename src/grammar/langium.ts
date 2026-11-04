@@ -22,30 +22,51 @@ const NOT_VALUE_DOMAINS = /Id$/;
 /** Property names the grammar matches as `key='…'` assignments. */
 const PROPERTY_SUPPLEMENTS = ['kind', 'tag'];
 
-/**
- * @typedef {object} Terminal
- * @property {boolean} hidden
- * @property {'regex' | 'literal'} kind
- * @property {string} value Raw regex source (without slashes) or literal.
- */
+/** A token produced by the scanner. */
+export type TokenType = 'literal' | 'regex' | 'ident' | 'punct';
+export interface Token {
+	type: TokenType;
+	value: string;
+}
 
-/**
- * @typedef {object} Vocabulary
- * @property {string[]} blocks Keywords that open a `{ … }` block.
- * @property {string[]} keywords Every remaining word-like literal.
- * @property {string[]} properties Property names from `key='…'` assignments.
- * @property {string[]} arrows Relationship connectors containing `->`.
- * @property {Record<string, string[]>} enums `returns string` value domains.
- * @property {string[]} icons Icon packs from the `LIB_ICON` terminal.
- * @property {string[]} booleans Literals from the `BOOLEAN` terminal.
- * @property {number} ruleCount Parser rules seen — used for sanity checks.
- */
+/** A `terminal` rule, with its value as written. */
+export interface Terminal {
+	hidden: boolean;
+	kind: 'regex' | 'literal';
+	/** Raw regex source (without slashes) or the literal. */
+	value: string;
+}
 
-/**
- * @param {string} source
- * @returns {Vocabulary}
- */
-export function parseLangium(source) {
+/** A parser rule, fragment or terminal, as the scanner reads it. */
+export interface Rule {
+	name: string;
+	kind: 'rule' | 'fragment' | 'terminal';
+	hidden: boolean;
+	returns?: string | undefined;
+	tokens: Token[];
+}
+
+/** Everything the TextMate generator needs to know about the language. */
+export interface Vocabulary {
+	/** Keywords that open a `{ … }` block. */
+	blocks: string[];
+	/** Every remaining word-like literal. */
+	keywords: string[];
+	/** Property names from `key='…'` assignments. */
+	properties: string[];
+	/** Relationship connectors containing `->`. */
+	arrows: string[];
+	/** `returns string` value domains, by rule name. */
+	enums: Record<string, string[]>;
+	/** Icon packs from the `LIB_ICON` terminal. */
+	icons: string[];
+	/** Literals from the `BOOLEAN` terminal. */
+	booleans: string[];
+	/** Parser rules seen — used for sanity checks. */
+	ruleCount: number;
+}
+
+export function parseLangium(source: string): Vocabulary {
 	// `grammar LikeC4` is a header, not a rule, and it has no `;`: leaving it in
 	// would glue it to the first real rule and hide that rule from the scanner.
 	const statements = splitStatements(
@@ -101,9 +122,8 @@ export function parseLangium(source) {
 /**
  * Blank out `//` and block comments. String and regex literals are copied
  * verbatim, because a `//` inside `/https?:\/\//` is not a comment.
- * @param {string} source
  */
-function stripComments(source) {
+function stripComments(source: string): string {
 	let out = '';
 	let i = 0;
 
@@ -146,7 +166,7 @@ function stripComments(source) {
 }
 
 /** Index just past the quoted literal that opens at `start`. */
-function endOfString(source, start) {
+function endOfString(source: string, start: number): number {
 	const quote = source[start];
 	let i = start + 1;
 
@@ -163,7 +183,7 @@ function endOfString(source, start) {
 }
 
 /** Index just past the regex literal that opens at `start`. */
-function endOfRegex(source, start) {
+function endOfRegex(source: string, start: number): number {
 	let i = start + 1;
 	let inClass = false;
 
@@ -188,10 +208,9 @@ function endOfRegex(source, start) {
  * Split on the `;` that ends each rule, ignoring the ones inside strings,
  * regexes and `{ … }` — interfaces have fields, and rules have `{infer X}`
  * actions, both of which can contain semicolons.
- * @param {string} source
  */
-function splitStatements(source) {
-	const statements = [];
+function splitStatements(source: string): string[] {
+	const statements: string[] = [];
 	let depth = 0;
 	let start = 0;
 	let i = 0;
@@ -225,7 +244,7 @@ function splitStatements(source) {
 	return statements.filter((statement) => statement.trim().length > 0);
 }
 
-const HEADERS = [
+const HEADERS: { kind: 'rule' | 'fragment' | 'terminal'; hidden: boolean; pattern: RegExp }[] = [
 	// `hidden terminal WS: /[ \t]+/`
 	{ kind: 'terminal', hidden: true, pattern: /^\s*hidden\s+terminal\s+([A-Za-z_]\w*)\s*(?:<[^>]*>)?\s*:/ },
 	// `terminal LIB_ICON: /…/`, `terminal fragment HASH: '#'`
@@ -245,17 +264,14 @@ const HEADERS = [
 	},
 ];
 
-/**
- * @param {string} statement
- * @returns {{ name: string, kind: 'rule' | 'fragment' | 'terminal', hidden: boolean, returns?: string, tokens: Token[] } | undefined}
- */
-function readStatement(statement) {
+function readStatement(statement: string): Rule | undefined {
 	for (const header of HEADERS) {
 		const match = header.pattern.exec(statement);
-		if (!match) continue;
+		const name = match?.[1];
+		if (!match || !name) continue;
 
 		return {
-			name: match[1],
+			name,
 			kind: header.kind,
 			hidden: header.hidden,
 			returns: header.kind === 'rule' ? match[2] : undefined,
@@ -266,22 +282,12 @@ function readStatement(statement) {
 	return undefined;
 }
 
-/**
- * @typedef {'literal' | 'regex' | 'ident' | 'punct'} TokenType
- * @typedef {{ type: TokenType, value: string }} Token
- */
-
-/**
- * @param {string} body
- * @returns {Token[]}
- */
-function tokenize(body) {
-	/** @type {Token[]} */
-	const tokens = [];
+function tokenize(body: string): Token[] {
+	const tokens: Token[] = [];
 	let i = 0;
 
 	while (i < body.length) {
-		const char = body[i];
+		const char = body.charAt(i);
 
 		if (/\s/.test(char)) {
 			i++;
@@ -319,7 +325,7 @@ function tokenize(body) {
 }
 
 /** Strip the quotes and resolve the escapes Langium allows in literals. */
-function unquote(quoted) {
+function unquote(quoted: string): string {
 	const inner = quoted.slice(1, -1);
 	let out = '';
 
@@ -348,20 +354,21 @@ function unquote(quoted) {
  * block. The first literal of the rule is the keyword, and it only counts when
  * the rule reaches a `{` without branching first: `'element' kind=ElementKind
  * ('{' …)` has an optional body, so `element` stays a keyword.
- * @param {{ tokens: Token[] }[]} rules
  */
-function findBlocks(rules) {
+function findBlocks(rules: Rule[]): string[] {
 	return unique(
 		rules.flatMap((rule) => {
 			const tokens = rule.tokens;
 			const first = tokens.findIndex((token) => token.type === 'literal');
-			const keyword = first === -1 ? undefined : tokens[first].value;
+			const keyword = first === -1 ? undefined : tokens[first]?.value;
 
 			if (!keyword || keyword === '{' || !/^[A-Za-z_]\w*$/.test(keyword)) return [];
 
 			for (let i = first + 1; i < tokens.length; i++) {
-				if (tokens[i].value === '(' || tokens[i].value === '|') return [];
-				if (tokens[i].type === 'literal' && tokens[i].value === '{') return [keyword];
+				const token = tokens[i];
+				if (!token) break;
+				if (token.value === '(' || token.value === '|') return [];
+				if (token.type === 'literal' && token.value === '{') return [keyword];
 			}
 
 			return [];
@@ -372,17 +379,16 @@ function findBlocks(rules) {
 /**
  * `key='title'` and `key=('head' | 'tail')` name a property. Positional
  * arguments (`props+=String`) and `name=` (block headers) are ignored.
- * @param {{ tokens: Token[] }[]} rules
  */
-function findProperties(rules) {
-	/** @type {string[]} */
-	const properties = [];
+function findProperties(rules: Rule[]): string[] {
+	const properties: string[] = [];
 
 	for (const rule of rules) {
 		const tokens = rule.tokens;
 
 		for (let i = 0; i < tokens.length; i++) {
-			if (tokens[i].type !== 'ident' || tokens[i].value !== 'key') continue;
+			const token = tokens[i];
+			if (!token || token.type !== 'ident' || token.value !== 'key') continue;
 
 			const equals = equalsIndex(tokens, i);
 			if (equals === -1) continue;
@@ -390,13 +396,15 @@ function findProperties(rules) {
 			let j = equals + 1;
 
 			if (tokens[j]?.value === '(') {
-				for (j++; j < tokens.length && tokens[j].value !== ')'; j++) {
-					if (tokens[j].type === 'literal') properties.push(tokens[j].value);
+				for (j++; j < tokens.length && tokens[j]?.value !== ')'; j++) {
+					const inner = tokens[j];
+					if (inner?.type === 'literal') properties.push(inner.value);
 				}
 				continue;
 			}
 
-			if (tokens[j]?.type === 'literal') properties.push(tokens[j].value);
+			const value = tokens[j];
+			if (value?.type === 'literal') properties.push(value.value);
 		}
 	}
 
@@ -406,10 +414,8 @@ function findProperties(rules) {
 /**
  * Index of the `=` that assigns `tokens[i]` (`key=`, `key?=`, `key+=`), or `-1`
  * when the identifier is not being assigned.
- * @param {Token[]} tokens
- * @param {number} i
  */
-function equalsIndex(tokens, i) {
+function equalsIndex(tokens: Token[], i: number): number {
 	if (tokens[i]?.type !== 'ident') return -1;
 
 	const next = tokens[i + 1]?.value;
@@ -422,9 +428,8 @@ function equalsIndex(tokens, i) {
 /**
  * The connectors live in one fragment:
  *   dotKind=RelationKindDotRef | '-[' kind=[RelationshipKind] (… '->') | … | '->'
- * @param {{ name: string, tokens: Token[] }[]} rules
  */
-function findArrows(rules) {
+function findArrows(rules: Rule[]): string[] {
 	const connector = rules.find((rule) => rule.name === 'RelationConnector');
 	const fromConnector = (connector?.tokens ?? [])
 		.filter((token) => token.type === 'literal' && token.value.includes('->'))
@@ -441,11 +446,9 @@ function findArrows(rules) {
  * 'none'` inherits from `LineOptions` that way. Anything referencing a rule
  * that is not itself a value domain (e.g. `Id returns string`) resolves to
  * nothing and is dropped.
- * @param {{ name: string, returns?: string, tokens: Token[] }[]} rules
  */
-function resolveEnums(rules) {
-	/** @type {Map<string, string[]>} */
-	const candidates = new Map();
+function resolveEnums(rules: Rule[]): Record<string, string[]> {
+	const candidates = new Map<string, string[]>();
 
 	for (const rule of rules) {
 		if (rule.returns !== 'string' || NOT_VALUE_DOMAINS.test(rule.name)) continue;
@@ -468,8 +471,7 @@ function resolveEnums(rules) {
 		for (const rule of rules) {
 			if (!candidates.has(rule.name)) continue;
 
-			/** @type {string[]} */
-			const resolved = [];
+			const resolved: string[] = [];
 			let complete = true;
 
 			for (const token of rule.tokens) {
@@ -500,8 +502,7 @@ function resolveEnums(rules) {
 		if (!changed) break;
 	}
 
-	/** @type {Record<string, string[]>} */
-	const enums = {};
+	const enums: Record<string, string[]> = {};
 	for (const [name, values] of [...candidates].sort(([a], [b]) => a.localeCompare(b))) {
 		if (values.length > 0) enums[name] = values;
 	}
@@ -509,13 +510,9 @@ function resolveEnums(rules) {
 	return enums;
 }
 
-/**
- * @param {{ name: string, kind: string, hidden: boolean, tokens: Token[] }[]} rules
- * @returns {Record<string, Terminal>}
- */
-function readTerminals(rules) {
-	/** @type {Record<string, Terminal>} */
-	const terminals = {};
+/** Reads every `terminal` rule, keyed by name. */
+function readTerminals(rules: Rule[]): Record<string, Terminal> {
+	const terminals: Record<string, Terminal> = {};
 
 	for (const rule of rules) {
 		if (rule.kind !== 'terminal') continue;
@@ -536,20 +533,19 @@ function readTerminals(rules) {
 /**
  * The alternatives of the first group in a terminal's regex:
  * `(aws|azure|bootstrap|gcp|md|tech):[-\w]+` -> the icon packs.
- * @param {Terminal | undefined} terminal
  */
-function terminalAlternatives(terminal) {
+function terminalAlternatives(terminal: Terminal | undefined): string[] {
 	if (!terminal || terminal.kind !== 'regex') return [];
 
 	const group = /\(([^()]*)\)/.exec(terminal.value);
 	if (!group) return [];
 
-	return unique(group[1].split('|').map((value) => value.trim())).filter((value) =>
+	return unique((group[1] ?? '').split('|').map((value) => value.trim())).filter((value) =>
 		/^[A-Za-z][\w-]*$/.test(value),
 	);
 }
 
-function unique(values) {
+function unique(values: string[]): string[] {
 	return [...new Set(values)].sort((a, b) => a.localeCompare(b));
 }
 

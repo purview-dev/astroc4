@@ -5,8 +5,8 @@ import { pathToFileURL } from 'node:url';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import starlightLikeC4, { withLikeC4Language } from '../index.mjs';
-import { translations } from '../translations.mjs';
+import starlightLikeC4, { withLikeC4Language } from '../index.js';
+import { translations } from '../translations.js';
 
 /** A registration as the plugin builds it. */
 const registration = { name: 'likec4', scopeName: 'source.likec4', aliases: ['c4'] };
