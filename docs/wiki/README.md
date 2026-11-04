@@ -38,13 +38,20 @@ Expressive Code with no `ec.config.mjs`.
 | Translatable UI | Every string the components render goes through Starlight's i18n. |
 | Fails like a build | A bad grammar ref, an unreachable repository or an invalid fence fails `dev`, `build`, `check` and `sync`. |
 
-## Where to go next
+## Documentation
 
-- [Getting Started](Getting-Started.md) — a site with a diagram, in four files.
-- [Configuration Reference](Configuration-Reference.md) — every option and default.
-- [Syntax Highlighting](Syntax-Highlighting.md) — how the grammar is resolved and derived.
-- [Fences](Fences.md) — the fence syntax and its options.
-- [Roadmap](Roadmap.md) — what Phase 1 covers and what Phase 2 adds.
+The pages are grouped by what you are doing. Every folder has a `README.md` that
+lists its own pages.
+
+| | |
+| --- | --- |
+| [guide](guide/README.md) | Using the plugin: getting started, fences, components, highlighting, icons, i18n, options. |
+| [contributing](contributing/README.md) | Changing it: the module map, the local workflow, CI and releases. |
+| [Troubleshooting](Troubleshooting.md) | The failures people actually hit. |
+| [Roadmap](Roadmap.md) | What Phase 1 covers and what Phase 2 adds. |
+
+Start with [Getting Started](guide/Getting-Started.md) — a site with a diagram, in
+four files.
 
 ## Requirements
 

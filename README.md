@@ -11,8 +11,8 @@ diagrams.
   [likec4/likec4](https://github.com/likec4/likec4) — no `ec.config.mjs`.
 - Every UI string translatable through Starlight's i18n.
 
-Full documentation lives in [`docs/wiki`](docs/wiki/index.md) (published with
-`mkdocs.yml`).
+Full documentation lives in [`docs/wiki`](docs/wiki/README.md), grouped into
+`guide/` and `contributing/`.
 
 ## Install
 
@@ -173,7 +173,7 @@ CI lives in `.github/workflows`: `pr.yml` runs the organisation gate plus the
 unit suite, the browser smoke test and the packed-consumer build; `release.yml`
 publishes to npm with **trusted publishing** — an OIDC token, no stored npm
 secret — under the `prerelease` dist-tag for prerelease versions, then tags the
-release. See [`docs/wiki/Repository-CI-CD.md`](docs/wiki/Repository-CI-CD.md).
+release. See [`docs/wiki/contributing/Repository-CI-CD.md`](docs/wiki/contributing/Repository-CI-CD.md).
 
 Open the folder in VS Code and install the recommended **LikeC4** extension
 for the language server: diagnostics, go-to-definition, hover and a live

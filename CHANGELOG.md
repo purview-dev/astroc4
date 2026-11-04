@@ -8,6 +8,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **The wiki is hierarchical.** `docs/wiki/` is now a landing `README.md` plus
+  `guide/` (using the plugin: getting started, fences, components, highlighting,
+  icons, i18n, options), `contributing/` (the module map, the local workflow, CI
+  and releases) and the two cross-cutting pages, `Troubleshooting.md` and
+  `Roadmap.md`. Each folder has a `README.md` index, and every cross-page link
+  was rewritten to match.
+- Removed the MkDocs setup (`mkdocs.yml`) and the `CLAUDE.md` pointer: the pages
+  are plain Markdown, so they read the same in the repository, on GitHub and in
+  any editor.
 - Releases no longer wait for a deployment approval: the `npm` environment keeps
   its deployment record and its protected-branch restriction, but the required
   reviewer is gone, so merging a version bump publishes unattended. `main`'s
@@ -107,7 +116,7 @@ the Phase 2 surface described in [Roadmap](docs/wiki/Roadmap.md).
 - CI: `pr.yml` (organisation gate, verify, smoke, packed consumer site) and
   `release.yml` (npm publish over **trusted publishing** with a prerelease
   dist-tag, then the shared purview-dev GitHub release).
-- Wiki documentation under `docs/wiki`, published with `mkdocs.yml`.
+- Wiki documentation under `docs/wiki`.
 
 ### Notes
 
@@ -120,4 +129,4 @@ the Phase 2 surface described in [Roadmap](docs/wiki/Roadmap.md).
 - `1.0.0-prerelease.N` publishes to npm under the `prerelease` tag; while no
   stable release exists the workflow also keeps `latest` on the newest
   prerelease, because the registry refuses to delete `latest`. See
-  [Repository CI/CD](docs/wiki/Repository-CI-CD.md#dist-tags).
+  [Repository CI/CD](docs/wiki/contributing/Repository-CI-CD.md#dist-tags).

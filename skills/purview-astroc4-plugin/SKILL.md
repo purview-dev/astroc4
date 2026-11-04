@@ -66,5 +66,5 @@ Starlight's Expressive Code options from its `config:setup` hook. Consequences:
 | Build fails on a machine without network | `highlighting: { offline: true }` or `onError: 'warn'`; see also `ASTROC4_OFFLINE=1` |
 | `Could not resolve reference to ElementKind named 'x'` | a model error: declare the kind in `specification { element x }` |
 
-Full detail lives in the wiki: `docs/wiki/Getting-Started.md`,
-`docs/wiki/Fences.md`, `docs/wiki/Troubleshooting.md`.
+Full detail lives in the wiki: `docs/wiki/guide/Getting-Started.md`,
+`docs/wiki/guide/Fences.md`, `docs/wiki/Troubleshooting.md`.

@@ -3,7 +3,9 @@
 Bun project. The package source is TypeScript in `src/`; `playground/` is a
 small Starlight site that consumes it, for developing without a host site. The
 wiki in `docs/wiki/` is the published documentation — keep it in step with the
-code.
+code. It is grouped into `guide/` (using the plugin) and `contributing/`
+(changing it), each with a `README.md` index, plus `Troubleshooting.md` and
+`Roadmap.md` at the root; new pages belong in one of those two folders.
 
 ```
 bun run build:lib      # bundle src/ -> dist/ (+ .d.ts, grammar data)

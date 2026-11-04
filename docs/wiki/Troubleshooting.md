@@ -101,7 +101,7 @@ in CI. The build log always names what it used:
 The scopes are TextMate-standard but LikeC4-specific (`keyword.control.likec4`,
 `constant.language.likec4`, …). A theme without rules for them falls back to
 nearest-parent colours, which can look flat. Add rules for the scopes listed in
-[Syntax Highlighting](Syntax-Highlighting.md#scopes).
+[Syntax Highlighting](guide/Syntax-Highlighting.md#scopes).
 
 ## `Cannot find module …/@purview-dev/astroc4/dist/index.js`
 

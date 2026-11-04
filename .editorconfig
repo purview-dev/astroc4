@@ -13,7 +13,7 @@ indent_style = tab
 indent_size = 4
 
 # Data, docs and styling: two spaces, the formatting every tool in the chain
-# (Prettier defaults, Astro, Starlight, mkdocs) already produces.
+# (Prettier defaults, Astro, Starlight) already produces.
 [*.{json,jsonc,yml,yaml,css,md,mdx}]
 indent_style = space
 indent_size = 2
