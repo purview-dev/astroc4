@@ -113,8 +113,11 @@ to `1.0.0-prerelease.3`.
 Check what is installed before debugging anything else:
 
 ```sh
-ls node_modules/@purview-dev/astroc4/dist/index.js
+bun -e "console.log(require.resolve('@purview-dev/astroc4'))"
 ```
+
+That prints the file the package resolves to, and fails when the published
+tarball shipped `src/` only.
 
 If it is missing, move to a version that has it (`1.0.0-prerelease.4` or later,
 `1.0.0-prerelease.2` for the older source-only layout). Publishes are now gated:
