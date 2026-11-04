@@ -32,7 +32,7 @@ starlight({
 | `onError` | `'fail'` \| `'warn'` \| `'silent'` | `'fail'` | What to do when the grammar cannot be **fetched**. A ref that does not exist always fails, and so does a file that is no longer a LikeC4 grammar. |
 | `cacheTtl` | `number` | `3600` | Seconds a cached fetch stays fresh. |
 | `refresh` | `boolean` | `false` | Ignore the cache and refetch. |
-| `cacheDir` | `string` | `<root>/node_modules/.cache/astroc4` | Where to cache. |
+| `cacheDir` | `string` | the site's `node_modules` folder, in `astroc4`'s cache folder | Where to cache. |
 | `baseUrl` | `string` | `https://raw.githubusercontent.com` | Raw host to read from, for proxies and mirrors. |
 | `timeout` | `number` | `15000` | Request timeout in milliseconds. |
 
