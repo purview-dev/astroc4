@@ -44,7 +44,7 @@ PackageJson`).
 
 | Job | Purpose |
 | --- | --- |
-| `Publish to npm` | Runs the unit suite and `grammar:check`, reads the version, skips when the version is already on the registry, then `npm publish --access public --tag <dist-tag>` authenticated by **trusted publishing**. |
+| `Publish to npm` | Runs the unit suite and `grammar:check`, **builds the package** (`build:lib`) and refuses to continue unless `dist/` carries the entry points, their declarations and the grammar data, reads the version, skips when the version is already on the registry, then `npm publish --access public --tag <dist-tag>` authenticated by **trusted publishing**. |
 | `Tag and GitHub release` | `purview-dev/build/.github/workflows/purview-release.yml@main` with `release-mode: GitHubRelease`, `run-pack: false`, `validate-pack: false`. |
 
 ### Why npm and not NuGet
