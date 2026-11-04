@@ -14,9 +14,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and releases) and the two cross-cutting pages, `Troubleshooting.md` and
   `Roadmap.md`. Each folder has a `README.md` index, and every cross-page link
   was rewritten to match.
-- Removed the MkDocs setup (`mkdocs.yml`) and the `CLAUDE.md` pointer: the pages
+- Removed the static-site config and the tool-specific agent pointer: the pages
   are plain Markdown, so they read the same in the repository, on GitHub and in
-  any editor.
+  any editor, and nothing needs a generator to be navigable.
 - Releases no longer wait for a deployment approval: the `npm` environment keeps
   its deployment record and its protected-branch restriction, but the required
   reviewer is gone, so merging a version bump publishes unattended. `main`'s
