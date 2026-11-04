@@ -56,7 +56,7 @@ paints `agent` as a plain identifier while `main` paints it as a shape.
 
 | | |
 | --- | --- |
-| Location | `<site root>/node_modules/.cache/astroc4/grammar-<hash>.json` |
+| Location | the site's `node_modules` folder, in `astroc4`'s cache folder, as `grammar-<hash>.json` |
 | Key | one file per `repo@ref`, so switching refs never thrashes |
 | Contents | the raw Langium text, the `ETag`, and when it was fetched |
 | Freshness | `cacheTtl` seconds (an hour by default), then a conditional request; a `304` reuses the body |
