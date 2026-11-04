@@ -31,8 +31,13 @@ jobs:
     name: Publish to npm
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # A deployment gate: the job pauses until a required reviewer approves it,
-    # and the OIDC token it mints carries `environment: npm` as a claim.
+    # Runs in the GitHub environment `npm`: it keeps a deployment record per
+    # release and restricts the job to protected branches.
+    #
+    # Deliberately *not* a reviewer gate. There is no required reviewer, so a
+    # merged version bump publishes unattended — the branch protection on `main`
+    # (required checks, linear history) is the checkpoint, and the publish is
+    # idempotent, so a re-run or a dispatch is harmless.
     #
     # The publisher's Environment field may stay empty — verified: with the job
     # running in this environment, the dist-tag exchange against a publisher that

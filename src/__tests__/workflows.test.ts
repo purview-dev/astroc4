@@ -82,11 +82,12 @@ describe('the release workflow', () => {
 		expect(release).toMatch(/paths:\s*\n\s*-\s*package\.json/);
 	});
 
-	it('gates publishing behind the npm environment', () => {
-		// The environment is a deployment gate (required reviewer) and an OIDC
-		// claim. Verified: a publisher whose Environment field is empty still
-		// accepts a job that runs in this environment, so the gate does not
-		// require an npm-side change — naming it there only narrows the claim.
+	it('runs publishing inside the npm environment', () => {
+		// The environment is a deployment record and an OIDC claim, not a gate:
+		// it carries no required reviewer, so a merged version bump publishes
+		// unattended. Verified: a publisher whose Environment field is empty
+		// still accepts a job that runs in this environment, so nothing on the
+		// npm side depends on the name.
 		expect(release).toMatch(/environment:\s*\n\s*name:\s*npm/);
 	});
 
