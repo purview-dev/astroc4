@@ -82,7 +82,7 @@ export default defineEcConfig({
 `likec4Language` is the grammar snapshot bundled with the package, so this needs
 no network. `await loadLikeC4Language({ ref: 'v1.60.0' })` fetches a different
 one when the config is asynchronous, and
-[Syntax Highlighting](Syntax-Highlighting.md#pinning-the-grammar) covers the
+[Syntax Highlighting](Syntax-Highlighting.md#choosing-a-version) covers the
 trade-off.
 
 ## What you give up

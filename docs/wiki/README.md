@@ -54,7 +54,6 @@ lists its own pages.
 | [guide](guide/README.md) | Using the plugin: getting started, fences, components, highlighting, icons, i18n, options. |
 | [contributing](contributing/README.md) | Changing it: the module map, the local workflow, CI and releases. |
 | [Troubleshooting](Troubleshooting.md) | The failures people actually hit. |
-| [Roadmap](Roadmap.md) | What Phase 1 covers and what Phase 2 adds. |
 
 Start with [Getting Started](guide/Getting-Started.md) — a site with a diagram, in
 four files.
