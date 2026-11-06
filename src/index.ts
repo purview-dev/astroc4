@@ -5,16 +5,16 @@
 //   import astroc4 from '@purview-dev/astroc4';
 //   starlight({ plugins: [astroc4()] })
 //
-// It wires up everything a site previously had to configure by hand:
-//   - LikeC4VitePlugin, which compiles every .c4 project under the site root
-//     into the `likec4:model` / `likec4:icons` / `likec4:projects` modules;
-//   - the ```likec4 fence transform (./fences.mjs), appended to the site's
-//     Sätteri processor;
-//   - the build-time preload that avoids a Windows-only crash (see
-//     `preloadLikeC4` in ./fences.mjs);
+// It is the Astro integration in `./integration.ts` plus the three things only
+// Starlight has:
 //   - LikeC4 syntax highlighting, resolved from the live Langium grammar and
 //     injected into the site's Expressive Code options (see below);
-//   - the component UI strings, through Starlight's i18n system.
+//   - the component UI strings, through Starlight's i18n system;
+//   - Starlight's `config:setup` context, which is where `astroConfig` (the site
+//     root) and `addIntegration` live.
+//
+// Everything a plain Astro site needs is in `./integration.ts`, and
+// `@purview-dev/astroc4/integration` exports it.
 //
 // The highlighting injection is why this is a Starlight plugin and not just an
 // integration: Starlight runs plugin `config:setup` hooks *before* it builds
@@ -22,25 +22,27 @@
 // `expressiveCode` option — so the grammar reaches Shiki without the site
 // having to create an `ec.config.mjs`. Expressive Code concatenates
 // `shiki.langs` when it merges integration options with an `ec.config.mjs`, so
-// a site that has one keeps its own languages too.
+// a site that has one keeps its own languages too. Outside Starlight there is no
+// `expressiveCode` option to fill in, which is why a plain Astro site configures
+// EC itself with `likec4Language` from `./expressive-code.ts`.
 
 import { fileURLToPath } from 'node:url';
 
 import type { StarlightPlugin, StarlightUserConfig } from '@astrojs/starlight/types';
-import type { AstroConfig, AstroIntegration, AstroIntegrationLogger } from 'astro';
-import { LikeC4VitePlugin } from 'likec4/vite-plugin';
+import type { AstroIntegration, AstroIntegrationLogger } from 'astro';
 
-import { likec4Fences, preloadLikeC4 } from './fences.js';
+import { likec4Integration, missingOptimizedDependencies, PACKAGE_NAME } from './integration.js';
+import type { LikeC4IntegrationOptions } from './integration.js';
 import { resolveLikeC4Grammar } from './grammar/source.js';
 import { LANGUAGE_ALIASES, LANGUAGE_NAME } from './grammar/textmate.js';
 import { translations } from './translations.js';
 
 /**
- * The published package name. Scoped because npm refuses the unscoped
- * `astroc4` — "too similar to existing package astro" — and because the scope
- * makes the specifiers this plugin writes into a site's pages unambiguous.
+ * Re-exported for the Starlight entry point's callers and tests: the merge that
+ * keeps `react/compiler-runtime` in the site's optimized dependencies is part of
+ * both entry points' behaviour, and both are asserted against this function.
  */
-const PACKAGE_NAME = '@purview-dev/astroc4';
+export { missingOptimizedDependencies };
 
 /**
  * LikeC4 syntax highlighting, derived from the Langium grammar in
@@ -75,14 +77,11 @@ export interface LikeC4HighlightingOptions {
 	timeout?: number;
 }
 
-export interface StarlightLikeC4Options {
-	/**
-	 * Passed through to `LikeC4VitePlugin` — e.g. `{ workspace: 'diagrams' }` to
-	 * look for .c4 files somewhere other than the site root.
-	 */
-	vitePlugin?: Parameters<typeof LikeC4VitePlugin>[0];
-	/** Render ```likec4 fences in .mdx pages as diagrams. Defaults to `true`. */
-	fences?: boolean;
+/**
+ * The Starlight plugin's options: the integration's, plus the Starlight-only
+ * highlighting injection.
+ */
+export interface StarlightLikeC4Options extends LikeC4IntegrationOptions {
 	/**
 	 * Highlight ```c4 / ```likec4 source. Defaults to `true`; `false` leaves
 	 * Expressive Code entirely to the site.
@@ -90,15 +89,44 @@ export interface StarlightLikeC4Options {
 	highlighting?: boolean | LikeC4HighlightingOptions;
 }
 
-export default function starlightLikeC4(options: StarlightLikeC4Options = {}): StarlightPlugin {
+/** The context Astro hands `astro:config:setup`. */
+type ConfigSetupArguments = Parameters<NonNullable<AstroIntegration['hooks']['astro:config:setup']>>[0];
+
+/**
+ * The Starlight plugin **and** the Astro integration: one object, two hook sets.
+ *
+ * Starlight calls `config:setup` and `i18n:setup` on a plugin; Astro calls only
+ * `astro:*` hooks on something in `integrations`. Since the sets are disjoint,
+ * carrying both is safe — and it is what makes `astro add`'s automatic wiring
+ * (`integrations: [astroc4()]`, from the `astro-integration` keyword and the
+ * default export) produce a working site.
+ */
+export type LikeC4StarlightPlugin = StarlightPlugin & Pick<AstroIntegration, 'hooks'>;
+
+export default function starlightLikeC4(options: StarlightLikeC4Options = {}): LikeC4StarlightPlugin {
+	// Only the integration's own options: `highlighting` is Starlight's, and is
+	// handled below.
+	const integration = likec4Integration({ vitePlugin: options.vitePlugin, fences: options.fences });
+
 	return {
 		name: PACKAGE_NAME,
 		hooks: {
+			// The Astro half. Starlight never calls `astro:*` hooks on a plugin, and
+			// Astro only calls the hooks it names — so one object can carry both, and
+			// `astro add` (which writes `integrations: [astroc4()]` from the
+			// `astro-integration` keyword and the default export) gets a working
+			// site instead of a silently inert plugin. See `warnIfMiswired`.
+			...integration.hooks,
+			'astro:config:setup': async (arguments_: ConfigSetupArguments) => {
+				warnIfMiswired(arguments_);
+
+				await integration.hooks['astro:config:setup']?.(arguments_);
+			},
 			'i18n:setup'({ injectTranslations }) {
 				injectTranslations(translations);
 			},
 			async 'config:setup'({ config, astroConfig, updateConfig, addIntegration, logger }) {
-				addIntegration(likec4Integration(options));
+				addIntegration(integration);
 
 				if (options.highlighting === false) return;
 
@@ -114,7 +142,31 @@ export default function starlightLikeC4(options: StarlightLikeC4Options = {}): S
 				});
 			},
 		},
-	};
+		// `LikeC4StarlightPlugin` intersects the two protocols; the `astro:*` hooks
+		// above are the AstroIntegration half of the same object.
+	} as LikeC4StarlightPlugin;
+}
+
+/**
+ * Warn when this plugin was put in `integrations` on a Starlight site — which is
+ * exactly what `astro add @purview-dev/astroc4` writes, because it cannot know
+ * the site is Starlight's.
+ *
+ * The diagrams still work there: `astro:config:setup` installs the Vite plugin
+ * and the fence transform. What cannot run is the Starlight half — the
+ * translations and the Expressive Code injection — because those are plugin
+ * hooks. Saying so beats a diagram that renders in English with no
+ * highlighting and no explanation.
+ */
+function warnIfMiswired({ config, logger }: ConfigSetupArguments): void {
+	const starlight = config.integrations.some((integration) => integration.name === '@astrojs/starlight');
+
+	if (!starlight) return;
+
+	logger.warn(
+		`${PACKAGE_NAME} is in \`integrations\`, so this Starlight site gets diagrams only. ` +
+			'Move astroc4() into `starlight({ plugins: [astroc4()] })` to get the translated UI and LikeC4 syntax highlighting.',
+	);
 }
 
 /** What Starlight's `config:setup` hook offers, narrowed to what is used here. */
@@ -217,69 +269,3 @@ function isObject(value: unknown): value is Record<string, any> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-
-function likec4Integration({ vitePlugin = {}, fences = true }: StarlightLikeC4Options): AstroIntegration {
-	return {
-		name: `${PACKAGE_NAME}/integration`,
-		hooks: {
-			'astro:config:setup': async ({ command, config, updateConfig, logger }) => {
-				updateConfig({
-					vite: {
-						plugins: [LikeC4VitePlugin(vitePlugin)],
-						// The components ship as .astro/.tsx source, so Vite has to
-						// transform them rather than hand them to Node as-is.
-						ssr: { noExternal: [PACKAGE_NAME] },
-					},
-				});
-
-				if (fences) {
-					await registerFences(config, updateConfig, logger);
-				}
-
-				// `command` is only available here, not in `astro:config:done` — and
-				// this must stay build-only; see `loadLikeC4` in ./fences.mjs.
-				if (command === 'build') {
-					await preloadLikeC4();
-				}
-			},
-		},
-	};
-}
-
-/**
- * Append the fence transform to the site's existing Sätteri processor, keeping
- * whatever Starlight and other integrations already registered on it.
- */
-async function registerFences(
-	config: AstroConfig,
-	updateConfig: (config: Record<string, unknown>) => void,
-	logger: AstroIntegrationLogger,
-): Promise<void> {
-	const { satteri, isSatteriProcessor } = await import('@astrojs/markdown-satteri');
-	const existing = config.markdown?.processor;
-
-	// No processor configured means Astro's default, which is Sätteri.
-	if (existing === undefined) {
-		updateConfig({ markdown: { processor: satteri({ mdastPlugins: [likec4Fences()] }) } });
-		return;
-	}
-
-	if (!isSatteriProcessor(existing)) {
-		logger.warn(
-			'```likec4 fences are disabled: the site is not using the Sätteri Markdown processor. ' +
-				'<LikeC4View /> still works.',
-		);
-		return;
-	}
-
-	const existingOptions = existing.options ?? {};
-
-	updateConfig({
-		markdown: {
-			processor: satteri({
-				...existingOptions,
-				mdastPlugins: [...(existingOptions.mdastPlugins ?? []), likec4Fences()],
-			}),
-		},
-	});
-}

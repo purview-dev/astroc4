@@ -1,6 +1,6 @@
 {
   "name": "@purview-dev/astroc4",
-  "version": "1.0.0-prerelease.4",
+  "version": "1.0.0-prerelease.5",
   "description": "Interactive LikeC4 architecture diagrams for Astro and Starlight: <LikeC4View>, ```likec4 fences, and LikeC4 syntax highlighting derived from the live Langium grammar.",
   "license": "MIT",
   "author": {
@@ -21,8 +21,10 @@
     "architecture-as-code",
     "architecture-diagrams",
     "diagrams",
+    "ui",
     "astro",
     "astro-integration",
+    "withastro",
     "starlight",
     "starlight-plugin",
     "expressive-code",
@@ -35,6 +37,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./integration": {
+      "types": "./dist/integration.d.ts",
+      "import": "./dist/integration.js"
     },
     "./expressive-code": {
       "types": "./dist/expressive-code.d.ts",
@@ -56,7 +62,9 @@
     "dev": "bun run build:lib && cd playground && astro dev",
     "build": "bun run build:lib && cd playground && astro build",
     "preview": "cd playground && astro preview",
-    "check": "bun run build:lib && cd playground && astro check && cd .. && bunx tsc -p tsconfig.scripts.json --noEmit",
+    "dev:astro": "bun run build:lib && cd examples/astro && astro dev",
+    "build:astro": "bun run build:lib && cd examples/astro && astro build",
+    "check": "bun run build:lib && cd playground && astro check && cd ../examples/astro && astro check && cd ../.. && bunx tsc -p tsconfig.scripts.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:network": "ASTROC4_NETWORK=1 vitest run src/grammar/__tests__/network.test.ts",
@@ -77,15 +85,22 @@
     "react-dom": ">=19.0.0",
     "shiki": ">=1.0.0"
   },
+  "peerDependenciesMeta": {
+    "@astrojs/starlight": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
     "@astrojs/markdown-satteri": "^0.4.6",
+    "@astrojs/mdx": "^8.1.2",
     "@astrojs/react": "^7.1.2",
     "@astrojs/starlight": "^0.42.8",
     "@likec4/core": "^1.59.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "astro": "^7.4.4",
+    "astro-expressive-code": "^0.44.3",
     "likec4": "^1.59.4",
     "playwright": "^1.63.0",
     "react": "^19.3.0",

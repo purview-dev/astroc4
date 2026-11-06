@@ -1,0 +1,48 @@
+---
+title: LikeC4 in plain Astro
+description: The astroc4 integration with no Starlight in the site.
+---
+
+import LikeC4View from '@purview-dev/astroc4/components/LikeC4View.astro';
+
+# LikeC4 in plain Astro
+
+This page is a real site: `astro.config.mjs` has `astroc4()` from
+`@purview-dev/astroc4/integration`, `@astrojs/react`, `@astrojs/mdx` and
+`astro-expressive-code`. There is no Starlight here — the diagrams, the fence
+transform and the highlighting are the same code the Starlight plugin uses.
+
+## A view from the model
+
+`src/likec4/model.c4` is compiled by LikeC4's Vite plugin, which the integration
+adds for you.
+
+<LikeC4View viewId="index" height={320} />
+
+## A fence, compiled at build time
+
+` ```likec4 ` becomes a diagram in any `.mdx` page — the fence carries its own
+model, so no project is needed.
+
+```likec4 title="Inline, from the fence" height=240
+specification { element box }
+model {
+  a = box 'Alpha'
+  b = box 'Beta'
+  a -> b 'calls'
+}
+views { view index { include * } }
+```
+
+## LikeC4 source stays source
+
+` ```c4 ` is highlighted by Expressive Code with the grammar from `ec.config.mjs`.
+Outside Starlight there is no `expressiveCode` option for the plugin to fill in,
+so that file is the one thing the site does itself.
+
+```c4
+specification {
+  color brand #0046BE
+  element system { style { shape agent color brand } }
+}
+```

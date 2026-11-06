@@ -214,8 +214,34 @@ function describe(fileURL: URL | undefined): string {
 	}
 }
 
+/** Where a fence warning goes: the Astro logger in a site, `console` outside one. */
+export interface FenceReporter {
+	warn: (message: string) => void;
+}
+
+/** What the fence transform needs to know about its host. */
+export interface FenceOptions {
+	/** Where warnings go. Defaults to `console` with a `[likec4-fences]` label. */
+	reporter?: FenceReporter;
+	/**
+	 * Whether the site has `@astrojs/mdx`, i.e. whether a `.mdx` page can exist.
+	 * Defaults to `true`; `false` changes the advice a misplaced fence gets.
+	 */
+	mdx?: boolean;
+}
+
+/**
+ * The fallback for callers without an Astro logger — the unit tests, and any
+ * use of the mdast plugin outside a running Astro config. The label matches the
+ * one `src/integration.ts` forks from the site's integration logger, so the
+ * message reads the same either way.
+ */
+const CONSOLE_REPORTER: FenceReporter = {
+	warn: (message) => console.warn(`[likec4-fences] ${message}`),
+};
+
 // region plugin
-export function likec4Fences(): MdastPluginEntry {
+export function likec4Fences({ reporter = CONSOLE_REPORTER, mdx = true }: FenceOptions = {}): MdastPluginEntry {
 	// A factory runs once per document, so `used` is safely per-file.
 	return (factory: PluginFactoryContext) => {
 		// Astro only supports components in .mdx. Leaving the fence as a code
@@ -224,14 +250,20 @@ export function likec4Fences(): MdastPluginEntry {
 		if (factory.sourceFormat !== 'mdx') {
 			if (!factory.source.includes('```' + FENCE_LANG)) return null;
 
+			// Advice that cannot work is worse than none: renaming the page to
+			// `.mdx` does nothing on a site without `@astrojs/mdx`.
+			const fix = mdx
+				? 'Rename the page to .mdx, or use <LikeC4View /> directly.'
+				: 'Add @astrojs/mdx (`astro add mdx`) and rename the page to .mdx, or use <LikeC4View /> directly.';
+
 			return {
 				name: 'likec4-fences:warn',
 				code(node, ctx) {
 					if (node.lang !== FENCE_LANG) return;
 
-					console.warn(
-						`[likec4-fences] ${describe(ctx.fileURL)} has a \`\`\`${FENCE_LANG} fence, but fences only ` +
-							'render as diagrams in .mdx files. Rename the page to .mdx, or use <LikeC4View /> directly.',
+					reporter.warn(
+						`${describe(ctx.fileURL)} has a \`\`\`${FENCE_LANG} fence, but fences only ` +
+							`render as diagrams in .mdx files. ${fix}`,
 					);
 				},
 			};

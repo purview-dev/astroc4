@@ -22,10 +22,16 @@ const { label } = Astro.props;
 </div>
 
 <style>
+	/* Same token contract as DiagramShell/DiagramFrame (see the note there). */
 	.likec4-loading {
-		border: 1px dashed var(--sl-color-gray-5);
+		--likec4-border: var(--sl-color-gray-5, rgba(128, 128, 128, 0.35));
+		--likec4-surface: var(--sl-color-bg, transparent);
+		--likec4-text-muted: var(--sl-color-gray-2, rgba(128, 128, 128, 0.95));
+		--likec4-skeleton: var(--sl-color-gray-6, rgba(128, 128, 128, 0.18));
+
+		border: 1px dashed var(--likec4-border);
 		border-radius: 0.5rem;
-		background: var(--sl-color-bg);
+		background: var(--likec4-surface);
 		padding: 1.25rem;
 	}
 
@@ -34,7 +40,7 @@ const { label } = Astro.props;
 		font-size: 0.875rem;
 		line-height: 1.25rem;
 		font-weight: 500;
-		color: var(--sl-color-gray-2);
+		color: var(--likec4-text-muted);
 	}
 
 	.likec4-loading__lines {
@@ -45,7 +51,7 @@ const { label } = Astro.props;
 	.likec4-loading__line {
 		height: 1rem;
 		border-radius: 0.25rem;
-		background: var(--sl-color-gray-6);
+		background: var(--likec4-skeleton);
 		animation: likec4-pulse 1.6s ease-in-out infinite;
 	}
 

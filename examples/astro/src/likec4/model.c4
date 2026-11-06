@@ -1,0 +1,19 @@
+// model.c4
+// path: examples/astro/src/likec4/model.c4
+// The model behind the page's <LikeC4View viewId="index">. LikeC4's Vite plugin
+// compiles every .c4 project under the site root into `likec4:model`.
+
+specification {
+  element system
+  element person
+}
+
+model {
+  reader = person 'Reader'
+  docs = system 'Docs site'
+  reader -> docs 'reads'
+}
+
+views {
+  view index { include * }
+}
