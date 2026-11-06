@@ -1,15 +1,36 @@
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import type { AstroIntegration } from 'astro';
 import { describe, expect, it, vi } from 'vitest';
 
-import starlightLikeC4, { withLikeC4Language } from '../index.js';
+import starlightLikeC4, { missingOptimizedDependencies, withLikeC4Language } from '../index.js';
 import { translations } from '../translations.js';
 
 /** A registration as the plugin builds it. */
 const registration = { name: 'likec4', scopeName: 'source.likec4', aliases: ['c4'] };
+
+/** The slice of `AstroIntegrationLogger` the plugin uses, with spies. */
+interface StubLogger {
+	info: ReturnType<typeof vi.fn>;
+	warn: ReturnType<typeof vi.fn>;
+	fork: ReturnType<typeof vi.fn>;
+}
+
+/**
+ * `fork(label)` keeps Astro's label-swapping behaviour without losing the
+ * spies: every fork returns the same stub, so an assertion on `warn` sees
+ * messages logged through a fork too.
+ */
+function stubLogger(): StubLogger {
+	const logger: StubLogger = { info: vi.fn(), warn: vi.fn(), fork: vi.fn() };
+
+	logger.fork.mockImplementation(() => logger);
+
+	return logger;
+}
 
 /** Run the plugin's `config:setup` hook against a stubbed Starlight context. */
 async function setup(options: Parameters<typeof starlightLikeC4>[0] = {}) {
@@ -18,7 +39,7 @@ async function setup(options: Parameters<typeof starlightLikeC4>[0] = {}) {
 
 	const updateConfig = vi.fn();
 	const addIntegration = vi.fn();
-	const logger = { info: vi.fn(), warn: vi.fn() };
+	const logger = stubLogger();
 
 	const context = {
 		config: { expressiveCode: undefined },
@@ -32,6 +53,31 @@ async function setup(options: Parameters<typeof starlightLikeC4>[0] = {}) {
 	await plugin.hooks['config:setup']!(context);
 
 	return { addIntegration, logger, updateConfig };
+}
+
+/**
+ * Run the integration's `astro:config:setup` hook — the one that owns the Vite
+ * config — against a stubbed Astro context, with fences off so nothing else
+ * touches the Markdown processor.
+ */
+async function setupVite(root: URL, vite: Record<string, unknown> = {}) {
+	const { addIntegration } = await setup({ fences: false });
+	const integration = addIntegration.mock.calls[0]?.[0] as AstroIntegration;
+	const updateConfig = vi.fn();
+
+	await integration.hooks['astro:config:setup']!({
+		command: 'dev',
+		config: { root, vite, integrations: [] },
+		updateConfig,
+		logger: stubLogger(),
+	} as never);
+
+	return updateConfig;
+}
+
+/** The `vite` option the integration handed to Astro. */
+function viteOf(updateConfig: ReturnType<typeof vi.fn>): Record<string, any> {
+	return (updateConfig.mock.calls[0]?.[0] as { vite: Record<string, any> }).vite;
 }
 
 describe('starlightLikeC4', () => {
@@ -115,6 +161,137 @@ describe('starlightLikeC4', () => {
 		plugin.hooks['i18n:setup']!({ injectTranslations } as never);
 
 		expect(injectTranslations).toHaveBeenCalledWith(translations);
+	});
+});
+
+describe('astro add', () => {
+	it('is also an Astro integration, so `astro add`’s `integrations: [astroc4()]` works', async () => {
+		// The CLI reads only npm metadata and the default export, and writes
+		// `astroc4()` into `integrations`. Starlight never calls `astro:*` hooks and
+		// Astro never calls `config:setup`, so one object can serve both.
+		const plugin = starlightLikeC4({ highlighting: { offline: true } });
+		const updateConfig = vi.fn();
+
+		await plugin.hooks['astro:config:setup']!({
+			command: 'dev',
+			config: { root: pathToFileURL(process.cwd()), vite: {}, integrations: [] },
+			updateConfig,
+			logger: stubLogger(),
+		} as never);
+
+		const { vite } = updateConfig.mock.calls[0]?.[0] as { vite: Record<string, unknown> };
+
+		expect(vite.ssr).toEqual({ noExternal: ['@purview-dev/astroc4'] });
+		expect(vite.optimizeDeps).toEqual({ include: ['react/compiler-runtime'] });
+	});
+
+	it('warns when the CLI wires it into a Starlight site, where only half of it can run', async () => {
+		const plugin = starlightLikeC4({ highlighting: { offline: true } });
+		const logger = stubLogger();
+
+		await plugin.hooks['astro:config:setup']!({
+			command: 'dev',
+			config: {
+				root: pathToFileURL(process.cwd()),
+				vite: {},
+				integrations: [{ name: '@astrojs/starlight' }],
+			},
+			updateConfig: vi.fn(),
+			logger,
+		} as never);
+
+		expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('starlight({ plugins: [astroc4()] })'));
+	});
+
+	it('stays quiet on a plain Astro site, where that is the supported shape', async () => {
+		const plugin = starlightLikeC4({ highlighting: { offline: true } });
+		const logger = stubLogger();
+
+		await plugin.hooks['astro:config:setup']!({
+			command: 'dev',
+			config: { root: pathToFileURL(process.cwd()), vite: {}, integrations: [{ name: '@astrojs/mdx' }] },
+			updateConfig: vi.fn(),
+			logger,
+		} as never);
+
+		expect(logger.warn).not.toHaveBeenCalled();
+	});
+});
+
+describe('logging', () => {
+	it('warns about a fence in a .md page through the Astro logger, not the console', async () => {
+		// Astro's logger honours the CLI log level and labels the message with the
+		// integration's name; `fork` keeps "likec4-fences" as the label, which is
+		// the string the Troubleshooting page quotes.
+		const { addIntegration } = await setup();
+		const integration = addIntegration.mock.calls[0]?.[0] as AstroIntegration;
+		const logger = stubLogger();
+
+		await integration.hooks['astro:config:setup']!({
+			command: 'dev',
+			config: { root: pathToFileURL(process.cwd()), vite: {}, integrations: [] },
+			updateConfig: vi.fn(),
+			logger,
+		} as never);
+
+		expect(logger.fork).toHaveBeenCalledWith('likec4-fences');
+	});
+});
+
+describe('react/compiler-runtime', () => {
+	// `likec4/react` is compiled with the React Compiler and imports `c` from
+	// `react/compiler-runtime`, which React 19 ships as CommonJS. Unoptimized,
+	// dev serves it raw and the island throws
+	// "does not provide an export named 'c'" instead of hydrating.
+	it('pre-bundles it so the island can hydrate in dev', async () => {
+		const updateConfig = await setupVite(pathToFileURL(process.cwd()));
+
+		expect(viteOf(updateConfig).optimizeDeps).toEqual({ include: ['react/compiler-runtime'] });
+	});
+
+	it('adds nothing when the site already optimises it, because Astro concatenates', async () => {
+		const updateConfig = await setupVite(pathToFileURL(process.cwd()), {
+			optimizeDeps: { include: ['react/compiler-runtime'], exclude: ['@purview-dev/astroc4'] },
+		});
+
+		// Re-sending the site's list would duplicate it: `updateConfig` merges
+		// `vite` with Vite's `mergeConfig`, which concatenates arrays.
+		expect(viteOf(updateConfig).optimizeDeps).toBeUndefined();
+	});
+
+	it('leaves the rest of the Vite config alone', async () => {
+		const updateConfig = await setupVite(pathToFileURL(process.cwd()), {
+			optimizeDeps: { include: ['gsap'] },
+			resolve: { dedupe: ['react'] },
+		});
+
+		const vite = viteOf(updateConfig);
+
+		expect(vite.resolve).toBeUndefined();
+		expect(vite.optimizeDeps).toEqual({ include: ['react/compiler-runtime'] });
+	});
+
+	it('does not name a dependency the site cannot resolve', async () => {
+		const root = pathToFileURL(await mkdtemp(join(tmpdir(), 'astroc4-no-react-')));
+
+		expect(missingOptimizedDependencies(undefined, fileURLToPath(root))).toEqual([]);
+	});
+});
+
+describe('missingOptimizedDependencies', () => {
+	const root = process.cwd();
+
+	it('returns the entry a site without one needs', () => {
+		expect(missingOptimizedDependencies(undefined, root)).toEqual(['react/compiler-runtime']);
+		expect(missingOptimizedDependencies([], root)).toEqual(['react/compiler-runtime']);
+	});
+
+	it('skips an entry the site already lists, without touching the others', () => {
+		expect(missingOptimizedDependencies(['gsap', 'react/compiler-runtime'], root)).toEqual([]);
+	});
+
+	it('tolerates an `include` that is not a list', () => {
+		expect(missingOptimizedDependencies('react/compiler-runtime', root)).toEqual(['react/compiler-runtime']);
 	});
 });
 

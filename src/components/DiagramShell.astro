@@ -54,17 +54,28 @@ const { title, description, hint, collapsible = true, defaultOpen = true } = Ast
 </section>
 
 <style>
+	/* Starlight's palette when the site has it; scheme-neutral fallbacks when it
+	   does not, so the same components frame a diagram on a plain Astro page.
+	   Every fallback is a translucent grey or `inherit`, which stays legible on
+	   light and dark backgrounds alike. */
 	.likec4-shell {
+		--likec4-border: var(--sl-color-gray-5, rgba(128, 128, 128, 0.35));
+		--likec4-surface: var(--sl-color-bg, transparent);
+		--likec4-surface-alt: var(--sl-color-bg-nav, rgba(128, 128, 128, 0.06));
+		--likec4-text: var(--sl-color-white, inherit);
+		--likec4-text-muted: var(--sl-color-gray-2, rgba(128, 128, 128, 0.95));
+		--likec4-accent: var(--sl-color-text-accent, inherit);
+
 		margin-block: 1em;
 		overflow: hidden;
-		border: 1px solid var(--sl-color-gray-5);
+		border: 1px solid var(--likec4-border);
 		border-radius: 0.75rem;
-		background: var(--sl-color-bg-nav);
+		background: var(--likec4-surface-alt);
 	}
 
 	.likec4-shell__header {
-		border-bottom: 1px solid var(--sl-color-gray-5);
-		background: var(--sl-color-bg);
+		border-bottom: 1px solid var(--likec4-border);
+		background: var(--likec4-surface);
 		padding: 1em 1.25rem;
 		line-height: 1.4;
 	}
@@ -86,7 +97,7 @@ const { title, description, hint, collapsible = true, defaultOpen = true } = Ast
 		font-size: 1rem;
 		line-height: 1.5rem;
 		font-weight: 600;
-		color: var(--sl-color-white);
+		color: var(--likec4-text);
 	}
 
 	.likec4-shell__title--block {
@@ -97,7 +108,7 @@ const { title, description, hint, collapsible = true, defaultOpen = true } = Ast
 		margin: 0.25rem 0 0;
 		font-size: 0.875rem;
 		line-height: 1.25rem;
-		color: var(--sl-color-gray-2);
+		color: var(--likec4-text-muted);
 	}
 
 	.likec4-shell__hint {
@@ -105,7 +116,7 @@ const { title, description, hint, collapsible = true, defaultOpen = true } = Ast
 		font-size: 0.75rem;
 		line-height: 1rem;
 		font-weight: 500;
-		color: var(--sl-color-text-accent);
+		color: var(--likec4-accent);
 	}
 
 	.likec4-shell__body {

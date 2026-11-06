@@ -26,7 +26,11 @@ interface Props {
 	defaultOpen?: boolean;
 }
 
-const t = getTranslator(Astro.locals.t);
+// Starlight augments `App.Locals` with `t`; a plain Astro page has no such
+// property (and an empty `Locals` interface, so naming it would not type-check),
+// which is why this is read as `unknown` and `getTranslator` falls back to
+// English when it is absent.
+const t = getTranslator((Astro.locals as { t?: unknown }).t);
 const labels = getIslandLabels(t, 'likec4.view.loading');
 
 const {
@@ -64,17 +68,22 @@ const {
 </DiagramShell>
 
 <style>
+	/* Same token contract as DiagramShell (see the note there). */
 	.likec4-badge {
+		--likec4-border: var(--sl-color-gray-5, rgba(128, 128, 128, 0.35));
+		--likec4-surface: var(--sl-color-bg, transparent);
+		--likec4-text-muted: var(--sl-color-gray-2, rgba(128, 128, 128, 0.95));
+
 		display: inline-flex;
 		align-items: center;
 		gap: 0.5rem;
 		margin-bottom: 0.75rem;
-		border: 1px solid var(--sl-color-gray-5);
+		border: 1px solid var(--likec4-border);
 		border-radius: 9999px;
-		background: var(--sl-color-bg);
+		background: var(--likec4-surface);
 		padding: 0.25rem 0.75rem;
 		font-size: 0.75rem;
 		line-height: 1rem;
-		color: var(--sl-color-gray-2);
+		color: var(--likec4-text-muted);
 	}
 </style>

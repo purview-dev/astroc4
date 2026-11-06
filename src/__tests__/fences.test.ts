@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { likec4Fences, parseFenceMeta } from '../fences.js';
+import { likec4Fences, parseFenceMeta, type FenceReporter } from '../fences.js';
 
 describe('parseFenceMeta', () => {
 	it('returns nothing for an absent or empty meta string', () => {
@@ -62,10 +62,21 @@ const fencePlugin = likec4Fences() as unknown as (factory: {
 	sourceFormat: string;
 }) => FencePlugin;
 
-const pluginFor = (source: string, sourceFormat: 'mdx' | 'md' = 'mdx') => {
+/** The same plugin, wired to a reporter (and MDX presence) instead of the fallback. */
+const fencePluginWith = (reporter: FenceReporter, mdx = true) =>
+	likec4Fences({ reporter, mdx }) as unknown as (factory: {
+		source: string;
+		sourceFormat: string;
+	}) => FencePlugin;
+
+const pluginFor = (
+	source: string,
+	sourceFormat: 'mdx' | 'md' = 'mdx',
+	build: (factory: { source: string; sourceFormat: string }) => FencePlugin = fencePlugin,
+) => {
 	const page_ = page(source, sourceFormat);
 
-	return { ...page_, plugin: fencePlugin(page_.factory) };
+	return { ...page_, plugin: build(page_.factory) };
 };
 
 const fence = (meta: string, value = '') => ({ type: 'code', lang: 'likec4', meta, value });
@@ -86,6 +97,31 @@ describe('the ```likec4 fence transform', () => {
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('page.mdx has a ```likec4 fence'));
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('only render as diagrams in .mdx'));
 		warn.mockRestore();
+	});
+
+	it('reports through the reporter it is given, so Astro can label it', async () => {
+		// `src/integration.ts` passes the site's integration logger here; the label in
+		// front of the message is then Astro's (`[likec4-fences]`), not ours.
+		const reporter: FenceReporter = { warn: vi.fn() };
+		const { ctx, plugin } = pluginFor('```likec4\nmodel { }\n```', 'md', fencePluginWith(reporter));
+		const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		await plugin.code?.(fence(''), ctx);
+
+		expect(reporter.warn).toHaveBeenCalledWith(expect.stringContaining('page.mdx has a ```likec4 fence'));
+		expect(consoleWarn).not.toHaveBeenCalled();
+		consoleWarn.mockRestore();
+	});
+
+	it('tells a site without @astrojs/mdx to add it, not to rename the page', async () => {
+		// Renaming to `.mdx` cannot work when nothing processes `.mdx` pages.
+		const reporter: FenceReporter = { warn: vi.fn() };
+		const { ctx, plugin } = pluginFor('```likec4\nmodel { }\n```', 'md', fencePluginWith(reporter, false));
+
+		await plugin.code?.(fence(''), ctx);
+
+		expect(reporter.warn).toHaveBeenCalledWith(expect.stringContaining('astro add mdx'));
+		expect(reporter.warn).not.toHaveBeenCalledWith(expect.stringContaining('Rename the page'));
 	});
 
 	it('ignores fences in other languages', async () => {

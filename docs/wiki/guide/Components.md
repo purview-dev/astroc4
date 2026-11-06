@@ -46,9 +46,26 @@ that is always a plugin bug and should be loud.
 
 ## Styling
 
-Components use plain CSS over Starlight's design tokens (`--sl-color-*`), with no
-utility classes and no Tailwind: a host's Tailwind does not scan this package, so
-utility classes would silently be unstyled. Override with CSS targeting:
+Components use plain CSS, with no utility classes and no Tailwind: a host's
+Tailwind does not scan this package, so utility classes would silently be
+unstyled.
+
+Colours come from a small `--likec4-*` layer that defaults to Starlight's design
+tokens and to scheme-neutral fallbacks (translucent greys, `inherit`) when those
+tokens are absent — which is the plain Astro case. Override either layer:
+
+| Token | Default | Used for |
+| --- | --- | --- |
+| `--likec4-border` | `var(--sl-color-gray-5, rgba(128, 128, 128, 0.35))` | Shell, header and frame borders |
+| `--likec4-surface` | `var(--sl-color-bg, transparent)` | Header, badge and placeholder background |
+| `--likec4-surface-alt` | `var(--sl-color-bg-nav, rgba(128, 128, 128, 0.06))` | Shell background |
+| `--likec4-text` | `var(--sl-color-white, inherit)` | Shell title |
+| `--likec4-text-muted` | `var(--sl-color-gray-2, rgba(128, 128, 128, 0.95))` | Description, badge, loading label |
+| `--likec4-accent` | `var(--sl-color-text-accent, inherit)` | The hint line |
+| `--likec4-skeleton` | `var(--sl-color-gray-6, rgba(128, 128, 128, 0.18))` | Loading lines |
+| `--likec4-danger`, `--likec4-danger-soft`, `--likec4-danger-text` | Starlight's `--sl-color-red*`, else a red palette | The error boundary |
+
+Or target the classes directly:
 
 | Class | Element |
 | --- | --- |
@@ -60,7 +77,8 @@ utility classes would silently be unstyled. Override with CSS targeting:
 | `likec4-loading` | The pre-hydration placeholder |
 | `likec4-error` | The error boundary's output |
 
-`class="not-content"` on the shell is Starlight's opt-out from prose styles.
+`class="not-content"` on the shell is Starlight's opt-out from prose styles; on a
+plain Astro site it is inert.
 
 ## Client islands
 

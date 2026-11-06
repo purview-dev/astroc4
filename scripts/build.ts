@@ -33,13 +33,14 @@ function run(command: string, args: string[]): void {
 
 await rm(DIST, { recursive: true, force: true });
 
-// 1. Bundle. Two entry points, ESM, Node target. `--packages external` keeps
+// 1. Bundle. Three entry points, ESM, Node target. `--packages external` keeps
 // every dependency out of the bundle — they are peer dependencies, so they must
 // resolve from the site, not from here. `import.meta.url` survives bundling
 // into `dist/index.js`, which is why the data files land in `dist/` below.
 run('bun', [
 	'build',
 	'src/index.ts',
+	'src/integration.ts',
 	'src/expressive-code.ts',
 	'--root',
 	'src',
@@ -71,10 +72,13 @@ for (const file of DATA) {
 	await readFile(join(DIST, file));
 }
 
-const bundle = await readFile(join(DIST, 'index.js'), 'utf8');
+// A `.ts` specifier left in a bundle only fails when a site's config imports it.
+for (const entry of ['index.js', 'integration.js', 'expressive-code.js']) {
+	const bundle = await readFile(join(DIST, entry), 'utf8');
 
-if (/from ['"]\.\/[^'"]+\.ts['"]/.test(bundle)) {
-	throw new Error('the bundle still imports a .ts specifier — it would fail under Node');
+	if (/from ['"]\.\/[^'"]+\.ts['"]/.test(bundle)) {
+		throw new Error(`${entry} still imports a .ts specifier — it would fail under Node`);
+	}
 }
 
 console.log('built dist/ (bundle, declarations, grammar data)');

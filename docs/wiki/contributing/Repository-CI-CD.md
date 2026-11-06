@@ -11,7 +11,7 @@ here.
 | `Build and test` | Calls `purview-dev/build/.github/workflows/purview-build.yml@main` — the organisation gate. `.config/purview-build.json` declares `ProjectType: Web`, so it installs with Bun, runs the build command below, then the test command. `run-pack: false` and `validate-pack: false`: this repository ships no NuGet package. |
 | `Live grammar` | `bun run test:network` — the only test that talks to likec4/likec4. |
 | `Browser smoke test` | Builds the playground, starts `astro preview`, runs `scripts/smoke.ts` against it with Chromium installed. Uploads `preview.log` on failure. |
-| `Packed consumer site` | `bun run test:site`: pack the tarball, install it into a throwaway Starlight site and build that. |
+| `Packed consumer site` | `bun run test:site`: pack the tarball, install it into two throwaway sites — a copy of `playground/` and a copy of `examples/astro/` — build both, run the full smoke suite against the Starlight copy on its preview server, and hydration checks on the plain-Astro copy's dev server and the `astro add` config shape. |
 
 ### `.config/purview-build.json`
 
@@ -250,6 +250,23 @@ directly — deliberately, because a `package.json` change is what publishes.
 That is the whole process: the workflow tests, publishes, tags and writes the
 release notes. Nothing else needs to be bumped, and no file is generated at
 release time.
+
+### Astro's integrations library
+
+Nothing is submitted: the library is rebuilt weekly from npm, pulling in every
+package published with the `astro-integration`, `astro-component` or `withastro`
+keyword and reading `name`, `description`, `repository` and `homepage` from
+`package.json`. Ours carries all three of the useful ones:
+
+| Keyword | Purpose |
+| --- | --- |
+| `astro-integration` | What actually gets the package into the library. |
+| `withastro` | The other keyword Astro recommends for discoverability; it is what the community npm search (`keywords:astro-component,withastro`) filters on. |
+| `ui` | A category (`CSS + UI`). Without one of the category keywords, a listing is "Uncategorized". |
+
+The avatar and any override of the name, description or homepage are requested
+by issue at [withastro/astro.build](https://github.com/withastro/astro.build/issues/new/choose),
+once, after the first publish — not from this repository.
 
 ## Local equivalents
 

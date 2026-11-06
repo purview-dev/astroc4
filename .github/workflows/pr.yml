@@ -79,6 +79,17 @@ jobs:
       # The smoke test drives Chromium, so the browser has to be present. A
       # static build passes even when islands fail to hydrate — only this
       # proves the diagrams draw.
+      # The browser download is the slowest step on a cold runner and the only
+      # variable one (20s usually, minutes when the CDN stalls). The key tracks
+      # the lockfile, so a dependency bump refreshes it and every other run hits
+      # the cache; `--with-deps` stays because it is a no-op once the image has
+      # the system libraries, and Chromium will not launch without them.
+      - name: Cache Chromium
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+
       - name: Install Chromium
         run: bunx playwright install --with-deps chromium
 
@@ -130,5 +141,20 @@ jobs:
       # builds. The playground imports `dist/` from the repository, so it cannot
       # catch a broken `files` field, a missing `dist/` file, or an `exports`
       # subpath that does not resolve.
+      #
+      # The run ends on the consumer sites in Chromium: a static build passes even
+      # when every island fails to hydrate (dev served React's CommonJS
+      # `react/compiler-runtime` raw), so the browser is the only proof that a
+      # diagram draws. Same cache key as the smoke job above, so whichever runs
+      # second downloads nothing.
+      - name: Cache Chromium
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
+
       - name: Build a real Starlight site from the packed package
         run: bun run test:site

@@ -1,7 +1,9 @@
 ## Development
 
-Bun project. The package source is TypeScript in `src/`; `playground/` is a
-small Starlight site that consumes it, for developing without a host site. The
+Bun project. The package source is TypeScript in `src/`; there are two host
+sites. `playground/` is a small Starlight site that consumes it, and
+`examples/astro/` is the same thing in **plain Astro** (no Starlight) — both
+import the package by name and resolve it through Node's self-reference. The
 wiki in `docs/wiki/` is the published documentation — keep it in step with the
 code. It is grouped into `guide/` (using the plugin) and `contributing/`
 (changing it), each with a `README.md` index, plus `Troubleshooting.md` and
@@ -9,20 +11,29 @@ code. It is grouped into `guide/` (using the plugin) and `contributing/`
 
 ```
 bun run build:lib      # bundle src/ -> dist/ (+ .d.ts, grammar data)
-bun run dev            # build:lib, then the playground dev server on :4321
+bun run dev            # build:lib, then the Starlight playground on :4321
+bun run dev:astro      # build:lib, then the plain-Astro example on :4322
 bun run build          # build:lib, then the playground static build
+bun run build:astro    # build:lib, then the plain-Astro static build
 bun run test           # vitest: pure helpers, the Langium scanner, the grammar
 bun run test:network   # + a live check against likec4/likec4
-bun run test:site      # pack the tarball and build a consumer Starlight site
-bun run check          # astro check (playground and src/) + tsc for scripts
+bun run test:site      # pack + install the tarball into a copy of playground/ and
+                       # a copy of examples/astro/, then build both, run the full
+                       # smoke suite against the Starlight copy, and check the
+                       # plain one hydrates in Chromium
+bun run check          # astro check (both sites and src/) + tsc for scripts
 bun run grammar:check  # the committed grammar snapshot matches its derivation
 ```
 
-`dev`, `build`, `check` and `test:site` all run `build:lib` first, because the
-playground imports the plugin from `dist/` — the artifact a site installs.
-Importing `../src/index.ts` there instead puts the plugin inside the Vite
-module runner that loads `astro.config.mjs`, and its dynamic `import()` of
+`dev`, `build`, `check` and `test:site` all run `build:lib` first, because both
+host sites import the plugin from `dist/` — the artifact a site installs.
+Importing `../src/index.ts` there instead puts the plugin inside the Vite module
+runner that loads `astro.config.mjs`, and its dynamic `import()` of
 `@astrojs/markdown-satteri` then dies with "module runner has been closed".
+`examples/astro/astro.config.mjs` imports `@purview-dev/astroc4/integration` and
+its page imports `@purview-dev/astroc4/components/LikeC4View.astro`; inside this
+repository those resolve the way an installed site resolves them, through
+`package.json` `exports`.
 
 The playground scripts `cd playground` first rather than using
 `astro … --root playground`: with `--root`, `astro preview` can't find
@@ -57,6 +68,21 @@ For highlighting, the smoke test's "distinct colours per block" check is the
 proof that the grammar reached Expressive Code: the playground has no
 `ec.config.mjs` on purpose.
 
+The plain-Astro path has its own two proofs: `bun run check` runs `astro check`
+over `examples/astro` (where `App.Locals` has no `t`, so a Starlight-ism in the
+components fails there first), and `bun run dev:astro` plus
+`bun scripts/hydration.ts http://localhost:4322` shows the island drawing with
+the fallback palette. `bun run test:site` covers both host sites from the tarball,
+and runs the **full smoke suite** against the packed copy of the playground — the
+same assertions the local loop uses, but on the installed package rather than
+`dist/` next to the repo.
+
+Hydration has its own dev-only failure mode: Vite served React's CommonJS
+`react/compiler-runtime` raw, and every island threw "does not provide an export
+named 'c'" while `astro build` stayed green. `src/index.ts` now adds it to
+`vite.optimizeDeps.include`; `bun run test:site` (Chromium) and
+`bun scripts/hydration.ts <url>` are what catch a regression, not the build.
+
 For the model, `bun x likec4 export json playground/src/likec4 -o .tmp-model.json`
 reports node/edge counts per view in ~2s; a view that lays out to 0 nodes
 (e.g. a deployment view that only includes `node.**`) shows up there first.
@@ -79,10 +105,38 @@ reports node/edge counts per view in ~2s; a view that lays out to 0 nodes
   `root`, and `updateConfig({ expressiveCode })` to reach Expressive Code.
   `updateConfig` merges shallowly, so merge existing options yourself —
   `withLikeC4Language` does.
-- **No Tailwind, no host aliases.** Components are styled with plain CSS over
-  Starlight's `--sl-color-*` tokens. A host's Tailwind doesn't scan this
-  package, so utility classes would silently be unstyled. `--sl-color-white`
-  is semantic (highest-contrast text), not literal white.
+- **Integration-time output goes through Astro's logger**, never `console`: the
+  logger honours the CLI log level and prefixes the message with the
+  integration's name. `registerFences` forks it to `likec4-fences` so the label
+  matches what `Troubleshooting.md` quotes. `console` belongs to browser code
+  (`render-icon.tsx`, `ErrorBoundary.tsx`) and to `scripts/`.
+- **`keywords` is release metadata, not decoration.** Astro's integrations
+  library indexes npm by keyword: `astro-integration` (and `withastro`) put the
+  package in the library, and a category keyword (`ui`) decides where. The
+  listing reads `name`, `description`, `repository` and `homepage`. See
+  [Repository CI/CD](docs/wiki/contributing/Repository-CI-CD.md#astros-integrations-library).
+- **The integration adds one thing to a site's config: `@astrojs/react`.** The
+  islands need a React renderer, so `ensureReactRenderer` pushes it through
+  `updateConfig({ integrations })` when it is missing (Astro runs hooks of
+  integrations appended during `astro:config:setup`). MDX and Expressive Code are
+  deliberately left alone — they change the host's content types and code blocks.
+  Related: ordering between `astroc4()` and `astroExpressiveCode()` does not
+  matter (Astro applies both mdast plugins and `markdown.rehypePlugins`);
+  `examples/astro` lists Expressive Code first so that stays true.
+- **No Tailwind, no host aliases.** Components are styled with plain CSS over a
+  `--likec4-*` layer that defaults to Starlight's `--sl-color-*` tokens, with
+  scheme-neutral fallbacks for plain Astro (an undefined `var()` with no fallback
+  is invalid at computed-value time, so every token needs one). A host's Tailwind
+  doesn't scan this package, so utility classes would silently be unstyled.
+  `--sl-color-white` is semantic (highest-contrast text), not literal white.
+- **Two entry points, one implementation.** `src/index.ts` is the Starlight
+  plugin and `src/integration.ts` is the `AstroIntegration`; the plugin calls the
+  integration. Anything both hosts need belongs in `integration.ts`, never in the
+  plugin — and `Astro.locals.t` is read as `unknown` because `App.Locals` is
+  empty outside Starlight. The plugin object also exposes the integration's
+  `astro:config:setup`, because `astro add` writes `integrations: [astroc4()]`
+  from the default export; the two hook sets are disjoint, so carrying both is
+  safe (and it warns when a Starlight site ends up with the wrong one).
 - **Strings go through `src/translations.ts`.** Astro components translate
   with `getTranslator(Astro.locals.t)` and pass islands plain strings
   (`IslandLabels`) — `t()` doesn't exist in the browser. Placeholders are

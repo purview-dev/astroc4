@@ -1,8 +1,9 @@
 # Configuration Reference
 
-Everything is configured through one call.
+Everything is configured through one call, and that call is one of two:
 
 ```js
+// Starlight: the plugin entry point
 starlight({
 	plugins: [
 		astroc4({
@@ -14,13 +15,23 @@ starlight({
 });
 ```
 
+```js
+// Plain Astro: the integration entry point
+integrations: [astroc4(), expressiveCode(), mdx(), react()];
+```
+
+`highlighting` exists only on the Starlight plugin, because it is an injection
+into Starlight's `expressiveCode` option; a plain Astro site configures
+Expressive Code itself ([Plain Astro](Plain-Astro.md#highlighting)). Everything
+else is shared, because both entry points call the same integration.
+
 ## Top-level options
 
 | Option | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `fences` | `boolean` | `true` | Turn ` ```likec4 ` fences into diagrams. `false` leaves them as code blocks. |
 | `vitePlugin` | `object` | `{}` | Passed straight to LikeC4's `LikeC4VitePlugin`, e.g. `{ workspace: 'diagrams' }` to look for `.c4` files somewhere other than the site root. |
-| `highlighting` | `true` \| `false` \| `HighlightingOptions` | `true` | Highlight LikeC4 source. `false` leaves Expressive Code entirely to the site. |
+| `highlighting` | `true` \| `false` \| `HighlightingOptions` | `true` | **Starlight only.** Highlight LikeC4 source. `false` leaves Expressive Code entirely to the site. |
 
 ## Highlighting options
 

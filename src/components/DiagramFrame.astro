@@ -20,7 +20,15 @@ const { height = 480 } = Astro.props;
 	/* LikeC4's renderer measures its container, so it needs a concrete height
 	   rather than collapsing to the intrinsic size of an absolutely-positioned
 	   canvas. The per-instance value arrives as an inline custom property. */
+	/* Same token contract as DiagramShell: Starlight's palette when present,
+	   scheme-neutral fallbacks when not (see the note there). */
 	.likec4-frame {
+		--likec4-border: var(--sl-color-gray-5, rgba(128, 128, 128, 0.35));
+		--likec4-surface: var(--sl-color-bg, transparent);
+		--likec4-danger: var(--sl-color-red, #c0392b);
+		--likec4-danger-soft: var(--sl-color-red-low, rgba(192, 57, 43, 0.12));
+		--likec4-danger-text: var(--sl-color-red-high, #8b1d1d);
+
 		min-height: var(--likec4-height);
 	}
 
@@ -35,13 +43,13 @@ const { height = 480 } = Astro.props;
 	}
 
 	.likec4-frame :global(.likec4-error) {
-		border: 1px solid var(--sl-color-red);
+		border: 1px solid var(--likec4-danger);
 		border-radius: 0.5rem;
-		background: var(--sl-color-red-low);
+		background: var(--likec4-danger-soft);
 		padding: 1rem;
 		font-size: 0.875rem;
 		line-height: 1.25rem;
-		color: var(--sl-color-red-high);
+		color: var(--likec4-danger-text);
 	}
 
 	.likec4-frame :global(.likec4-error p) {
@@ -55,7 +63,7 @@ const { height = 480 } = Astro.props;
 
 	.likec4-frame :global(.likec4-error__retry) {
 		margin-top: 0.75rem;
-		border: 1px solid var(--sl-color-red);
+		border: 1px solid var(--likec4-danger);
 		border-radius: 0.375rem;
 		background: transparent;
 		padding: 0.375rem 0.75rem;
@@ -67,6 +75,6 @@ const { height = 480 } = Astro.props;
 	}
 
 	.likec4-frame :global(.likec4-error__retry:hover) {
-		background: var(--sl-color-bg);
+		background: var(--likec4-surface);
 	}
 </style>

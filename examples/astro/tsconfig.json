@@ -1,0 +1,17 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
+    // LikeC4's renderer is React 19, so React is the only JSX runtime.
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "resolveJsonModule": true
+  },
+  // `../../src` so this site's `astro check` also type-checks the package: it is
+  // the only place the components are checked *without* Starlight's `App.Locals`
+  // augmentation, which is what a plain Astro consumer sees. `test:site` strips
+  // these two entries when it copies the example to a temporary site.
+  "include": [".astro/types.d.ts", "**/*", "../../src/components/**/*", "../../src/types.d.ts"],
+  "exclude": ["dist"]
+}

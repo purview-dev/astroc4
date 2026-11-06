@@ -23,7 +23,8 @@ interface Props {
 	defaultOpen?: string;
 }
 
-const t = getTranslator(Astro.locals.t);
+// See `LikeC4View.astro`: `t` is Starlight's, and absent on a plain Astro page.
+const t = getTranslator((Astro.locals as { t?: unknown }).t);
 const labels = getIslandLabels(t, 'likec4.fence.loading');
 
 const {

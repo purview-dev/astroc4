@@ -28,6 +28,12 @@ That is the whole setup: the site's `.c4` model is compiled by LikeC4's Vite
 plugin, ` ```likec4 ` fences become diagrams, and LikeC4 source is highlighted by
 Expressive Code with no `ec.config.mjs`.
 
+It also works without Starlight. `@purview-dev/astroc4/integration` is a plain
+`AstroIntegration` that adds the same model compiler and fence transform; the
+site supplies `@astrojs/react`, `@astrojs/mdx` and — only for highlighting —
+`astro-expressive-code` with an `ec.config.mjs`. See
+[Plain Astro](guide/Plain-Astro.md).
+
 ## What it gives you
 
 | | |
@@ -55,7 +61,9 @@ four files.
 
 ## Requirements
 
-Astro 7, Starlight 0.42.8, React 19, LikeC4 1.59.4 and Node 22.19 (or Bun
-1.4.4). The peer ranges are declared in `package.json`; the Starlight floor is
-load-bearing, because the plugin relies on a `config:setup` hook argument and an
-`updateConfig` key that earlier versions do not have.
+Astro 7, React 19, LikeC4 1.59.4 and Node 22.19 (or Bun 1.4.4). Starlight
+0.42.8 is required for the plugin entry point (`@purview-dev/astroc4`), not for
+`@purview-dev/astroc4/integration`. The peer ranges are declared in
+`package.json`; the Starlight floor is load-bearing, because the plugin relies on
+a `config:setup` hook argument and an `updateConfig` key that earlier versions do
+not have.
