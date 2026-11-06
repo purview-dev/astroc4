@@ -13,6 +13,12 @@ install them explicitly: `astro`, `@astrojs/starlight`, `@astrojs/react`,
 `@astrojs/markdown-satteri`, `likec4`, `@likec4/core`, `react`, `react-dom`,
 `shiki`.
 
+It is a Starlight plugin, not a plain Astro integration, so the config file is
+the next step. (`astro add @purview-dev/astroc4` gets you the package and writes
+`integrations: [astroc4()]`, which is the plain-Astro shape; under Starlight move
+that call into `plugins` — otherwise the diagrams render, but the translated UI
+and the highlighting do not, and the plugin says so.)
+
 ## 2. Register the plugin
 
 ```js
@@ -28,6 +34,10 @@ export default defineConfig({
 ```
 
 React is required: the diagrams are React islands (`likec4/react`).
+
+Not using Starlight? `@purview-dev/astroc4/integration` is a plain
+`AstroIntegration`, and [Plain Astro](Plain-Astro.md) has the full config —
+including what a site has to add itself, from `@astrojs/mdx` to `ec.config.mjs`.
 
 ## 3. Write a model
 
@@ -104,8 +114,6 @@ identifier, `payment-api` is); scoping does not cross file boundaries, so a
 reference in another file needs the full path (`cloud.backend.api`); a project is
 the directory of the nearest config file (`likec4.config.json`, `.like4rc`); and
 `summary`/`description`/`notes` take Markdown in triple quotes.
-
-## Check it worked
 
 ## Check it worked
 

@@ -4,10 +4,78 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0-prerelease.5] - 2026-11-05
 
 ### Added
 
+- **The integration works in plain Astro, not only Starlight.** The diagrams were
+  always built on Astro APIs; what was missing was an entry point and three
+  Starlight assumptions. `@purview-dev/astroc4/integration` is now an
+  `AstroIntegration` — the same `LikeC4VitePlugin`, fence transform, Windows
+  preload and `react/compiler-runtime` fix the Starlight plugin installs, because
+  both call the new `src/integration.ts`:
+
+  ```js
+  import astroc4 from '@purview-dev/astroc4/integration';
+  export default defineConfig({ integrations: [astroc4(), expressiveCode(), mdx(), react()] });
+  ```
+
+  Order matters and is documented: `astroc4()` first (Expressive Code needs the
+  Sätteri processor it installs), `expressiveCode()` before `mdx()`.
+  - `Astro.locals.t` is read as `unknown`. `App.Locals` is an empty interface
+    without Starlight's global augmentation, so `Astro.locals.t` is
+    `TS2339: Property 't' does not exist` for a site that type-checks the
+    components without Starlight — which `examples/astro` now does, and which is
+    how the cast is kept honest. The runtime already fell back to English.
+  - The components' colours moved to a `--likec4-*` layer that defaults to
+    `--sl-color-*` and to scheme-neutral fallbacks, so a plain Astro page gets a
+    legible frame instead of borders and backgrounds that resolve to nothing.
+  - `examples/astro/` is a runnable plain-Astro site (`bun run dev:astro`, port
+    4322) with a project view, an inline fence and `ec.config.mjs` highlighting;
+    `docs/wiki/guide/Plain-Astro.md` documents what the site supplies and what it
+    gives up (translations, the `highlighting` option).
+  - **`astro add` now wires a working site.** The CLI reads only npm metadata —
+    the `astro-integration` keyword and the package's default export — and writes
+    `integrations: [astroc4()]`. The default export therefore carries the Astro
+    protocol as well: Starlight calls only `config:setup`/`i18n:setup`, Astro
+    calls only `astro:*`, so one object serves both and the CLI's wiring produces
+    diagrams instead of a silently inert plugin. On a Starlight site that shape
+    cannot run the plugin half, so it warns and names
+    `starlight({ plugins: [astroc4()] })`. `@astrojs/starlight` is now an
+    optional peer, since a plain Astro site never loads it.
+  - **The integration supplies the React renderer itself.** The islands are
+    `client:only="react"`, so a site without `@astrojs/react` built fine and then
+    drew nothing (Astro's "no renderer" error names React, not this package).
+    `astroc4()` now adds `@astrojs/react` when `integrations` does not already
+    list it — Astro runs the hooks of integrations added during
+    `astro:config:setup`, the mechanism Starlight uses for Expressive Code — and
+    logs that it did. It adds nothing else on the site's behalf: `@astrojs/mdx`
+    (a new content type) and `astro-expressive-code` (every code block on the
+    site) stay the site's decision.
+  - **The ordering rule was wrong, and is gone.** `astroc4()` and
+    `astroExpressiveCode()` can be listed in either order: Astro applies a
+    processor's mdast plugins *and* the site's `markdown.rehypePlugins`, which is
+    how Expressive Code attaches itself when it runs before a processor exists.
+    The example site now lists Expressive Code **first** and still builds with
+    diagrams and `c4` highlighting, so the claim is asserted rather than
+    asserted-in-prose. The only real rule is `astroExpressiveCode()` before
+    `mdx()`, which Expressive Code enforces with its own error.
+  - A fence in a `.md` page no longer says "rename it to `.mdx`" on a site
+    without `@astrojs/mdx` — advice that cannot work. It says to add MDX first.
+  - `test:site` now installs the tarball into **copies of both host sites** —
+    `playground/` and `examples/astro/` — and runs `astro check`, `astro build`,
+    the **full smoke suite** against the Starlight copy (on its preview server),
+    a dev-server hydration check against the plain-Astro copy, and a rebuild of
+    that copy with the exact config `astro add` writes. The smoke suite is the
+    one that covers hydration, icons, highlighting colours, the loading
+    placeholder and both locales, so those are now proven against the artifact a
+    user installs rather than against `dist/` sitting beside the repository.
+
+- **`bun scripts/hydration.ts <url>`** checks one diagram in a real browser: it
+  waits for a LikeC4 element node, fails while the `.likec4-loading`
+  placeholder is still visible, and fails on any console error. `test:site`
+  runs it against the packed consumer site's own dev server, and the smoke test
+  now asserts the placeholder is gone too.
 - **The skills and the guide point at LikeC4's own DSL skill.** Astroc4 covers the
   integration — fences, components, highlighting — and not LikeC4's language, so
   both `skills/` files name `likec4.dev@likec4-dsl` as a companion and
@@ -16,8 +84,60 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `npx skills add https://likec4.dev/` (Agent Skills Discovery protocol), and the
   same page documents the MCP server for querying a model in natural language.
 
+### Fixed
+
+- **`<LikeC4View>` hydrates in `astro dev` again.** On a site configured the way
+  the README says to configure one, every diagram stayed on "Loading
+  architecture diagram…" while `astro build` exited 0, with one console line:
+
+  ```
+  [astro-island] Error hydrating …/LikeC4ProjectView.tsx
+  SyntaxError: The requested module '/node_modules/react/compiler-runtime.js'
+  does not provide an export named 'c'
+  ```
+
+  `likec4/react` is compiled with the React Compiler and imports `c` from React
+  19's CommonJS `react/compiler-runtime`. The island's source is in this
+  package, so dev served that file raw instead of pre-bundling it into an ES
+  module; `astro build` bundled it correctly, which is why only a browser could
+  see it. The plugin now adds `react/compiler-runtime` to
+  `vite.optimizeDeps.include` — only entries the site does not already have,
+  because Astro merges `vite` with Vite's `mergeConfig`, which concatenates
+  arrays — so no site needs a workaround.
+
+  It applies to **React 19.x** with **LikeC4 1.59.4 and later**, the versions
+  whose `likec4/react` imports the compiler runtime; the production build was
+  never affected. `test:site` now starts the packed consumer site's dev server
+  and asserts in Chromium that the island draws nodes with no console errors;
+  [Troubleshooting](docs/wiki/Troubleshooting.md#diagrams-stay-blank-while-the-build-passes)
+  records the error and the manual `optimizeDeps.include` fix older releases
+  need.
+
 ### Changed
 
+- **The package follows Astro's integration conventions from end to end.**
+  - `keywords` now carries `withastro` (the discoverability keyword Astro's
+    community npm search filters on) and `ui` (the `CSS + UI` category), because
+    the [integrations library](https://docs.astro.build/en/guides/integrations/#integrations-library)
+    only files a package under a category when a category keyword is present —
+    otherwise it is listed as "Uncategorized". `astro-integration`,
+    `description`, `repository` and `homepage`, which the library reads, were
+    already there.
+  - The warning about a ` ```likec4 ` fence in a `.md` page now goes through
+    Astro's logger (`logger.fork('likec4-fences').warn(…)`) instead of
+    `console.warn`, so it respects the CLI log level and keeps the
+    `[likec4-fences]` label the Troubleshooting page quotes. `likec4Fences()`
+    takes an optional reporter; `console` remains the fallback for use outside
+    an Astro config.
+  - The README and Getting Started describe the two registrations, including the
+    fact that `astro add` writes the plain-Astro shape and must be moved into
+    `plugins` under Starlight.
+
+  Hooks and config were already the documented shapes — `updateConfig` (never
+  mutating `config`), `addIntegration` for the nested LikeC4 integration, a
+  scoped unique integration `name`, `astro` among the `peerDependencies`,
+  `"type": "module"`, and `exports` with `types` beside each entry point — so
+  those are unchanged.
 - **The wiki is hierarchical.** `docs/wiki/` is now a landing `README.md` plus
   `guide/` (using the plugin: getting started, fences, components, highlighting,
   icons, i18n, options), `contributing/` (the module map, the local workflow, CI

@@ -2,6 +2,81 @@
 
 Each entry is a failure that actually happens, and what it means.
 
+## Diagrams stay blank while the build passes
+
+The frame renders, the page answers 200, `astro build` exits 0 — and every
+diagram still shows "Loading architecture diagram…". In the browser console:
+
+```
+[astro-island] Error hydrating /node_modules/@purview-dev/astroc4/src/components/LikeC4ProjectView.tsx
+SyntaxError: The requested module '/node_modules/react/compiler-runtime.js?v=…'
+does not provide an export named 'c'
+```
+
+`likec4/react` (LikeC4 1.59.4 and later) is compiled with the React Compiler,
+so it imports `c` from `react/compiler-runtime`. React 19 ships that entry point
+as CommonJS:
+
+```js
+// node_modules/react/compiler-runtime.js
+module.exports = require('./cjs/react-compiler-runtime.development.js'); // exports.c = …
+```
+
+The island is `client:only="react"` and its source is in this package, so in
+`astro dev` Vite can hand the browser `/node_modules/react/compiler-runtime.js`
+as-is instead of pre-bundling it into an ES module with a named `c` export. The
+island then throws during hydration and stays on its
+`slot="fallback"` placeholder. **`astro build` bundles the dependency
+correctly**, which is why this is invisible to a build, to `astro check` and to
+`likec4 validate` — a green build is not proof that a diagram renders.
+
+### Fixed versions
+
+The plugin now adds `react/compiler-runtime` to the site's
+`vite.optimizeDeps.include` (merged with whatever the site sets — only missing
+entries are added, because Astro's `updateConfig` concatenates Vite arrays).
+That is everything a site needs: no manual Vite configuration. It matters for
+**React 19.x** (any version whose `react/compiler-runtime` is CommonJS) together
+with **LikeC4 1.59.4 and later**; older LikeC4 builds do not import the compiler
+runtime at all.
+
+On a release before the fix, or to check the diagnosis by hand, add the entry
+yourself:
+
+```js
+// astro.config.mjs
+export default defineConfig({
+  vite: {
+    optimizeDeps: { include: ['react/compiler-runtime'] },
+  },
+  integrations: [starlight({ plugins: [astroc4()] }), react()],
+});
+```
+
+Then delete `node_modules/.vite` (and any `.vite` cache under the site root) and
+restart `astro dev`; the cache is why the failure can appear to come and go.
+
+Do not treat the other workarounds people reach for as fixes: `client:only` is
+already correct, pinning an older React or LikeC4 only hides the bug, and
+`onError: 'warn'` is the grammar-fetch option — it has nothing to do with
+hydration.
+
+### Proving it before and after
+
+Only a browser on a dev server shows this. Either one does it:
+
+```sh
+bun scripts/hydration.ts http://localhost:4321        # a running site
+bun run test:site                                     # the packed consumer site
+```
+
+`hydration.ts` waits for a `[data-likec4-node], .react-flow__node` element
+(LikeC4 renders into a shadow root, which Playwright locators pierce), fails if
+the `.likec4-loading` placeholder is still visible, and fails on any console
+error. `bun run test:site` runs exactly that against a throwaway Starlight site
+built from the tarball, on that site's own dev server, which is the regression
+test for this bug.
+
 ## The build fails and the log mentions the grammar
 
 ```
