@@ -8,8 +8,8 @@ The frame renders, the page answers 200, `astro build` exits 0 — and every
 diagram still shows "Loading architecture diagram…". In the browser console:
 
 ```
-[astro-island] Error hydrating /node_modules/@purview-dev/astroc4/src/components/LikeC4ProjectView.tsx
-SyntaxError: The requested module '/node_modules/react/compiler-runtime.js?v=…'
+[astro-island] Error hydrating @purview-dev/astroc4/src/components/LikeC4ProjectView.tsx
+SyntaxError: The requested module 'react/compiler-runtime.js?v=…'
 does not provide an export named 'c'
 ```
 
@@ -18,12 +18,12 @@ so it imports `c` from `react/compiler-runtime`. React 19 ships that entry point
 as CommonJS:
 
 ```js
-// node_modules/react/compiler-runtime.js
+// react/compiler-runtime.js
 module.exports = require('./cjs/react-compiler-runtime.development.js'); // exports.c = …
 ```
 
 The island is `client:only="react"` and its source is in this package, so in
-`astro dev` Vite can hand the browser `/node_modules/react/compiler-runtime.js`
+`astro dev` Vite can hand the browser the `compiler-runtime.js` entry point
 as-is instead of pre-bundling it into an ES module with a named `c` export. The
 island then throws during hydration and stays on its
 `slot="fallback"` placeholder. **`astro build` bundles the dependency
@@ -53,8 +53,9 @@ export default defineConfig({
 });
 ```
 
-Then delete `node_modules/.vite` (and any `.vite` cache under the site root) and
-restart `astro dev`; the cache is why the failure can appear to come and go.
+Then delete the `.vite` cache inside `node_modules` (and any `.vite` cache under
+the site root) and restart `astro dev`; the cache is why the failure can appear
+to come and go.
 
 Do not treat the other workarounds people reach for as fixes: `client:only` is
 already correct, pinning an older React or LikeC4 only hides the bug, and
