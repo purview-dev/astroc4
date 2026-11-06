@@ -10,11 +10,10 @@
 
 import { chromium } from 'playwright';
 
+import { IGNORED_CONSOLE, NODE } from './hydration.js';
+
 const baseUrl = process.argv[2] ?? 'http://localhost:4321';
 const failures = [];
-
-/** Dev-server noise, not defects. */
-const IGNORED_CONSOLE = [/Outdated Optimize Dep/i, /\[vite\] (connecting|connected)/i];
 
 
 const browser = await chromium.launch();
@@ -29,8 +28,6 @@ page.on('console', (message) => {
 
 	failures.push(`console.error: ${text}`);
 });
-
-const NODE = '[data-likec4-node], .react-flow__node';
 
 let packIconCount = 0;
 const imageIconSrcs = new Set<string>();
@@ -66,6 +63,14 @@ async function checkDiagrams(pathname: string, { expected }: { expected: number 
 			console.log(`✓ ${pathname} — "${label}" rendered ${await frame.locator(NODE).count()} nodes`);
 		} catch {
 			failures.push(`${pathname} — "${label}" rendered no nodes`);
+			continue;
+		}
+
+		// Nodes with the island's `slot="fallback"` still painted would mean the
+		// frame is showing the server-rendered stand-in, not the diagram.
+		const placeholder = frame.locator('.likec4-loading');
+		if ((await placeholder.count()) > 0 && (await placeholder.first().isVisible())) {
+			failures.push(`${pathname} — "${label}" still shows the loading placeholder`);
 			continue;
 		}
 

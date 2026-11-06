@@ -18,10 +18,20 @@ install:
 dev:
     bun run dev
 
+# Plain-Astro example (no Starlight) at http://localhost:4322
+[group('Develop')]
+dev-astro:
+    bun run dev:astro
+
 # Static build of the playground
 [group('Build')]
 build:
     bun run build
+
+# Static build of the plain-Astro example
+[group('Build')]
+build-astro:
+    bun run build:astro
 
 # Serve the built playground
 [group('Build')]
@@ -43,7 +53,9 @@ test:
 test-network:
     bun run test:network
 
-# Pack the tarball and build a throwaway Starlight site from it
+# Pack the tarball, install it into copies of playground/ and examples/astro/,
+# then build both, run the full smoke suite against the Starlight copy and check
+# the plain-Astro one hydrates in Chromium
 [group('Verify')]
 test-site:
     bun run test:site
@@ -52,6 +64,11 @@ test-site:
 [group('Verify')]
 smoke url="http://localhost:4321":
     bun scripts/smoke.ts {{url}}
+
+# Check that one diagram hydrates, against a running site (start `just dev` first)
+[group('Verify')]
+hydration url="http://localhost:4321":
+    bun scripts/hydration.ts {{url}}
 
 # Fail if the committed grammar snapshot is stale
 [group('Grammar')]
@@ -69,7 +86,8 @@ likec4-validate:
     bun run likec4:validate
 
 # The shared gate's chain (`WebBuildCommand` then `WebTestCommand`), plus the
-# packed consumer site — i.e. what a PR must pass.
+# packed consumer sites — i.e. what a PR must pass. `test-site` ends in Chromium,
+# so run `bunx playwright install chromium` once.
 [group('Verify')]
 verify: grammar-check check build test test-site
     @echo "All checks passed."
