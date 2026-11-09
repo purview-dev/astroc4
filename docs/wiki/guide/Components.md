@@ -9,13 +9,16 @@ fence transform.
 import LikeC4View from '@purview-dev/astroc4/components/LikeC4View.astro';
 
 <LikeC4View viewId="index" height={560} />
-<LikeC4View viewId="edge" projectId="my-project" title="Edge cases" collapsible={false} />
+<LikeC4View viewId="edge" project="architecture" title="Edge cases" collapsible={false} />
+<LikeC4View viewId="flow" file="diagrams/flow.c4" />
 ```
 
 | Prop | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `viewId` | `string` | required | Which view to render. |
-| `projectId` | `string` | the first project found | Which compiled LikeC4 project. |
+| `project` | `string` | the only project; required when there are several | A [named or discovered project](../../../README.md#projects). An unknown name fails the build. |
+| `file` | `string` | — | A single `.c4` file relative to `src/`, compiled at build time, instead of a project. |
+| `projectId` | `string` | — | Deprecated alias of `project`. |
 | `title` | `string` | translated `likec4.view.title` | Shell heading. |
 | `description` | `string` | translated `likec4.view.description` | Shell sub-heading. |
 | `height` | `number` | `480` | Frame height in pixels. |

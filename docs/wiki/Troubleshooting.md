@@ -130,13 +130,19 @@ leaves the fence alone and logs:
 
 Rename the page, or use `<LikeC4View>` from an `.astro` layout.
 
+## Build fails: `Several LikeC4 projects exist (…); pass project="…"`
+
+The site has more than one LikeC4 project — discovered under the site root or
+named in `projects` — and a `<LikeC4View>` or empty fence names none. Since
+`1.0.0-prerelease.6` there is no "first project found" default, so a vendored
+model can no longer silently replace yours. Add `project="<name>"`; the message
+lists the names. An unknown name fails the same way.
+
 ## `LikeC4View` shows "Unknown LikeC4 projectId"
 
-The plugin compiles **every** `.c4` project under the site root, and the first one
-found is the default. A vendored example model (a `node_modules` copy, a docs
-sample) can silently become the default. Keep only the projects you mean to
-render, or pass `projectId` explicitly, or point `vitePlugin.workspace` at one
-directory.
+Only on a site that sets `vitePlugin.workspace` (or `languageServices`) itself:
+astroc4 then does not know the projects at build time, and the browser island
+reports the unknown name. Pass a `project` that workspace contains.
 
 ## `Invalid … Could not resolve reference to ElementKind named 'person'`
 

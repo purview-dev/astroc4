@@ -21,6 +21,7 @@ that already ships a second language gets the diagram UI in it for free.
 | `likec4.error.viewIdRequired` | `<LikeC4View>` without a `viewId` |
 | `likec4.error.noProjects` | No compiled LikeC4 project |
 | `likec4.error.unknownProject` | `projectId` that does not exist |
+| `likec4.error.projectRequired` | No `project` on a site with several projects (also the build error's text) |
 | `likec4.error.unresolvedProject` | A project that cannot be resolved |
 | `likec4.error.loadFailed` | A project that failed to load |
 

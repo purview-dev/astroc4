@@ -4,6 +4,50 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-prerelease.6] - 2026-11-09
+
+### Added
+
+- **`imageAliases` just work.** A project's own `likec4.config.json` can declare
+  `"@": "../../.assets/images"` and its model can say `icon @/azure/entra.svg`
+  with no change for astroc4. Every icon LikeC4 compiles to a local file —
+  through an alias or a path relative to the `.c4` file — is mapped to
+  `/_astroc4/<project>/<path>` (`@brand/…` adds a `brand/` segment, `..` becomes
+  `__up`), served from the original file in `astro dev`, copied into the build
+  output, and rendered (SVGs inline, by LikeC4). Files under `public/` keep their
+  public URL. No build-machine `file://` path reaches the client bundle any more,
+  for any icon, and nothing is written into the site's source tree.
+- **Named projects.** `projects: { architecture: '../../docs/architecture/likec4' }`
+  compiles LikeC4 projects from anywhere — a sibling folder, another checkout, an
+  absolute path — alongside the ones discovered under the site root. They are
+  linked into `.astro/astroc4/workspace` (LikeC4 ignores anything under
+  `node_modules`), and edits reload in `astro dev`.
+- **`<LikeC4View project="…">`** names a configured or discovered project, and
+  **`<LikeC4View file="diagrams/flow.c4">`** renders one `.c4` file from `src/`,
+  compiled at build time. Fences take `project="…"` and `file="…"` (relative to
+  the page) too.
+- A missing icon, a missing or config-less project folder, two projects with the
+  same name, and two icons served at the same URL each fail the build, naming
+  the files involved.
+
+### Changed
+
+- **Breaking: no implicit "first project".** With more than one project,
+  `<LikeC4View>` and empty fences need `project`; leaving it out, or naming an
+  unknown project, now fails the build listing the names, instead of rendering
+  whichever project was found first (or an error box in the browser).
+  `projectId` still works as a deprecated alias of `project`. A site that sets
+  `vitePlugin.workspace` or `languageServices` keeps the old in-browser
+  resolution, and `projects` is ignored there with a warning.
+- New translation key `likec4.error.projectRequired`.
+
+### Known
+
+- `bun run test` (Vitest under Bun) fails `plugin.test.ts › does not name a
+  dependency the site cannot resolve` on Windows, as on `main` before this
+  release: Bun's `createRequire` resolves `react` from outside the temporary
+  site. The test passes under Node (`node node_modules/vitest/vitest.mjs run`).
+
 ## [1.0.0-prerelease.5] - 2026-11-05
 
 ### Added

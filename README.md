@@ -103,17 +103,45 @@ with exactly this config (`bun run dev:astro`).
 shape; you still add the other integrations (`astro add mdx
 astro-expressive-code`) and the `ec.config.mjs`.
 
-The plugin registers `LikeC4VitePlugin`, which compiles every
-`likec4.config.json` project under the site root. Keep exactly the projects you
-mean to render there: the first one found is the default for `<LikeC4View>`
-without a `projectId`, so a stray `.c4` project (a vendored example, say) can
-silently replace your own.
+### Projects
+
+A diagram comes from one of three places:
+
+- **A discovered project** — every `likec4.config.json` under the site root is
+  compiled, as before, and named by the `name` in its config.
+- **A named project** — `projects: { <name>: <folder> }` adds LikeC4 projects
+  from anywhere: a sibling folder, another checkout, an absolute path. The key is
+  the name pages use. The project's own config, model and icons are used exactly
+  as they are.
+- **A single file** — `<LikeC4View file="diagrams/flow.c4">`, or a fence's
+  `file="…"`, compiled at build time like an inline fence.
+
+```js
+starlight({
+	plugins: [astroc4({ projects: { architecture: '../../docs/architecture/likec4' } })],
+});
+```
+
+```mdx
+<LikeC4View project="architecture" viewId="c1-context" />
+```
+
+With exactly one project, `project` may be left out. With more than one,
+leaving it out fails the build and lists the names — a reorder or a stray
+vendored model can no longer change which diagram a page shows. An unknown name
+fails the build the same way. Two projects with the same name, or whose configs
+declare the same `name`, fail the build naming both folders.
+
+Named projects are compiled through links in `.astro/astroc4/workspace` (Astro's
+cache folder, which Astro sites already ignore); edits to their `.c4` files
+reload in `astro dev` like any other.
 
 ### Options
 
 | Option | Default | |
 | --- | --- | --- |
-| `vitePlugin` | `{}` | Passed to `LikeC4VitePlugin`, e.g. `{ workspace: 'diagrams' }`. |
+| `projects` | `{}` | Named LikeC4 project folders, relative to the site root or absolute. See above. |
+| `vitePlugin` | `{}` | Passed to `LikeC4VitePlugin`. Setting `workspace` or `languageServices` takes discovery over: `projects` is then ignored (with a warning). |
 | `fences` | `true` | Turn ` ```likec4 ` fences into diagrams. |
 | `highlighting` | `true` | Highlight LikeC4 source. Starlight only — a plain Astro site uses `ec.config.mjs`. See below. |
 
@@ -182,14 +210,22 @@ with the integration options, so its own languages and the plugin's coexist.
 | Prop | Type | Default |
 | --- | --- | --- |
 | `viewId` | `string` | required |
-| `projectId` | `string` | first project |
+| `project` | `string` | the only project; required when there are several |
+| `file` | `string` | a `.c4` file relative to `src/`, instead of a project |
+| `projectId` | `string` | deprecated alias of `project` |
 | `title` / `description` | `string` | translated defaults |
 | `height` | `number` | `480` |
 | `collapsible` / `defaultOpen` | `boolean` | `true` |
 
+`file` must name a `.c4` file under the site's `src/` folder; anything else
+fails the build. A single file has no `likec4.config.json`, so it has no
+`imageAliases`: use a pack, a URL or a `public/` icon there.
+
 ### Fence options
 
-` ```likec4 view="…" title="…" description="…" height=420 collapsible=false defaultOpen=false `
+` ```likec4 view="…" project="…" file="…" title="…" description="…" height=420 collapsible=false defaultOpen=false `
+
+`file` is relative to the Markdown page and must stay inside the site.
 
 ### Translating
 
@@ -199,10 +235,21 @@ because some are filled in by the browser, not by i18next.
 
 ## Icons
 
-Use a bundled pack (`azure:`, `aws:`, `gcp:`, `tech:`, `bootstrap:`), an
-absolute URL, or a file under the site's `public/` referenced by a path
-relative to the `.c4` file. Don't use LikeC4's `imageAliases`: the compiler
-bakes a build-machine `file://` path into the client bundle.
+Every form LikeC4 accepts works, in discovered and named projects alike:
+
+- a bundled pack (`azure:`, `aws:`, `gcp:`, `tech:`, `bootstrap:`);
+- an absolute URL;
+- `imageAliases` from the project's `likec4.config.json` — `"@": "../../.assets/images"`
+  and `icon @/azure/entra.svg` — with no change to the project;
+- a path relative to the `.c4` file, inside or outside the project.
+
+Local files are rendered by LikeC4 itself (SVGs inline) and also served at
+`/_astroc4/<project>/<path>` — `@/azure/entra.svg` becomes
+`/_astroc4/architecture/azure/entra.svg`, a named alias `@brand` adds a `brand/`
+segment — and copied into the build output. Files under `public/` keep their
+public URL. No `file://` path from the build machine reaches the bundle, and an
+icon that does not exist fails the build. Nothing is written into your source
+tree.
 
 ## Troubleshooting
 
@@ -215,7 +262,9 @@ architecture diagram…" — open the page in `astro dev`, or run
 | --- | --- | --- |
 | `The requested module '/node_modules/react/compiler-runtime.js' does not provide an export named 'c'` in the console, diagrams stuck on the loading placeholder | `likec4/react` (1.59.4 and later) is compiled with the React Compiler and imports `c` from React 19's CommonJS `react/compiler-runtime`; in dev Vite serves it unoptimized, so the island never mounts. Production builds bundle it, which is why the build still passes. | Fixed in `1.0.0-prerelease.5`: the plugin adds `react/compiler-runtime` to `vite.optimizeDeps.include`. On an older version, or to confirm by hand: `vite: { optimizeDeps: { include: ['react/compiler-runtime'] } }`. |
 | Build fails with `could not fetch the LikeC4 grammar from https://raw.githubusercontent.com/…` | The grammar is resolved while the config loads, and the machine cannot reach GitHub. | `highlighting: { offline: true }` (bundled snapshot) or `onError: 'warn'`; `ASTROC4_OFFLINE=1` in CI. |
-| `<LikeC4View>` shows "Unknown LikeC4 projectId" | Every `.c4` project under the site root is compiled and the first is the default, so a vendored model can take over. | Keep only the projects you render, pass `projectId`, or point `vitePlugin.workspace` at one directory. |
+| Build fails with `Several LikeC4 projects exist (…); pass project="…"` | The site has more than one project (discovered or named) and a `<LikeC4View>` or fence names none. | Pass `project="<name>"`; the message lists the names. |
+| Build fails with `two LikeC4 projects are named "…"` | A named project and a discovered one, or two folders, share a name or a config `name`. | Rename one, or name the configured project differently. |
+| `<LikeC4View>` shows "Unknown LikeC4 projectId" | Only on a site that sets `vitePlugin.workspace` itself, where astroc4 does not know the projects. | Pass a `project` the workspace contains. |
 | `Cannot find module …/@purview-dev/astroc4/dist/index.js` | That version shipped without its build output (only `1.0.0-prerelease.3` did). | Move to `1.0.0-prerelease.4` or later. |
 
 Everything else — highlighting that produces one colour, fences left as code,

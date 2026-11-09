@@ -8,7 +8,7 @@ starlight({
 	plugins: [
 		astroc4({
 			fences: true,
-			vitePlugin: { workspace: 'diagrams' },
+			projects: { architecture: '../../docs/architecture/likec4' },
 			highlighting: { ref: 'v1.60.0' },
 		}),
 	],
@@ -30,7 +30,8 @@ else is shared, because both entry points call the same integration.
 | Option | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `fences` | `boolean` | `true` | Turn ` ```likec4 ` fences into diagrams. `false` leaves them as code blocks. |
-| `vitePlugin` | `object` | `{}` | Passed straight to LikeC4's `LikeC4VitePlugin`, e.g. `{ workspace: 'diagrams' }` to look for `.c4` files somewhere other than the site root. |
+| `projects` | `Record<string, string>` | `{}` | Named LikeC4 projects: name → folder holding a `likec4.config.json`, relative to the site root or absolute. Compiled alongside the projects discovered under the site root; their `imageAliases` and relative icons work unchanged. |
+| `vitePlugin` | `object` | `{}` | Passed straight to LikeC4's `LikeC4VitePlugin`. Setting `workspace` or `languageServices` takes discovery over, and `projects` is then ignored with a warning. |
 | `highlighting` | `true` \| `false` \| `HighlightingOptions` | `true` | **Starlight only.** Highlight LikeC4 source. `false` leaves Expressive Code entirely to the site. |
 
 ## Highlighting options
@@ -62,6 +63,8 @@ Both are read with `process.env`, so they apply to `astro dev`, `astro build`,
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `view` | first view in the snippet, or required for an empty fence | Which view to render. |
+| `project` | the only project; required when there are several | For an empty fence: which project the view is in. |
+| `file` | — | A `.c4` file relative to the page, inside the site, rendered instead of the fence body. |
 | `title` | translated `Diagram` | Shell heading. |
 | `description` | — | Shell sub-heading. |
 | `height` | `420` | Diagram height in pixels. |
@@ -73,7 +76,9 @@ Both are read with `process.env`, so they apply to `astro dev`, `astro build`,
 | Prop | Type | Default |
 | --- | --- | --- |
 | `viewId` | `string` | required |
-| `projectId` | `string` | first project found |
+| `project` | `string` | the only project; required when there are several |
+| `file` | `string` | — (a `.c4` file relative to `src/`) |
+| `projectId` | `string` | deprecated alias of `project` |
 | `title` / `description` | `string` | translated defaults |
 | `height` | `number` | `480` |
 | `collapsible` / `defaultOpen` | `boolean` | `true` |

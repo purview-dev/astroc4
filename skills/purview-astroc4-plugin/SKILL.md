@@ -90,7 +90,8 @@ block.
 | --- | --- |
 | No colours anywhere | `expressiveCode: false`? which fence language? does `<pre data-language="c4">` contain several `--0:#…` values? |
 | Diagrams blank but the build passes | a static build passes even when islands fail to hydrate — use the browser smoke test, not the exit code |
-| "Unknown LikeC4 projectId" | a stray `.c4` project became the default; keep only the projects you mean to render or pass `projectId` |
+| Build fails "Several LikeC4 projects exist" | more than one project (discovered or named in `projects`); pass `project="<name>"` |
+| Icons from `imageAliases` missing | they work unchanged since `1.0.0-prerelease.6`; on an older version use a pack, a URL or `public/` |
 | Build fails on a machine without network | `highlighting: { offline: true }` or `onError: 'warn'`; see also `ASTROC4_OFFLINE=1` |
 | `Could not resolve reference to ElementKind named 'x'` | a model error: declare the kind in `specification { element x }` |
 

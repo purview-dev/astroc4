@@ -1,6 +1,7 @@
 # Icons
 
-LikeC4 elements take an `icon` property. Three sources work, one does not.
+LikeC4 elements take an `icon` property. Every form LikeC4 accepts works, in
+discovered and [named projects](../../../README.md#projects) alike.
 
 ## 1. A bundled pack
 
@@ -36,16 +37,37 @@ Paths are resolved relative to the `.c4` file and rewritten to the site path, so
 the browser never sees a build-machine path. Astroc4 checks this in the smoke
 test: a `file://` URL in an `<img src>` is a failure.
 
-## What does not work: `imageAliases`
+## 4. `imageAliases`, unchanged
 
-LikeC4's `imageAliases` configuration resolves icons through the compiler, which
-bakes an absolute `file://` path into the client bundle. That path exists on the
-build machine and nowhere else, so the icon 502s in the browser. Use one of the
-three forms above instead.
+```json
+// likec4.config.json — the project's own, as LikeC4 and its VS Code extension read it
+{ "name": "architecture", "imageAliases": { "@": "../../.assets/images" } }
+```
 
-## Prerendered icons
+```
+icon @/azure/entra/entra-id-logo.svg
+```
+
+Nothing changes in the project for astroc4. At build time astroc4 maps each
+icon LikeC4 compiled to a local file — through an alias or a relative path — to
+`/_astroc4/<project>/<path>`:
+
+| Icon | Served at |
+| --- | --- |
+| `@/azure/entra/x.svg` (`@` → `images/`) | `/_astroc4/architecture/azure/entra/x.svg` |
+| `@brand/logo.svg` (`@brand` → `../brand`) | `/_astroc4/architecture/brand/logo.svg` |
+| `../shared/a.svg` | `/_astroc4/architecture/__up/shared/a.svg` |
+
+`astro dev` serves those from the original files; `astro build` copies the ones
+the model uses into the output. Files under the site's `public/` keep their
+public URL. No `file://` path reaches the client bundle, nothing is written into
+the source tree, and a missing icon or two files at the same URL fail the build.
+
+## How icons render
 
 Pack icons are React components, so they are server-rendered as inline SVG where
-LikeC4's renderer allows it; URL and file icons are `<img>` elements. The smoke
-test counts both and asserts the self-hosted one in the playground actually
-resolves (`/icons/demo.svg`).
+LikeC4's renderer allows it. Local SVG files are inlined by LikeC4 too; other
+local files and URLs are `<img>` elements. The smoke test checks the playground's
+`public/` icon and the `@` alias icon of a project outside the site render, that
+the alias icon is served at its `/_astroc4/` URL, and that no `file://` string is
+in the build output.
