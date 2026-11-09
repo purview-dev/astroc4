@@ -9,14 +9,14 @@ bun run dev:astro  # plain-Astro example at http://localhost:4322
 `playground/` is a small Starlight site (English and French) that consumes the
 package through its own `exports`, so it behaves like an installed copy without a
 pack step. `examples/astro/` is the same thing without Starlight — one page, one
-model, `ec.config.mjs` for highlighting — and it is what `test:site` copies and
+model in a `likec4.config.ts` project, `likec4Language` passed to `expressiveCode()` for highlighting — and it is what `test:site` copies and
 builds, so it cannot rot.
 
 ## Scripts
 
 | Script | What it does |
 | --- | --- |
-| `bun run build:lib` | Bundle `src/` into `dist/` (Bun for the JS — three entry points — `tsc` for the `.d.ts`, plus the two grammar data files). |
+| `bun run build:lib` | Bundle `src/` into `dist/` (Bun for the JS — three entry points — `tsc` for the `.d.ts`, with `.ts` specifiers rewritten to `.js`, plus the two grammar data files). |
 | `bun run dev` | `build:lib`, then the playground dev server on port 4321. |
 | `bun run dev:astro` | `build:lib`, then the plain-Astro example on port 4322. |
 | `bun run build` | `build:lib`, then a static build of the playground. |

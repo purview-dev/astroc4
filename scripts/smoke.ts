@@ -1,19 +1,14 @@
-// smoke.mjs
-// path: scripts/smoke.mjs
-// Headless check against the playground that what static output can't prove
-// actually works in a browser: the islands hydrate and draw nodes, icons load,
-// fences became diagrams, .c4 source is highlighted, and translated strings
-// reach both the server-rendered shell and the hydrated island.
+// Checks in a browser what the static build can't prove.
 //
 //   bun run dev                                  # or: bun run build && bun run preview
-//   bun scripts/smoke.mjs http://localhost:4321
+//   bun scripts/smoke.ts http://localhost:4321
 
 import { existsSync, readFileSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 
 import { chromium } from 'playwright';
 
-import { IGNORED_CONSOLE, NODE } from './hydration.js';
+import { IGNORED_CONSOLE, NODE } from './hydration.ts';
 
 const baseUrl = process.argv[2] ?? 'http://localhost:4321';
 const failures = [];
@@ -35,7 +30,7 @@ page.on('console', (message) => {
 let packIconCount = 0;
 const imageIconSrcs = new Set<string>();
 
-/** Open every diagram on the page (collapsed ones never mount) and wait for nodes. */
+/** Collapsed diagrams never mount, so every `<details>` is opened first. */
 async function checkDiagrams(pathname: string, { expected }: { expected: number }): Promise<void> {
 	await page.goto(`${baseUrl}${pathname}`, { waitUntil: 'networkidle' });
 
@@ -69,8 +64,6 @@ async function checkDiagrams(pathname: string, { expected }: { expected: number 
 			continue;
 		}
 
-		// Nodes with the island's `slot="fallback"` still painted would mean the
-		// frame is showing the server-rendered stand-in, not the diagram.
 		const placeholder = frame.locator('.likec4-loading');
 		if ((await placeholder.count()) > 0 && (await placeholder.first().isVisible())) {
 			failures.push(`${pathname} — "${label}" still shows the loading placeholder`);
@@ -88,7 +81,6 @@ async function checkDiagrams(pathname: string, { expected }: { expected: number 
 	}
 }
 
-/** Every `role="alert"` message rendered inside a diagram frame. */
 async function alertsOn(pathname: string): Promise<string[]> {
 	await page.goto(`${baseUrl}${pathname}`, { waitUntil: 'networkidle' });
 	const alerts = page.locator('.likec4-frame [role="alert"]');
@@ -129,10 +121,7 @@ if (packIconCount === 0) {
 const leaked = [...imageIconSrcs].filter((src) => src.startsWith('file://'));
 if (leaked.length > 0) failures.push(`Icons: build-machine path reached an <img src> — ${leaked[0]}`);
 
-/**
- * Whether an icon file rendered: LikeC4 inlines local SVGs as `data:` URIs, and
- * astroc4 serves the rest at a URL — accept either, matched on the file itself.
- */
+/** LikeC4 inlines some local SVGs as `data:` URIs, so either form counts. */
 function rendered(url: string, file: URL): boolean {
 	const svg = readFileSync(file, 'utf8').trim();
 
@@ -149,8 +138,6 @@ if (!rendered('/icons/demo.svg', new URL('../playground/public/icons/demo.svg', 
 	console.log('✓ Self-hosted public/ icon rendered');
 }
 
-// The headline case: an `@` alias in a project outside the site, with no change
-// to the project, renders — and is also served at the URL astroc4 gives it.
 const ALIAS_ICON = '/_astroc4/external/brand/logo.svg';
 
 if (!rendered(ALIAS_ICON, new URL('../playground-external/images/brand/logo.svg', import.meta.url))) {
@@ -167,7 +154,6 @@ if (aliasResponse.status() !== 200 || !(aliasResponse.headers()['content-type'] 
 	console.log(`✓ Aliased icon served from ${ALIAS_ICON}`);
 }
 
-// A built site must not carry the build machine's paths anywhere.
 const dist = new URL('../playground/dist/', import.meta.url);
 
 if (existsSync(dist)) {
@@ -220,7 +206,6 @@ if (colours.length < 2 || colours.some((count) => count < 4)) {
 // ── i18n ────────────────────────────────────────────────────────────────────
 // Error templates are interpolated in the browser, so they prove the
 // translation made it through the island props, not just the Astro shell.
-// (An unknown project now fails the build, so only the view-id alert remains.)
 const enAlerts = await alertsOn('/errors/');
 expectText('en island', enAlerts, 'A LikeC4 viewId is required');
 

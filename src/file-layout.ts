@@ -1,19 +1,11 @@
-// file-layout.ts
-// path: src/file-layout.ts
-// `<LikeC4View file="flows/request.c4">`: a single .c4 file in the site,
-// compiled and laid out at build time like an inline fence.
-//
-// The component finds the file through `import.meta.glob('/src/**/*.c4')` with
-// this query; this plugin turns each such import into the layouted model. The
-// compile runs here, in Vite's plugin context, and not in the component — the
-// SSR module runner cannot safely load LikeC4's Node API (see `loadLikeC4` in
-// ./fences.ts).
+// Compiles `<LikeC4View file="…">` sources here, in Vite's plugin context,
+// because the SSR module runner cannot safely load LikeC4's Node API.
 
 import { readFile } from 'node:fs/promises';
 
 import type { Plugin as VitePlugin } from 'vite';
 
-import { layoutSource } from './fences.js';
+import { layoutSource } from './fences.ts';
 
 /** The import query `LikeC4View.astro` adds to a `.c4` file it renders. */
 export const FILE_LAYOUT_QUERY = '?astroc4-layout';

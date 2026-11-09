@@ -1,0 +1,4 @@
+/* A site sets the public tokens on any ancestor; `test:site` asserts this one reaches the shell. */
+:root {
+	--likec4-accent: rgb(0, 70, 190);
+}

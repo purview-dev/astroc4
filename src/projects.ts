@@ -1,26 +1,29 @@
-// projects.ts
-// path: src/projects.ts
-// Which LikeC4 projects a site renders, and what each is called.
-//
-// Two sources, compiled together:
-//   - discovered: every `likec4.config.json` under the site root, named by the
-//     `name` in its own config (today's behaviour);
-//   - configured: `projects: { <name>: <folder> }` in the plugin options, where
-//     the folder may live anywhere — another repository, a sibling folder — and
-//     the key is the name components use.
-//
-// Every failure is an `Astroc4ConfigError` naming the folder, so a typo in
-// astro.config fails the build with the path rather than a blank diagram.
-
 import { readdir, readFile, stat } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 
-const CONFIG_FILE = 'likec4.config.json';
+import type { ConfigFilenames } from 'likec4/config';
+
+/**
+ * LikeC4's config file names, in the order it prefers them. `satisfies` fails
+ * the type-check when LikeC4 adds or renames one.
+ */
+const CONFIG_FILES = [
+	'.likec4rc',
+	'.likec4.config.json',
+	'likec4.config.json',
+	'likec4.config.js',
+	'likec4.config.cjs',
+	'likec4.config.mjs',
+	'likec4.config.ts',
+	'likec4.config.cts',
+	'likec4.config.mts',
+] as const satisfies typeof ConfigFilenames;
+
+const JSON_CONFIG_FILES: readonly string[] = CONFIG_FILES.slice(0, 3);
 
 export interface ResolvedProject {
 	/** The name components pass as `project`. */
 	name: string;
-	/** Absolute folder holding the project's `likec4.config.json`. */
 	folder: string;
 	/** The `name` in the project's own config — LikeC4's project id. */
 	likec4Id: string;
@@ -42,9 +45,10 @@ export async function discoverProjects(root: string): Promise<ResolvedProject[]>
 
 	async function walk(folder: string): Promise<void> {
 		const entries = await readdir(folder, { withFileTypes: true });
+		const file = configFileIn(entries.filter((entry) => entry.isFile()).map((entry) => entry.name));
 
-		if (entries.some((entry) => entry.isFile() && entry.name === CONFIG_FILE)) {
-			const config = await readConfig(folder);
+		if (file) {
+			const config = await readConfig(folder, file);
 			found.push(toProject(config.name, folder, config, 'discovered'));
 		}
 
@@ -76,11 +80,15 @@ export async function resolveProjects(options: {
 			throw new Astroc4ConfigError(`project "${name}": folder ${folder} does not exist.`);
 		}
 
-		if (!(await isFile(join(folder, CONFIG_FILE)))) {
-			throw new Astroc4ConfigError(`project "${name}": no ${CONFIG_FILE} in ${folder}.`);
+		const file = configFileIn(await readdir(folder));
+
+		if (!file) {
+			throw new Astroc4ConfigError(
+				`project "${name}": no LikeC4 config file (likec4.config.json, .likec4rc, likec4.config.ts, …) in ${folder}.`,
+			);
 		}
 
-		configured.push(toProject(name, folder, await readConfig(folder), 'configured'));
+		configured.push(toProject(name, folder, await readConfig(folder, file), 'configured'));
 	}
 
 	const configuredFolders = new Set(configured.map((project) => project.folder));
@@ -103,9 +111,8 @@ export async function resolveProjects(options: {
 		byName.set(project.name, project);
 	}
 
-	// LikeC4 registers a project by the `name` in its own config, so two
-	// projects from different places that share it would collide inside the
-	// compiler however differently they are named here.
+	// LikeC4 registers a project by its config's `name`, so two that share one
+	// collide inside the compiler however they are named here.
 	const byId = new Map<string, ResolvedProject>();
 
 	for (const project of projects) {
@@ -128,23 +135,79 @@ interface LikeC4Config {
 	imageAliases?: Record<string, string>;
 }
 
-async function readConfig(folder: string): Promise<LikeC4Config> {
-	const path = join(folder, CONFIG_FILE);
+function configFileIn(names: string[]): string | undefined {
+	return CONFIG_FILES.find((file) => names.includes(file));
+}
+
+/**
+ * A project's config, read the way LikeC4 reads it: JSON files as JSON5, the
+ * rest bundled and evaluated, and `name` defaulting to the folder's name.
+ */
+async function readConfig(folder: string, file: string): Promise<LikeC4Config> {
+	const path = join(folder, file);
 	let config: unknown;
 
 	try {
-		config = JSON.parse(await readFile(path, 'utf8'));
+		config = JSON_CONFIG_FILES.includes(file) ? await readJsonConfig(path) : await evaluateConfig(path, folder);
 	} catch (error) {
-		throw new Astroc4ConfigError(`${path} is not valid JSON: ${(error as Error).message}`);
+		throw new Astroc4ConfigError(`${path} could not be read: ${(error as Error).message}`);
 	}
 
-	const name = (config as { name?: unknown }).name;
+	if (typeof config !== 'object' || config === null || Array.isArray(config)) {
+		throw new Astroc4ConfigError(`${path} must define a config object.`);
+	}
+
+	const { name = basename(folder), imageAliases } = config as { name?: unknown; imageAliases?: unknown };
 
 	if (typeof name !== 'string' || name.trim().length === 0) {
-		throw new Astroc4ConfigError(`${path} has no "name".`);
+		throw new Astroc4ConfigError(`${path} has an empty "name".`);
 	}
 
-	return config as LikeC4Config;
+	return { name, imageAliases: isRecord(imageAliases) ? imageAliases : undefined };
+}
+
+async function readJsonConfig(path: string): Promise<unknown> {
+	const { default: JSON5 } = await import('json5');
+	const text = (await readFile(path, 'utf8')).trim();
+
+	return JSON5.parse(text || '{}');
+}
+
+/**
+ * `likec4/config`'s helpers are identity functions, so they are replaced with
+ * one, as LikeC4 does: a project outside the site need not be able to resolve
+ * the package.
+ */
+async function evaluateConfig(path: string, folder: string): Promise<unknown> {
+	const { bundleRequire } = await import('bundle-require');
+
+	const { mod } = await bundleRequire({
+		filepath: path,
+		cwd: folder,
+		esbuildOptions: {
+			resolveExtensions: ['.ts', '.mts', '.cts', '.mjs', '.js', '.cjs'],
+			plugins: [
+				{
+					name: 'astroc4-likec4-config',
+					setup(build) {
+						build.onResolve({ filter: /^@?likec4\/config$/ }, (args) => ({
+							path: args.path,
+							namespace: 'astroc4-likec4-config',
+						}));
+						build.onLoad({ filter: /.*/, namespace: 'astroc4-likec4-config' }, () => ({
+							contents: [
+								'const identity = (value) => value;',
+								'export { identity as defineConfig, identity as defineGenerators, identity as defineStyle, identity as defineTheme, identity as defineThemeColor };',
+							].join('\n'),
+							loader: 'js',
+						}));
+					},
+				},
+			],
+		},
+	});
+
+	return (mod as { default?: unknown }).default ?? mod;
 }
 
 function toProject(
@@ -160,10 +223,15 @@ function toProject(
 	return { name, folder: resolve(folder), likec4Id: config.name, source, imageAliases };
 }
 
-async function isDirectory(path: string): Promise<boolean> {
-	return (await stat(path).catch(() => null))?.isDirectory() ?? false;
+function isRecord(value: unknown): value is Record<string, string> {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		!Array.isArray(value) &&
+		Object.values(value).every((entry) => typeof entry === 'string')
+	);
 }
 
-async function isFile(path: string): Promise<boolean> {
-	return (await stat(path).catch(() => null))?.isFile() ?? false;
+async function isDirectory(path: string): Promise<boolean> {
+	return (await stat(path).catch(() => null))?.isDirectory() ?? false;
 }

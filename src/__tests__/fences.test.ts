@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { fencePlaceholder, likec4Fences, parseFenceMeta } from '../fences.js';
+import { fencePlaceholder, likec4Fences, parseFenceMeta } from '../fences.ts';
 
 /** Undo the HTML attribute escaping a browser would undo when reading `dataset`. */
 const decodeAttribute = (value: string) =>
@@ -230,6 +230,53 @@ describe('the ```likec4 fence transform', () => {
 		await expect(
 			plugin.code(fence('file="../../../../x.c4"'), { fileURL: pathToFileURL(pageFile), replaceNode: () => {} }),
 		).rejects.toThrow(/outside the site/);
+	});
+
+	it.each(['md', 'mdx'] as const)('fails an empty .%s fence that names an unknown project', async (format) => {
+		const build = likec4Fences({ projects: ['docs', 'architecture'] }) as unknown as typeof fencePlugin;
+		const { ctx, plugin } = pluginFor('```likec4 view="index" project="nope"\n```', format, build);
+
+		await expect(Promise.resolve(plugin.code?.(fence('view="index" project="nope"'), ctx))).rejects.toThrow(
+			/Unknown LikeC4 projectId "nope"\. Available projects: docs, architecture\./,
+		);
+	});
+
+	it('fails an empty fence without project= when there are several projects', async () => {
+		const build = likec4Fences({ projects: ['docs', 'architecture'] }) as unknown as typeof fencePlugin;
+		const { ctx, plugin } = pluginFor('```likec4 view="index"\n```', 'md', build);
+
+		await expect(Promise.resolve(plugin.code?.(fence('view="index"'), ctx))).rejects.toThrow(
+			/Several LikeC4 projects exist \(docs, architecture\); pass project="…"/,
+		);
+	});
+
+	it('lets an empty fence leave project= out when there is one project', async () => {
+		const build = likec4Fences({ projects: ['docs'] }) as unknown as typeof fencePlugin;
+		const { ctx, plugin, replaced } = pluginFor('```likec4 view="index"\n```', 'md', build);
+
+		await plugin.code?.(fence('view="index"'), ctx);
+
+		expect(replaced).toHaveLength(1);
+	});
+
+	it('gives a .md fence the same shell options as an .mdx one', () => {
+		const open = fencePlaceholder({ viewId: 'v' });
+		const closed = fencePlaceholder({ viewId: 'v', title: 'Flow', defaultOpen: false });
+		const flat = fencePlaceholder({ viewId: 'v', collapsible: false });
+
+		expect(open).toContain('<details open>');
+		expect(open).toMatch(/<h3[^>]*>Diagram<\/h3>/);
+		expect(closed).toContain('<details>');
+		expect(closed).toContain('>Flow<');
+		expect(flat).not.toContain('<details');
+		expect(flat).toContain('<header');
+	});
+
+	it('styles a .md fence from the public --likec4-* tokens, never declaring them', () => {
+		const html = fencePlaceholder({ viewId: 'v' });
+
+		expect(html).toContain('var(--likec4-border, var(--sl-color-gray-5,');
+		expect(html).not.toMatch(/--likec4-[a-z-]+\s*:/);
 	});
 
 	it('inserts nothing when no fence was rewritten', async () => {

@@ -9,8 +9,8 @@ const likec4VitePlugin = vi.hoisted(() => vi.fn((_options?: unknown) => ({ name:
 
 vi.mock('likec4/vite-plugin', () => ({ LikeC4VitePlugin: likec4VitePlugin }));
 
-import { likec4Integration, type LikeC4IntegrationOptions } from '../integration.js';
-import { PROJECTS_MODULE_ID } from '../workspace.js';
+import { likec4Integration, type LikeC4IntegrationOptions } from '../integration.ts';
+import { PROJECTS_MODULE_ID } from '../workspace.ts';
 
 async function folderWithConfig(folder: string, name: string): Promise<string> {
 	await mkdir(folder, { recursive: true });

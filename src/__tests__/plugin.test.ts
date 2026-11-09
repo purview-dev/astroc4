@@ -6,24 +6,18 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { AstroIntegration } from 'astro';
 import { describe, expect, it, vi } from 'vitest';
 
-import starlightLikeC4, { missingOptimizedDependencies, withLikeC4Language } from '../index.js';
-import { translations } from '../translations.js';
+import starlightLikeC4, { missingOptimizedDependencies, withLikeC4Language } from '../index.ts';
+import { translations } from '../translations.ts';
 
-/** A registration as the plugin builds it. */
 const registration = { name: 'likec4', scopeName: 'source.likec4', aliases: ['c4'] };
 
-/** The slice of `AstroIntegrationLogger` the plugin uses, with spies. */
 interface StubLogger {
 	info: ReturnType<typeof vi.fn>;
 	warn: ReturnType<typeof vi.fn>;
 	fork: ReturnType<typeof vi.fn>;
 }
 
-/**
- * `fork(label)` keeps Astro's label-swapping behaviour without losing the
- * spies: every fork returns the same stub, so an assertion on `warn` sees
- * messages logged through a fork too.
- */
+/** Every fork returns the same stub, so assertions see messages logged through a fork. */
 function stubLogger(): StubLogger {
 	const logger: StubLogger = { info: vi.fn(), warn: vi.fn(), fork: vi.fn() };
 
@@ -32,7 +26,6 @@ function stubLogger(): StubLogger {
 	return logger;
 }
 
-/** Run the plugin's `config:setup` hook against a stubbed Starlight context. */
 async function setup(options: Parameters<typeof starlightLikeC4>[0] = {}) {
 	const root = pathToFileURL(await mkdtemp(join(tmpdir(), 'astroc4-plugin-')));
 	const plugin = starlightLikeC4({ highlighting: { offline: true }, ...options });
@@ -55,11 +48,7 @@ async function setup(options: Parameters<typeof starlightLikeC4>[0] = {}) {
 	return { addIntegration, logger, updateConfig };
 }
 
-/**
- * Run the integration's `astro:config:setup` hook — the one that owns the Vite
- * config — against a stubbed Astro context, with fences off so nothing else
- * touches the Markdown processor.
- */
+/** Fences are off so nothing else touches the Markdown processor. */
 async function setupVite(root: URL, vite: Record<string, unknown> = {}) {
 	const { addIntegration } = await setup({ fences: false });
 	const integration = addIntegration.mock.calls[0]?.[0] as AstroIntegration;
@@ -75,7 +64,6 @@ async function setupVite(root: URL, vite: Record<string, unknown> = {}) {
 	return updateConfig;
 }
 
-/** The `vite` option the integration handed to Astro. */
 function viteOf(updateConfig: ReturnType<typeof vi.fn>): Record<string, any> {
 	return (updateConfig.mock.calls[0]?.[0] as { vite: Record<string, any> }).vite;
 }

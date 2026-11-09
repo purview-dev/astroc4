@@ -1,12 +1,4 @@
-// md-fences.tsx
-// path: src/components/md-fences.tsx
-// Mounts the diagrams of ```likec4 fences in .md pages.
-//
-// A .md page cannot hold an Astro or React component, so the fence transform
-// (src/fences.ts) writes a placeholder carrying the view id — and, for an
-// inline or `file=` fence, the model it laid out at build time. The page script
-// the integration injects imports this module only on a page that has one, and
-// this renders the same islands an .mdx page gets into each placeholder.
+// Mounts the islands into the placeholders src/fences.ts writes for .md pages.
 
 import { likec4IdFor, projectNames } from 'virtual:astroc4/projects';
 import { createRoot } from 'react-dom/client';
@@ -18,7 +10,6 @@ import { resolveProjectId } from './utils';
 
 const SELECTOR = '[data-astroc4-fence]:not([data-astroc4-mounted])';
 
-/** Render every not-yet-mounted fence placeholder under `root`. */
 export function mountFences(root: ParentNode = document): void {
 	for (const placeholder of root.querySelectorAll<HTMLElement>(SELECTOR)) {
 		placeholder.dataset.astroc4Mounted = '';
@@ -36,10 +27,7 @@ export function mountFences(root: ParentNode = document): void {
 	}
 }
 
-/**
- * A fence's `project` (a configured or discovered name) as LikeC4's project id.
- * An unknown or missing name is passed through for the island to report.
- */
+/** A page's project name as LikeC4's id; anything unknown is left for the island to report. */
 function likec4Id(project: string | undefined): string | undefined {
 	if (projectNames.length === 0) return project;
 

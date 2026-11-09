@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { translations } from '../../translations.js';
+import { translations } from '../../translations.ts';
 import { format, getIslandLabels, getTranslator } from '../labels';
 import { resolveProjectId } from '../utils';
 

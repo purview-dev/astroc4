@@ -1,7 +1,15 @@
 # Internationalization
 
-Every string the components render comes from Starlight's i18n system, so a site
-that already ships a second language gets the diagram UI in it for free.
+Every string the Astro components render comes from Starlight's i18n system, so a
+site that already ships a second language gets the diagram UI in it for free.
+
+Two cases are English-only:
+
+- **Fences in `.md` pages.** Their placeholder is plain HTML mounted by a page
+  script, with no server component to call `t()`, so it uses the English
+  defaults.
+- **Sites without Starlight.** `Astro.locals.t` does not exist there, and
+  `getTranslator()` falls back to English.
 
 ## The keys
 
@@ -12,15 +20,15 @@ that already ships a second language gets the diagram UI in it for free.
 | `likec4.view.hint` | The hint line in the shell |
 | `likec4.view.badge` | The "click any node" badge |
 | `likec4.view.loading` | The island placeholder |
-| `likec4.fence.title` | Default heading of a diagram fence |
-| `likec4.fence.hint` | The hint line for fences |
-| `likec4.fence.loading` | The fence island's placeholder |
+| `likec4.fence.title` | Default heading of a diagram fence in `.mdx` |
+| `likec4.fence.hint` | The hint line for fences in `.mdx` |
+| `likec4.fence.loading` | The fence island's placeholder in `.mdx` |
 | `likec4.error.title` | Error boundary heading |
 | `likec4.error.body` | Error boundary body |
 | `likec4.error.retry` | Retry button |
 | `likec4.error.viewIdRequired` | `<LikeC4View>` without a `viewId` |
 | `likec4.error.noProjects` | No compiled LikeC4 project |
-| `likec4.error.unknownProject` | `projectId` that does not exist |
+| `likec4.error.unknownProject` | A `project` that does not exist (also the build error's text) |
 | `likec4.error.projectRequired` | No `project` on a site with several projects (also the build error's text) |
 | `likec4.error.unresolvedProject` | A project that cannot be resolved |
 | `likec4.error.loadFailed` | A project that failed to load |
@@ -44,7 +52,8 @@ Keys you leave out fall back to English.
 ## Placeholders are single-braced
 
 `likec4.error.unknownProject` and `likec4.error.loadFailed` take a `{projectId}`,
-and the "available projects" list is `{available}`. They use **single** braces,
+and the "available projects" list (in `unknownProject` and `projectRequired`) is
+`{available}`. They use **single** braces,
 not i18next's `{{name}}`:
 
 ```

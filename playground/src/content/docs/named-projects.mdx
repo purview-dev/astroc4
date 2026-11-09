@@ -8,7 +8,7 @@ import LikeC4View from '@purview-dev/astroc4/components/LikeC4View.astro';
 ## A named project outside the site
 
 `playground-external/` sits next to the playground, not inside it, and is named
-`external` in `astro.config.mjs`. Its own `likec4.config.json` declares
+`external` in `astro.config.ts`. Its own `likec4.config.json` declares
 `"@": "./images"`, and its model writes `icon @/brand/logo.svg` — unchanged. The
 icon is served from `/_astroc4/external/brand/logo.svg`.
 

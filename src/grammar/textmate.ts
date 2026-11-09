@@ -1,23 +1,11 @@
-// textmate.mjs
-// path: src/grammar/textmate.mjs
-// Builds the Shiki / TextMate grammar for LikeC4 out of the vocabulary read
-// from the live Langium grammar (./langium.mjs).
-//
-// Two layers:
-//   - generated â€” every word list: blocks, keywords, property names and closed
-//     value domains. These are exactly the lists that go stale when the
-//     language grows (`agent` was added to `ElementShape` after v1.59.4).
-//   - structural â€” how LikeC4 source is *shaped* rather than which words it
-//     uses: comments, quoted and triple-quoted strings, `#tag` vs `#hex`,
-//     `tech:astro` icons, `-[https]->` arrows, `element system` declarations.
-//     These are curated here because a Langium rule does not say how a token
-//     should look, only that it is one.
+// Word lists are generated from the Langium vocabulary; the structural patterns
+// (strings, tags vs hex colours, icons, arrows, declarations) are curated,
+// because a Langium rule says a token exists, not how it looks.
 //
 // The result must stay plain JSON: Expressive Code JSON-round-trips integration
-// options before the `<Code>` component renders them, and throws on functions
-// or RegExp instances.
+// options and throws on functions or RegExp instances.
 
-import type { Vocabulary } from './langium.js';
+import type { Vocabulary } from './langium.ts';
 
 /** Scope name of the grammar, as upstream's VS Code extension uses it. */
 export const SCOPE_NAME = 'source.likec4';
@@ -57,7 +45,7 @@ const VARIABLE_DOMAINS = ['Participant'];
 /** Operators whose scope is a word, kept curated: they are not all literals. */
 const OPERATOR_WORDS = ['and', 'or', 'not', 'is'];
 
-/** Used when the grammar cannot be read â€” never expected, never silent. */
+/** Used when the grammar has no `LIB_ICON` terminal. */
 const FALLBACK_ICON_PACKS = ['aws', 'azure', 'bootstrap', 'gcp', 'tech'];
 
 /** One TextMate pattern. `match`/`begin`/`end` are regex *source*, not `RegExp`. */
@@ -75,7 +63,6 @@ export interface TmPattern {
 	patterns?: TmPattern[];
 }
 
-/** A TextMate grammar: JSON all the way down, never a `RegExp`. */
 export interface TmGrammar {
 	$schema: string;
 	name: string;
@@ -95,7 +82,6 @@ export interface TmProvenance {
 	sha?: string;
 }
 
-/** Turns a vocabulary into a TextMate grammar, JSON-serialisable. */
 export function buildTmLanguage(vocabulary: Vocabulary, meta: TmProvenance = {}): TmGrammar {
 	const control = uniqueDomain(vocabulary, KEYWORD_DOMAINS);
 	const variables = uniqueDomain(vocabulary, VARIABLE_DOMAINS);
@@ -185,10 +171,7 @@ function comments() {
 	};
 }
 
-/**
- * `'â€¦'`, `"â€¦"`, and the markdown strings `''' â€¦ '''` / `""" â€¦ """` that
- * LikeC4 uses for descriptions.
- */
+/** Includes the triple-quoted markdown strings LikeC4 uses for descriptions. */
 function strings() {
 	const triple = (quote: string): TmPattern => ({
 		name: 'string.quoted.triple.likec4',
@@ -237,7 +220,7 @@ function iconIds(packs: string[]): TmPattern {
 	};
 }
 
-/** `#0046BE` is a colour, `#compute` is a tag â€” hex first, so it wins. */
+/** `#0046BE` is a colour, `#compute` is a tag: hex is included first, so it wins. */
 function hexColours() {
 	return {
 		name: 'constant.other.color.rgb-value.hex.likec4',
@@ -249,7 +232,6 @@ function tags() {
 	return { name: 'entity.name.tag.likec4', match: '#[A-Za-z_][\\w-]*' };
 }
 
-/** `a -[https]-> b` â€” the relationship kind inside the connector. */
 function typedArrow() {
 	return {
 		comment: '`a -[https]-> b`',
@@ -263,13 +245,8 @@ function typedArrow() {
 }
 
 /**
- * Declarations: the name being introduced is scoped, the name only being
- * referred to is not. Runs before the keyword patterns so `element system`
- * reads as a declaration rather than as two keywords.
- *
- * `reserved` is the alternation of syntax words (`instanceOf`, `extend`, â€¦), so
- * `deployed = instanceOf a` scopes `instanceOf` as a keyword rather than as the
- * element kind the name is being assigned.
+ * The name being introduced is scoped, a name only referred to is not. Runs
+ * before the keyword patterns so `element system` reads as a declaration.
  */
 function declarations(reserved: string): TmPattern {
 	const notReserved = reserved ? `(?!(?:${reserved})\\b)` : '';
@@ -324,7 +301,6 @@ function declarations(reserved: string): TmPattern {
  * Order matters here: blocks before plain keywords (so `model {` is a block),
  * operator words before keywords (`is`, `not`), variables before value domains
  * (so `source`/`target` stay variables even though `RankValue` reuses `source`).
- *
  */
 function keywords(vocabulary: Vocabulary & { control: string[]; variables: string[] }): TmPattern {
 	const patterns: TmPattern[] = [];
@@ -338,7 +314,7 @@ function keywords(vocabulary: Vocabulary & { control: string[]; variables: strin
 		});
 	}
 
-	// Blocks repeat in the keyword list on purpose: `predicateGroup mine { â€¦ }`
+	// Blocks repeat in the keyword list on purpose: `predicateGroup mine { ... }`
 	// is not followed by `{`, and still has to colour as a keyword. The block
 	// pattern above wins wherever the brace is there.
 	const control = alternationOf([...vocabulary.keywords, ...vocabulary.control, ...vocabulary.blocks]);
@@ -376,9 +352,7 @@ function numbers() {
 	return { name: 'constant.numeric.likec4', match: '\\b\\d+(?:\\.\\d+)?%?' };
 }
 
-/**
- * Relationship connectors, longest first so `]->` wins over `->`.
- */
+/** `arrows` must be longest first so `]->` wins over `->`. */
 function operators(arrows: string[]): TmPattern {
 	const patterns: TmPattern[] = [];
 

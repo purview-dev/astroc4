@@ -37,7 +37,7 @@ async function fixture() {
 	return { root, site, icon, other, plugin };
 }
 
-/** How LikeC4 writes a string into its generated module: every `/` as `/`. */
+/** How LikeC4 writes a string into its generated module: every `/` as `\u002F`. */
 const escaped = (value: string) => value.replaceAll('/', '\\u002F');
 
 const transform = (plugin: any, code: string, id: string) => plugin.transform(code, id)?.code ?? null;

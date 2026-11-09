@@ -1,15 +1,6 @@
 ---
-// LikeC4View.astro
-// path: src/components/LikeC4View.astro
-// Docs-facing wrapper around the LikeC4 React islands. Use this from .mdx pages:
-//   import LikeC4View from '@purview-dev/astroc4/components/LikeC4View.astro';
-//   <LikeC4View viewId="index" />                                  (the only project)
-//   <LikeC4View viewId="edge" project="architecture" height={560} /> (a named or discovered project)
-//   <LikeC4View viewId="flow" file="diagrams/flow.c4" />           (one .c4 file under src/)
-//
-// The project is resolved here, on the server, so an unknown name — or no name
-// when the site has several projects — fails the build instead of rendering an
-// error box in the browser.
+// The project is resolved on the server, so a bad `project` fails the build
+// rather than rendering an error box.
 
 import { likec4IdFor, projectNames } from 'virtual:astroc4/projects';
 
@@ -22,7 +13,6 @@ import { getIslandLabels, getTranslator } from './labels';
 import { fileKey, resolveProjectId } from './utils';
 
 interface Props {
-	/** View id inside the selected LikeC4 project or file. */
 	viewId: string;
 	/** A project named in the plugin's `projects` option, or discovered under the site root. */
 	project?: string;
@@ -30,19 +20,15 @@ interface Props {
 	projectId?: string;
 	/** A single `.c4` file, relative to the site's `src/` folder. */
 	file?: string;
-	/** Shell heading. */
 	title?: string;
 	description?: string;
-	/** Rendered height in pixels. */
+	/** Height in pixels. */
 	height?: number;
 	collapsible?: boolean;
 	defaultOpen?: boolean;
 }
 
-// Starlight augments `App.Locals` with `t`; a plain Astro page has no such
-// property (and an empty `Locals` interface, so naming it would not type-check),
-// which is why this is read as `unknown` and `getTranslator` falls back to
-// English when it is absent.
+// `t` is Starlight's; outside Starlight `App.Locals` is empty, hence `unknown`.
 const t = getTranslator((Astro.locals as { t?: unknown }).t);
 const labels = getIslandLabels(t, 'likec4.view.loading');
 
@@ -62,7 +48,7 @@ let inlineModel: unknown;
 let likec4Id: string | undefined;
 
 if (file !== undefined) {
-	// Every .c4 file under src/, compiled on import by the file-layout plugin.
+	// Compiled on import by the file-layout plugin.
 	const layouts = import.meta.glob<{ dump: unknown; viewIds: string[] }>('/src/**/*.c4', {
 		query: '?astroc4-layout',
 		import: 'default',
@@ -93,8 +79,7 @@ if (file !== undefined) {
 
 	likec4Id = likec4IdFor[resolution.resolvedProjectId!];
 } else {
-	// The site took discovery over (`vitePlugin.workspace`), so only the island
-	// knows the projects.
+	// The site took discovery over, so only the island knows the projects.
 	likec4Id = project ?? projectId;
 }
 ---
@@ -119,10 +104,7 @@ if (file !== undefined) {
 				</LikeC4InlineView>
 			) : (
 				<LikeC4ProjectView viewId={viewId} projectId={likec4Id} labels={labels} client:only="react">
-					{
-						/* `slot="fallback"` is required: default-slot children of a `client:only`
-					    island are parked in an inert <template> and never painted. */
-					}
+					{/* Without `slot="fallback"`, Astro parks it in an inert <template>. */}
 					<LoadingPlaceholder slot="fallback" label={labels.loading} />
 				</LikeC4ProjectView>
 			)
@@ -131,22 +113,22 @@ if (file !== undefined) {
 </DiagramShell>
 
 <style>
-	/* Same token contract as DiagramShell (see the note there). */
+	/* See DiagramShell for the token contract. */
 	.likec4-badge {
-		--likec4-border: var(--sl-color-gray-5, rgba(128, 128, 128, 0.35));
-		--likec4-surface: var(--sl-color-bg, transparent);
-		--likec4-text-muted: var(--sl-color-gray-2, rgba(128, 128, 128, 0.95));
+		--_likec4-border: var(--likec4-border, var(--sl-color-gray-5, rgba(128, 128, 128, 0.35)));
+		--_likec4-surface: var(--likec4-surface, var(--sl-color-bg, transparent));
+		--_likec4-text-muted: var(--likec4-text-muted, var(--sl-color-gray-2, rgba(128, 128, 128, 0.95)));
 
 		display: inline-flex;
 		align-items: center;
 		gap: 0.5rem;
 		margin-bottom: 0.75rem;
-		border: 1px solid var(--likec4-border);
+		border: 1px solid var(--_likec4-border);
 		border-radius: 9999px;
-		background: var(--likec4-surface);
+		background: var(--_likec4-surface);
 		padding: 0.25rem 0.75rem;
 		font-size: 0.75rem;
 		line-height: 1rem;
-		color: var(--likec4-text-muted);
+		color: var(--_likec4-text-muted);
 	}
 </style>

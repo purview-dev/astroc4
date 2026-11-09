@@ -1,13 +1,6 @@
-// icon-plugin.ts
-// path: src/icon-plugin.ts
-// Makes image aliases just work: every icon LikeC4 compiled to a `file://` URL
-// is rewritten to its `/_astroc4/…` URL before the model reaches the browser,
-// served from its original file by the dev server, and copied into the build
-// output. The author writes `icon @/azure/x.svg` and changes nothing else.
-//
-// LikeC4 serializes its generated modules with every `/` escaped as `/`
-// (so they can be inlined into HTML), which is why URLs are matched in both
-// forms and written back in the form they were found in.
+// LikeC4 serializes its generated modules with `/` escaped as `\u002F` (so they
+// can be inlined into HTML), so URLs are matched in both forms and written back
+// in the form they were found in.
 
 import { readFile, copyFile, mkdir } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
@@ -15,8 +8,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import type { Plugin as VitePlugin } from 'vite';
 
-import { buildIconManifest, ICON_ROUTE, type IconAsset, unstage } from './icon-assets.js';
-import type { ResolvedProject } from './projects.js';
+import { buildIconManifest, ICON_ROUTE, type IconAsset, unstage } from './icon-assets.ts';
+import type { ResolvedProject } from './projects.ts';
 
 /** The ids LikeC4's Vite plugin resolves its per-project modules to. */
 const LIKEC4_MODULE = /likec4:plugin\/(?<projectId>[^/]+)\/[^/]+$/;
@@ -36,18 +29,15 @@ const CONTENT_TYPES: Record<string, string> = {
 
 export interface IconPluginState {
 	projects: ResolvedProject[];
-	/** Astro's `base`. */
 	base: string;
 	/** The site root; files under its `public/` are left to Astro. */
 	siteRoot: string;
-	/** The staging workspace the projects were compiled through, if any. */
 	stagingDir?: string;
 }
 
 export type Astroc4IconPlugin = VitePlugin & {
-	/** Every icon gathered so far, keyed by its compiled `file://` URL. */
+	/** Keyed by compiled `file://` URL. */
 	manifest(): Map<string, IconAsset>;
-	/** Copy every gathered icon into a build output folder at its URL. */
 	emit(outDir: string): Promise<void>;
 };
 

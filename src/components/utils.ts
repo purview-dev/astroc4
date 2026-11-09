@@ -1,8 +1,3 @@
-// utils.ts
-// path: src/components/utils.ts
-// Pure resolution/validation helpers for <LikeC4View>. Separated from the React
-// component so the error-message behaviour can be tested without a DOM.
-
 import { DEFAULT_LABELS, format, type IslandLabels } from './labels';
 
 type ErrorLabels = Pick<
@@ -68,9 +63,8 @@ export function resolveProjectId(
 }
 
 /**
- * The `import.meta.glob` key for `<LikeC4View file="…">`: a `.c4` path relative
- * to the site's `src/`, or `null` when it is not one. Only files under `src/`
- * can match the glob, so a path that climbs out can never load anything.
+ * The `import.meta.glob` key for `<LikeC4View file="…">`, or `null`. Only files
+ * under `src/` can match the glob, so a path that climbs out loads nothing.
  */
 export function fileKey(file: string): string | null {
 	// Absolute paths (`/etc/x.c4`, `C:/x.c4`, `\\server\x.c4`) are never relative to src/.

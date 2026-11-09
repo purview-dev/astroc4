@@ -33,16 +33,29 @@ views { view index { include * } }
 ```
 ````
 
-That is the same thing as `<LikeC4View viewId="pageLoad" />`, in fence form.
+That is the same thing as `<LikeC4View viewId="pageLoad" />`, in fence form. On a
+site with several projects, add `project="<name>"` (see [Projects](Projects.md)).
+
+**A `.c4` file** — the fence is empty and points at a file, relative to the page:
+
+````mdx
+```likec4 file="./flows/request.c4" view="request"
+```
+````
+
+The file is compiled and laid out exactly like inline DSL. It has to be inside
+the site root.
 
 ## Options
 
-` ```likec4 view="…" title="…" description="…" height=420 collapsible=false defaultOpen=false `
+` ```likec4 view="…" project="…" file="…" title="…" description="…" height=420 collapsible=false defaultOpen=false `
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `view` | first view in the snippet; required when the fence is empty | Which view to render |
-| `title` | translated `Diagram` | Shell heading |
+| `view` | the first view the source declares; required when the fence is empty | Which view to render |
+| `project` | the only project; required when there are several | For an empty fence: which project the view is in |
+| `file` | — | A `.c4` file, relative to the page, rendered instead of the fence body |
+| `title` | `Diagram` (translated in `.mdx`) | Shell heading |
 | `description` | — | Shell sub-heading |
 | `height` | `420` | Height in pixels |
 | `collapsible` | `true` | Render the shell as a `<details>` |
@@ -52,33 +65,57 @@ Values may be double-quoted, single-quoted or bare (`height=320`). An empty
 quoted value is allowed (`description=""`) and is dropped from the component's
 props.
 
+"The first view the source declares" means the first `view <id>` in the
+source. LikeC4 adds an automatic `index` overview to every model, and the fence
+skips it unless the source declares `view index` itself.
+
+## `.md` versus `.mdx`
+
+Both are compiled and validated the same way at build time, `project` included,
+and take the same options. What differs is how the diagram reaches the page:
+
+| | `.mdx` | `.md` |
+| --- | --- | --- |
+| Rendered as | `<LikeC4Fence>` / `<LikeC4View>` | a `<section class="likec4-md-fence">` placeholder, mounted by the page script |
+| Shell | heading, description, hint, badge; collapsible | heading and description; collapsible |
+| UI strings | translated through Starlight's i18n | English |
+
 ## What the build does
 
 1. The fence's meta string is parsed into those keys.
-2. An empty fence becomes the `<LikeC4View>` component with `viewId`.
-3. A fence with source is compiled by LikeC4's Node API (`LikeC4.fromSource`) and
-   laid out; the resulting plain-JSON model is passed to the fence component as
-   a serialised prop.
-4. The component import is inserted once per page, after every fence on the page
-   has been seen.
+2. An empty fence with no `file` keeps the view name: in `.mdx` it becomes the
+   `<LikeC4View>` component, in `.md` a placeholder carrying `viewId` and
+   `project`.
+3. A fence with source (inline or `file=`) is compiled by LikeC4's Node API
+   (`LikeC4.fromSource`) and laid out. The resulting plain-JSON model is passed
+   to `<LikeC4Fence>` as a serialised prop in `.mdx`, or written into the
+   placeholder's `data-model` attribute in `.md`.
+4. In `.mdx`, the component imports are inserted once per page, after every fence
+   on the page has been seen. In `.md`, the page script astroc4 injects
+   on every page loads the diagram code only when it finds a placeholder.
 
-Layouted snippets are memoised by a hash of their source, so a build pays for a
-snippet once even though the page is re-rendered on every dev edit.
+Layouted snippets are memoised by a hash of their source, so a snippet is
+compiled once per process, even though the dev server re-renders the page on
+every edit.
 
 ## Errors you will see
 
 | Message | Cause |
 | --- | --- |
 | ``…is empty, so it needs `view="<id>"` to name a view in the project model.`` | An empty fence with no `view`. |
-| ``…is not valid LikeC4 — <parser message>`` | The DSL does not parse; the file name and only the first line of each parser error are shown. |
+| ``…is not valid LikeC4 — <parser message>`` | The DSL does not parse; the file name and the first line of the first three parser errors are shown. |
 | ``…has no view "<id>". Declared: <list>.`` | The named view is not in the snippet. |
 | ``…uses file="…", which is outside the site`` | A fence's `file=` resolves outside the site root. |
+| ``…uses file="…", which does not exist`` | A fence's `file=` names a missing file. |
+| ``Several LikeC4 projects exist (…); pass project="…".`` | An empty fence on a site with several projects. |
+| ``Unknown LikeC4 projectId "<name>". Available projects: …`` | An empty fence whose `project` does not exist. |
 
 ## Fences versus components
 
 | | Fence | `<LikeC4View>` |
 | --- | --- | --- |
-| Source | DSL in the page, or a view of the site's model | The site's `.c4` model only |
+| Source | DSL in the page, a `.c4` file, or a view of the site's model | A project's model, or a `.c4` file under `src/` |
 | Reviewable diff | The model *is* the page | The model is elsewhere |
-| Layout | Build time | Build time (Vite plugin) |
+| Layout | Build time | Build time (Vite plugin, or the file-layout plugin for `file`) |
+| Pages | `.md` and `.mdx` | `.mdx` (and `.astro`) |
 | Use when | The diagram is local to the page, or you want the DSL next to the prose | The model is shared and already in `src/likec4` |

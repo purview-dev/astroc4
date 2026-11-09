@@ -1,21 +1,13 @@
-// tsconfig.json
-// path: tsconfig.json
-// The package itself. `astro check` type-checks everything through
-// `playground/tsconfig.json` (which includes `../src`), so this file exists for
-// two other jobs: the editor, and `tsc --emitDeclarationOnly` in the build,
-// which produces the `.d.ts` files Bun cannot emit.
-//
-// `module`/`moduleResolution` are `NodeNext`: relative imports are written with
-// `.js` extensions, which is what the emitted `.d.ts` has to carry and what Node
-// needs at runtime. Bun maps them back to the `.ts` source when it bundles, and
-// so does Vitest.
-
+// Emits the `.d.ts` files Bun cannot. `astro check` type-checks src through
+// `playground/tsconfig.json`. Relative imports use `.ts`; the build rewrites
+// them to `.js` in the emitted declarations, which sit next to `.js` bundles.
 {
 	"compilerOptions": {
 		"target": "ES2023",
 		"lib": ["ES2023"],
 		"module": "NodeNext",
 		"moduleResolution": "NodeNext",
+		"allowImportingTsExtensions": true,
 		"strict": true,
 		"noUncheckedIndexedAccess": true,
 		"noImplicitOverride": true,

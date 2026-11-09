@@ -11,7 +11,7 @@ here.
 | `Build and test` | Calls `purview-dev/build/.github/workflows/purview-build.yml@main` — the organisation gate. `.config/purview-build.json` declares `ProjectType: Web`, so it installs with Bun, runs the build command below, then the test command. `run-pack: false` and `validate-pack: false`: this repository ships no NuGet package. |
 | `Live grammar` | `bun run test:network` — the only test that talks to likec4/likec4. |
 | `Browser smoke test` | Builds the playground, starts `astro preview`, runs `scripts/smoke.ts` against it with Chromium installed. Uploads `preview.log` on failure. |
-| `Packed consumer site` | `bun run test:site`: pack the tarball, install it into two throwaway sites — a copy of `playground/` and a copy of `examples/astro/` — build both, run the full smoke suite against the Starlight copy on its preview server, and hydration checks on the plain-Astro copy's dev server and the `astro add` config shape. |
+| `Packed consumer site` | `bun run test:site`: pack the tarball, install it into two throwaway sites — a copy of `playground/` and a copy of `examples/astro/` — build both, run the full smoke suite against the Starlight copy on its preview server, a hydration check on the plain-Astro copy's dev server, and a rebuild of the plain copy in the `astro add` config shape. |
 
 ### `.config/purview-build.json`
 
@@ -87,10 +87,11 @@ The step only moves `latest` while `latest` itself is a prerelease, so once
 `1.0.0` ships a `1.0.1-prerelease.1` can never pull the default install back onto
 a prerelease.
 
-It also runs on `workflow_dispatch`, and that is how `latest` first reached
-`1.0.0-prerelease.4`: a dispatch re-runs the check without republishing anything
-(the publish step skips a version already on the registry), and the tag move
-succeeds over OIDC. Both tags now resolve `1.0.0-prerelease.4`.
+It also runs on `workflow_dispatch`, and that is how `latest` first reached a
+prerelease (`1.0.0-prerelease.4`): a dispatch re-runs the check without
+republishing anything (the publish step skips a version already on the
+registry), and the tag move succeeds over OIDC. Since then each publish has moved
+`latest` itself; `npm view @purview-dev/astroc4 dist-tags` shows where both point.
 
 ### The published package is a build artifact
 
@@ -133,7 +134,8 @@ GitHub org name, not the same thing on npm; create it at
 <https://www.npmjs.com/org/create> if `npm org ls purview-dev` reports it
 missing). If the organisation name is unavailable, the package can live under
 the personal scope instead: `@kieronlanning/astroc4`, which changes
-`package.json` and the specifiers in `src/index.ts` and `src/fences.ts` only.
+`package.json` and the `PACKAGE_NAME` constants in `src/integration.ts` and
+`src/fences.ts` (plus the documentation and tests that quote the name).
 
 The publish job runs in the GitHub **environment `npm`**. It declares no
 required reviewer, so a merged version bump publishes unattended; the environment
@@ -161,8 +163,8 @@ The CLI cannot grant the dist-tag permission (npm 11.x only exposes
 that one.
 
 Trusted publishing is configured **per package, in the package's settings**, so
-the package has to exist on npm first. `@purview-dev/astroc4` has never been
-published:
+the package has to exist on npm first. For `@purview-dev/astroc4` that was done
+once, as below; the steps are kept for a new package or a re-created one:
 
 1. **Bootstrap the first version once, locally**, from an account that can
    publish to the scope (`npm login`):
@@ -272,9 +274,12 @@ once, after the first publish — not from this repository.
 
 | Workflow job | Locally |
 | --- | --- |
-| `Build and test` | `just verify` — the same chain as `WebBuildCommand` then `WebTestCommand` |
+| `Build and test` | `bun run grammar:check && bun run check && bun run build && bun run test` — `WebBuildCommand` then `WebTestCommand` |
+| All four | `just verify` — the chain above, then `test:site` |
 | `Live grammar` | `bun run test:network` |
 | `Browser smoke test` | `bun run preview` then `bun scripts/smoke.ts http://localhost:4321` |
 | `Packed consumer site` | `bun run test:site` |
 
-`Justfile` wraps each of them.
+`Justfile` wraps each of them. `just verify` skips the live grammar check and
+the separate preview smoke run (`test:site` runs the smoke suite against the
+packed site instead).

@@ -21,8 +21,8 @@ and the highlighting do not, and the plugin says so.)
 
 ## 2. Register the plugin
 
-```js
-// astro.config.mjs
+```ts
+// astro.config.ts
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import react from '@astrojs/react';
@@ -33,11 +33,12 @@ export default defineConfig({
 });
 ```
 
-React is required: the diagrams are React islands (`likec4/react`).
+The diagrams are React islands (`likec4/react`). Listing `react()` keeps the
+config explicit; leave it out and astroc4 adds `@astrojs/react` itself.
 
 Not using Starlight? `@purview-dev/astroc4/integration` is a plain
 `AstroIntegration`, and [Plain Astro](Plain-Astro.md) has the full config —
-including what a site has to add itself, from `@astrojs/mdx` to `ec.config.mjs`.
+including what a site has to add itself, from `@astrojs/mdx` to highlighting.
 
 ## 3. Write a model
 
@@ -57,9 +58,22 @@ views {
 }
 ```
 
-The file has to sit in a directory with a `likec4.config.json` (an empty `{}` is
-fine). Astroc4 compiles **every** project under the site root and the first one
-found is the default, so keep exactly the projects you mean to render there.
+The file has to sit in a directory with a LikeC4 config file, which makes it a
+project:
+
+```ts
+// src/likec4/likec4.config.ts
+import { defineConfig } from 'likec4/config';
+
+export default defineConfig({ name: 'docs' });
+```
+
+Every file name LikeC4 reads works (`likec4.config.json`, `.likec4rc`,
+`likec4.config.mjs`, …), and without `name` the project is named after its
+folder. Astroc4 compiles **every** project under the site root. With one, pages need not name it; with
+several, every `<LikeC4View>` and empty fence has to say `project="…"`. Models
+that live outside the site are added with the `projects` option. See
+[Projects](Projects.md).
 
 ## 4. Use it
 
@@ -112,8 +126,8 @@ The rules that catch people out, and that fail `astro build` when you get them
 wrong: FQNs must be unique per project and use dots (`payment.api` is not an
 identifier, `payment-api` is); scoping does not cross file boundaries, so a
 reference in another file needs the full path (`cloud.backend.api`); a project is
-the directory of the nearest config file (`likec4.config.json`, `.like4rc`); and
-`summary`/`description`/`notes` take Markdown in triple quotes.
+the directory of the nearest config file; and `summary`/`description`/`notes`
+take Markdown in triple quotes.
 
 ## Check it worked
 
@@ -123,8 +137,8 @@ bun x astro build
 
 Things to look for:
 
-- the build log has a `[astroc4] LikeC4 grammar likec4/likec4@main (…)` line —
-  that is the highlighting grammar being resolved;
+- the build log has a `[@purview-dev/astroc4] LikeC4 grammar likec4/likec4@main (…)`
+  line — that is the highlighting grammar being resolved;
 - the page's HTML contains `class="… likec4-frame …"` once per diagram;
 - a ` ```c4 ` fence on some page renders in several colours.
 
@@ -134,5 +148,6 @@ If the diagrams render but the colours do not, see
 ## Next
 
 - Point the fence at a view instead of repeating the DSL: [Fences](Fences.md).
+- Render a model that lives outside the site: [Projects](Projects.md).
 - Pin the grammar version: [Syntax Highlighting](Syntax-Highlighting.md).
 - Translate the shell: [Internationalization](Internationalization.md).

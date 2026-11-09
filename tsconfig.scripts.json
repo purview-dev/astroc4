@@ -5,8 +5,7 @@
 		"declaration": false,
 		"emitDeclarationOnly": false,
 		"rootDir": ".",
-		"allowJs": true,
-		// `scripts/smoke.ts` evaluates code inside the page, so it needs DOM types.
+		// `scripts/smoke.ts` evaluates code inside the page.
 		"lib": ["ES2023", "DOM"]
 	},
 	"include": ["scripts/**/*.ts", "vitest.config.ts"]

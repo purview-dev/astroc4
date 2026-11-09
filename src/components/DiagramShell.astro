@@ -1,20 +1,9 @@
 ---
-// DiagramShell.astro
-// path: src/components/DiagramShell.astro
-// Framed, optionally collapsible container around a diagram so it reads as a
-// deliberate block inside the prose rather than a loose widget.
-//
-// Plain CSS over Starlight's custom properties rather than utility classes: a
-// host site's Tailwind does not scan this package, so any class it did not
-// already generate would silently be unstyled.
-
 interface Props {
 	title: string;
 	description?: string;
 	hint?: string;
-	/** Whether the shell can be collapsed/expanded. */
 	collapsible?: boolean;
-	/** Initial open state when collapsible is enabled. */
 	defaultOpen?: boolean;
 }
 
@@ -54,34 +43,33 @@ const { title, description, hint, collapsible = true, defaultOpen = true } = Ast
 </section>
 
 <style>
-	/* Starlight's palette when the site has it; scheme-neutral fallbacks when it
-	   does not, so the same components frame a diagram on a plain Astro page.
-	   Every fallback is a translucent grey or `inherit`, which stays legible on
-	   light and dark backgrounds alike. */
+	/* Token contract: a site sets the public `--likec4-*` tokens on any ancestor;
+	   components never declare them, only read them into private `--_likec4-*`
+	   names, so an override inherits instead of fighting scoped specificity.
+	   Unset, they fall back to Starlight's palette, then to scheme-neutral
+	   greys and `inherit` (an undefined `var()` with no fallback is invalid). */
 	.likec4-shell {
-		--likec4-border: var(--sl-color-gray-5, rgba(128, 128, 128, 0.35));
-		--likec4-surface: var(--sl-color-bg, transparent);
-		--likec4-surface-alt: var(--sl-color-bg-nav, rgba(128, 128, 128, 0.06));
-		--likec4-text: var(--sl-color-white, inherit);
-		--likec4-text-muted: var(--sl-color-gray-2, rgba(128, 128, 128, 0.95));
-		--likec4-accent: var(--sl-color-text-accent, inherit);
+		--_likec4-border: var(--likec4-border, var(--sl-color-gray-5, rgba(128, 128, 128, 0.35)));
+		--_likec4-surface: var(--likec4-surface, var(--sl-color-bg, transparent));
+		--_likec4-surface-alt: var(--likec4-surface-alt, var(--sl-color-bg-nav, rgba(128, 128, 128, 0.06)));
+		--_likec4-text: var(--likec4-text, var(--sl-color-white, inherit));
+		--_likec4-text-muted: var(--likec4-text-muted, var(--sl-color-gray-2, rgba(128, 128, 128, 0.95)));
+		--_likec4-accent: var(--likec4-accent, var(--sl-color-text-accent, inherit));
 
 		margin-block: 1em;
 		overflow: hidden;
-		border: 1px solid var(--likec4-border);
+		border: 1px solid var(--_likec4-border);
 		border-radius: 0.75rem;
-		background: var(--likec4-surface-alt);
+		background: var(--_likec4-surface-alt);
 	}
 
 	.likec4-shell__header {
-		border-bottom: 1px solid var(--likec4-border);
-		background: var(--likec4-surface);
+		border-bottom: 1px solid var(--_likec4-border);
+		background: var(--_likec4-surface);
 		padding: 1em 1.25rem;
 		line-height: 1.4;
 	}
 
-	/* Use the native details/summary marker so this matches Starlight's own
-	   collapsible blocks instead of inventing a second disclosure style. */
 	summary.likec4-shell__header {
 		cursor: pointer;
 	}
@@ -97,7 +85,7 @@ const { title, description, hint, collapsible = true, defaultOpen = true } = Ast
 		font-size: 1rem;
 		line-height: 1.5rem;
 		font-weight: 600;
-		color: var(--likec4-text);
+		color: var(--_likec4-text);
 	}
 
 	.likec4-shell__title--block {
@@ -108,7 +96,7 @@ const { title, description, hint, collapsible = true, defaultOpen = true } = Ast
 		margin: 0.25rem 0 0;
 		font-size: 0.875rem;
 		line-height: 1.25rem;
-		color: var(--likec4-text-muted);
+		color: var(--_likec4-text-muted);
 	}
 
 	.likec4-shell__hint {
@@ -116,7 +104,7 @@ const { title, description, hint, collapsible = true, defaultOpen = true } = Ast
 		font-size: 0.75rem;
 		line-height: 1rem;
 		font-weight: 500;
-		color: var(--likec4-accent);
+		color: var(--_likec4-accent);
 	}
 
 	.likec4-shell__body {

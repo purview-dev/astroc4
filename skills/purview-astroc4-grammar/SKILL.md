@@ -25,8 +25,8 @@ mismatch anyway. Change the derivation instead.
 
 ## Changing the grammar
 
-1. Edit `src/grammar/langium.mjs` (what is extracted from the Langium text) or
-   `src/grammar/textmate.mjs` (how it becomes TextMate JSON).
+1. Edit `src/grammar/langium.ts` (what is extracted from the Langium text) or
+   `src/grammar/textmate.ts` (how it becomes TextMate JSON).
 2. `bun run test` — the snapshot test now fails, which is the point.
 3. `bun run grammar:sync` and commit both `like-c4.langium` and the JSON.
 
@@ -53,16 +53,29 @@ variables before value domains (`source`/`target`), properties before values.
 
 ## At the site
 
-`highlighting.ref` (default `main`) selects the branch, tag or commit;
-`ASTROC4_REF` overrides it. Fetches are cached per `repo@ref` in
-`node_modules/.cache/astroc4`, ETag-revalidated, replaced atomically. The
-grammar is re-derived from the cached text on every run, so upgrading astroc4
-never reuses a grammar from an older derivation.
+Under Starlight, `highlighting.ref` (default `main`) selects the branch, tag or
+commit; `ASTROC4_REF` overrides it. The plugin resolves it from Starlight's
+`config:setup` and injects it into the `expressiveCode` option, so the site has
+no Expressive Code config. A plain Astro site has no such option: it passes
+`likec4Language` (the bundled snapshot) or `await loadLikeC4Language({ ref })`
+from `@purview-dev/astroc4/expressive-code` to `expressiveCode({ shiki: { langs } })`
+in its `astro.config.ts`.
+
+Fetches are cached per `repo@ref` in `node_modules/.cache/astroc4` (or
+`cacheDir`), ETag-revalidated after `cacheTtl` (an hour), replaced atomically.
+The grammar is re-derived from the cached text on every run, so upgrading
+astroc4 never reuses a grammar from an older derivation.
 
 Failure policy: a ref that cannot exist **always** fails; a network failure fails
 unless `onError: 'warn'` (then: cached copy, then the bundled snapshot);
-`offline: true` skips the network entirely. Never wrap the resolution in a
-try/catch that swallows the error — the build is supposed to fail.
+`offline: true` (or `ASTROC4_OFFLINE=1`, when `offline` is not set) skips the
+network entirely; `onError: 'silent'` is `'warn'` without the log lines. Never
+wrap the resolution in a try/catch that swallows the error — the build is
+supposed to fail.
+
+The build log names what was used:
+`[@purview-dev/astroc4] LikeC4 grammar likec4/likec4@<ref> (<sha>)`, followed by
+`from cache` or `from bundled` when it was not fetched.
 
 ## Version sensitivity is tested, not assumed
 
@@ -70,3 +83,6 @@ try/catch that swallows the error — the build is supposed to fail.
 upstream change: `ElementShape` gained `agent` after `v1.59.4`. Those fixtures
 keep "the selected ref changes the output" verifiable without the network, and
 `network.test.ts` re-checks the same claim against the live repository.
+
+Full detail lives in the wiki: `docs/wiki/guide/Syntax-Highlighting.md` and
+`docs/wiki/contributing/Local-Development.md#working-on-the-grammar`.

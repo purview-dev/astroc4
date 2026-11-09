@@ -1,8 +1,4 @@
-// ErrorBoundary.tsx
-// path: src/components/ErrorBoundary.tsx
-// Keeps a crashing LikeC4 island (the renderer depends on browser-only
-// measurement APIs) from blanking the surrounding docs page. Styled by the
-// `.likec4-error` rules in DiagramFrame.astro, which is always its ancestor.
+// Styled by the `.likec4-error` rules in DiagramFrame.astro, always an ancestor.
 
 import { Component, type ReactNode } from 'react';
 

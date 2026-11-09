@@ -1,30 +1,14 @@
-// sync-grammar.mjs
-// path: scripts/sync-grammar.mjs
-// Regenerates the LikeC4 syntax highlighting artefacts shipped with astroc4
-// from the live Langium grammar:
-//
-//   src/grammar/like-c4.langium        snapshot, so builds work offline
-//   src/grammar/likec4.tmLanguage.json generated TextMate grammar
-//
-//   bun run grammar:sync                 # likec4/likec4@main
-//   bun run grammar:sync --ref v1.59.4   # any branch, tag or commit
-//   bun run grammar:sync --check         # fail if the snapshot is stale
-//
-// `--check` is the drift gate: it re-derives from the committed snapshot and
-// compares with the committed JSON, so a change to the derivation that is not
-// accompanied by a regenerated snapshot fails `bun run test` and CI.
-
 import { readFile, writeFile } from 'node:fs/promises';
 
-import { parseLangium } from '../src/grammar/langium.js';
+import { parseLangium } from '../src/grammar/langium.ts';
 import {
 	DEFAULT_REF,
 	DEFAULT_REPO,
 	fetchLangiumSource,
 	grammarSha,
 	validateRef,
-} from '../src/grammar/source.js';
-import { buildTmLanguage } from '../src/grammar/textmate.js';
+} from '../src/grammar/source.ts';
+import { buildTmLanguage } from '../src/grammar/textmate.ts';
 
 const LANGIUM_FILE = new URL('../src/grammar/like-c4.langium', import.meta.url);
 const GRAMMAR_FILE = new URL('../src/grammar/likec4.tmLanguage.json', import.meta.url);
@@ -53,11 +37,6 @@ if (check) {
 	await sync();
 }
 
-/**
- * Derive from the committed snapshot and compare with the committed JSON.
- * With `--ref` it also checks the snapshot against the live ref, which is how
- * a maintainer notices that upstream has moved on.
- */
 async function verify() {
 	const langium = await readFile(LANGIUM_FILE, 'utf8');
 	const committed = JSON.parse(await readFile(GRAMMAR_FILE, 'utf8'));
@@ -94,7 +73,6 @@ async function verify() {
 	}
 }
 
-/** Fetch, then write the snapshot and the generated grammar. */
 async function sync() {
 	const source = await fetchLangiumSource({ repo, ref });
 	const langium = 'notModified' in source ? await readFile(LANGIUM_FILE, 'utf8') : source.text;
@@ -125,7 +103,6 @@ async function sync() {
 	}
 }
 
-/** The provenance to record in the generated grammar. */
 function provenance(
 	committed: { $generated?: { repo?: string; ref?: string; sha?: string } },
 	fallback: { repo: string; ref: string },
@@ -154,7 +131,6 @@ function diff(before: unknown, after: unknown): string[] {
 	return differences;
 }
 
-/** Every word inside a `match` alternation, for the diff above. */
 function wordsOf(grammar: unknown): Set<string> {
 	const source = JSON.stringify(grammar ?? {});
 	const words = new Set<string>();

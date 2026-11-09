@@ -43,8 +43,8 @@ runtime at all.
 On a release before the fix, or to check the diagnosis by hand, add the entry
 yourself:
 
-```js
-// astro.config.mjs
+```ts
+// astro.config.ts
 export default defineConfig({
   vite: {
     optimizeDeps: { include: ['react/compiler-runtime'] },
@@ -74,9 +74,10 @@ bun run test:site                                     # the packed consumer site
 `hydration.ts` waits for a `[data-likec4-node], .react-flow__node` element
 (LikeC4 renders into a shadow root, which Playwright locators pierce), fails if
 the `.likec4-loading` placeholder is still visible, and fails on any console
-error. `bun run test:site` runs exactly that against a throwaway Starlight site
-built from the tarball, on that site's own dev server, which is the regression
-test for this bug.
+error. `bun run test:site` runs exactly that against a throwaway plain-Astro site
+built from the tarball, on that site's own **dev** server, which is the
+regression test for this bug. (Its Starlight copy runs the smoke suite on a
+preview server, which serves the bundled build and so cannot see it.)
 
 ## The build fails and the log mentions the grammar
 
@@ -132,6 +133,7 @@ component). If it never mounts:
 3. A page rendered outside Astro's pipeline (raw HTML, a custom renderer) does not
    get the injected script.
 
+
 ## Build fails: `Several LikeC4 projects exist (…); pass project="…"`
 
 The site has more than one LikeC4 project — discovered under the site root or
@@ -140,11 +142,24 @@ named in `projects` — and a `<LikeC4View>` or empty fence names none. Since
 model can no longer silently replace yours. Add `project="<name>"`; the message
 lists the names. An unknown name fails the same way.
 
-## `LikeC4View` shows "Unknown LikeC4 projectId"
+## Build fails: `…likec4.config… could not be read`
+
+```
+[astroc4] …/likec4.config.ts could not be read: …
+```
+
+Astroc4 reads every LikeC4 config file it discovers, to learn the project's name
+and `imageAliases`: JSON names as JSON5, JS/TS names by bundling them with
+esbuild. The message after the path is the parser's or esbuild's. A TS config
+may import `likec4/config` (it is replaced with a stand-in), but anything else it
+imports has to resolve from the config's folder.
+
+## A diagram shows "Unknown LikeC4 projectId"
 
 Only on a site that sets `vitePlugin.workspace` (or `languageServices`) itself:
 astroc4 then does not know the projects at build time, and the browser island
-reports the unknown name. Pass a `project` that workspace contains.
+reports the unknown name. Pass a `project` that workspace contains. Everywhere
+else an unknown project fails the build.
 
 ## `Invalid … Could not resolve reference to ElementKind named 'person'`
 
@@ -165,9 +180,9 @@ build, which is the point.
 ## The build crashed on Windows with "Vite module runner has been closed"
 
 That is the race `preloadLikeC4()` and the `require()`-instead-of-`import()`
-comment in `src/fences.mjs` exist to prevent. If it comes back, the preload is no
+comment in `src/fences.ts` exist to prevent. If it comes back, the preload is no
 longer running before the first page render (look at `command === 'build'` in
-`src/index.mjs`).
+`src/integration.ts`).
 
 ## Highlighting changed without a code change
 
@@ -175,10 +190,11 @@ The default ref is `main`, which moves. Pin a tag or a SHA, or set `ASTROC4_REF`
 in CI. The build log always names what it used:
 
 ```
-[astroc4] LikeC4 grammar likec4/likec4@main (da5af77245f9) — highlighting ```c4 and ```likec4 fences
+[@purview-dev/astroc4] LikeC4 grammar likec4/likec4@main (da5af77245f9) — highlighting ```c4 and ```likec4 fences
 ```
 
-`from cache` / `from bundled` in that line tells you which path was taken.
+`from cache` / `from bundled` after the SHA tells you which path was taken;
+nothing there means it was fetched.
 
 ## My theme does not colour LikeC4 source
 

@@ -1,48 +1,35 @@
-// icon-assets.ts
-// path: src/icon-assets.ts
-// Where a LikeC4 icon that lives on disk is served from.
-//
-// LikeC4 resolves `icon @/azure/x.svg` (through the project's `imageAliases`)
-// and `icon ./icons/x.svg` to absolute `file://` URLs in the compiled model.
-// Shipped as they are, those 404 for every visitor and leak the build
-// machine's folders. Each is mapped here to a URL under `/_astroc4/` that the
-// dev server serves and the build copies, so an author keeps writing
-// `icon @/…` and the site just works.
+// LikeC4 compiles local icons to absolute `file://` URLs, which 404 for
+// visitors and leak the build machine's folders, so each is mapped to a URL
+// under `/_astroc4/`:
 //
 //   @  -> <project>/images      icon @/azure/entra/x.svg  -> /_astroc4/<project>/azure/entra/x.svg
 //   @brand -> ../brand          icon @brand/logo.svg      -> /_astroc4/<project>/brand/logo.svg
 //   (no alias)                  icon ../shared/a.svg      -> /_astroc4/<project>/__up/shared/a.svg
 //
-// Files already under the site's `public/` are Astro's to serve: they are
-// rewritten to that URL too, so no `file://` path reaches the bundle, but they
-// are neither served nor copied by astroc4.
+// Files under the site's `public/` get their public URL, and Astro serves them.
 
 import { realpathSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { Astroc4ConfigError, type ResolvedProject } from './projects.js';
+import { Astroc4ConfigError, type ResolvedProject } from './projects.ts';
 
-/** The URL prefix every gathered icon is served under (after Astro's `base`). */
+/** After Astro's `base`. */
 export const ICON_ROUTE = '/_astroc4/';
 
-/** The segment a `..` in a relative icon path becomes, so URLs never climb. */
+/** Replaces `..` in a relative icon path, so URLs never climb. */
 const UP = '__up';
 
 export interface IconAsset {
-	/** The file on disk, with links resolved. */
+	/** With links resolved. */
 	file: string;
-	/** The served path, including Astro's `base`. */
+	/** Including Astro's `base`. */
 	url: string;
 	projectName: string;
-	/** Under the site's `public/`: Astro serves and copies it, so astroc4 does neither. */
+	/** Under the site's `public/`: Astro serves and copies it, astroc4 does neither. */
 	public?: boolean;
 }
 
-/**
- * The served asset for one compiled icon URL. A file under the site's
- * `public/` keeps the URL Astro already serves it at.
- */
 export function iconAssetFor(
 	project: ResolvedProject,
 	fileUrl: string,
@@ -66,13 +53,8 @@ export function iconAssetFor(
 }
 
 /**
- * The file a compiled icon URL really names, when the project was compiled
- * through its link in the staging workspace.
- *
- * LikeC4 resolves relative icon paths and `imageAliases` *lexically* against
- * the folder it opened — the link — so `../brand` from
- * `.astro/astroc4/workspace/architecture` lands next to the link, not next to
- * the project. Whatever LikeC4 computed as `resolve(link, x)` is really
+ * LikeC4 resolves relative icon paths and `imageAliases` lexically against the
+ * staging link it opened, so `resolve(link, x)` is mapped back to
  * `resolve(project.folder, x)`.
  */
 export function unstage(fileUrl: string, project: ResolvedProject, stagingDir: string | undefined): string {
@@ -92,10 +74,8 @@ export function unstage(fileUrl: string, project: ResolvedProject, stagingDir: s
 }
 
 /**
- * Every compiled icon URL that needs serving, keyed by that URL.
- *
- * @throws Astroc4ConfigError for a missing icon (naming the `.c4` file) or for
- * two different files that would be served at the same URL.
+ * @throws Astroc4ConfigError for a missing icon, or two files that would be
+ * served at the same URL.
  */
 export function buildIconManifest(
 	entries: Array<{ project: ResolvedProject; fileUrl: string; source: string }>,

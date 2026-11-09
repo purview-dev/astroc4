@@ -1,10 +1,5 @@
-// check-dist.ts
-// path: scripts/check-dist.ts
-// Refuses to publish a package whose `exports` point at files that are not in
-// it. `dist/` is gitignored and built, so a publish from a fresh checkout — or
-// from a shell that never ran `build:lib` — ships a version that cannot be
-// imported, and a version number that cannot be reused. `npm publish` runs this
-// through `prepublishOnly`, whoever invokes it.
+// `dist/` is built, not committed, so a publish that skipped `build:lib` would
+// burn a version number on a package that cannot be imported.
 
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -12,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Every file an `exports` entry resolves to, as relative paths. */
 function exportedFiles(): string[] {
 	const { exports = {} } = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 	const files: string[] = [];

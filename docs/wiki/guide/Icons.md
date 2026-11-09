@@ -1,7 +1,7 @@
 # Icons
 
 LikeC4 elements take an `icon` property. Every form LikeC4 accepts works, in
-discovered and [named projects](../../../README.md#projects) alike.
+discovered and [named projects](Projects.md) alike.
 
 ## 1. A bundled pack
 
@@ -29,13 +29,15 @@ icon https://example.com/logo.svg
 ## 3. A file under the site's `public/`
 
 ```
-# src/likec4/model.c4
-icon /icons/demo.svg
+# src/likec4/model.c4 — the file is public/icons/demo.svg
+icon ../../public/icons/demo.svg
 ```
 
-Paths are resolved relative to the `.c4` file and rewritten to the site path, so
-the browser never sees a build-machine path. Astroc4 checks this in the smoke
-test: a `file://` URL in an `<img src>` is a failure.
+The path is relative to the `.c4` file. LikeC4 compiles it to a `file://` URL,
+and astroc4 rewrites that to the URL Astro already serves the file at
+(`/icons/demo.svg`, after `base`), so the browser never sees a build-machine
+path. Astroc4 checks this in the smoke test: a `file://` URL in an `<img src>` is
+a failure.
 
 ## 4. `imageAliases`, unchanged
 
@@ -57,6 +59,8 @@ icon LikeC4 compiled to a local file — through an alias or a relative path —
 | `@/azure/entra/x.svg` (`@` → `images/`) | `/_astroc4/architecture/azure/entra/x.svg` |
 | `@brand/logo.svg` (`@brand` → `../brand`) | `/_astroc4/architecture/brand/logo.svg` |
 | `../shared/a.svg` | `/_astroc4/architecture/__up/shared/a.svg` |
+
+URLs are prefixed with Astro's `base`.
 
 `astro dev` serves those from the original files; `astro build` copies the ones
 the model uses into the output. Files under the site's `public/` keep their

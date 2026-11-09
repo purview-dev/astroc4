@@ -7,9 +7,8 @@ import likec4Integration, {
 	missingOptimizedDependencies,
 	PACKAGE_NAME,
 	type LikeC4IntegrationOptions,
-} from '../integration.js';
+} from '../integration.ts';
 
-/** The slice of `AstroIntegrationLogger` the integration uses, with spies. */
 interface StubLogger {
 	info: ReturnType<typeof vi.fn>;
 	warn: ReturnType<typeof vi.fn>;
@@ -24,7 +23,6 @@ function stubLogger(): StubLogger {
 	return logger;
 }
 
-/** Run the integration's `astro:config:setup` hook against a stubbed context. */
 async function setup(
 	options: LikeC4IntegrationOptions = {},
 	vite: Record<string, unknown> = {},
@@ -46,7 +44,6 @@ async function setup(
 	return { logger, updateConfig };
 }
 
-/** The `vite` option the integration handed to Astro. */
 const viteOf = (updateConfig: ReturnType<typeof vi.fn>): Record<string, any> =>
 	(updateConfig.mock.calls[0]?.[0] as { vite: Record<string, any> }).vite;
 

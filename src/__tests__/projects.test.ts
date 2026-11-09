@@ -121,4 +121,64 @@ describe('discoverProjects', () => {
 
 		expect(await discoverProjects(root)).toEqual([]);
 	});
+
+	it('names a project after its folder when the config has no name, as LikeC4 does', async () => {
+		const root = await tempRoot();
+		await mkdir(join(root, 'diagrams'));
+		await writeFile(join(root, 'diagrams', 'likec4.config.json'), '{}');
+
+		expect(await discoverProjects(root)).toMatchObject([{ name: 'diagrams', likec4Id: 'diagrams' }]);
+	});
+
+	it('reads .likec4rc and .likec4.config.json as JSON5', async () => {
+		const root = await tempRoot();
+		await mkdir(join(root, 'a'));
+		await mkdir(join(root, 'b'));
+		await writeFile(join(root, 'a', '.likec4rc'), "// comment\n{ name: 'rc', imageAliases: { '@': './img', }, }");
+		await writeFile(join(root, 'b', '.likec4.config.json'), '{ "name": "dot-json" /* trailing */ }');
+
+		const projects = await discoverProjects(root);
+
+		expect(projects.map((p) => p.name).sort()).toEqual(['dot-json', 'rc']);
+		expect(projects.find((p) => p.name === 'rc')!.imageAliases).toEqual({ '@': resolve(root, 'a', 'img') });
+	});
+
+	it.each([
+		['likec4.config.ts', "import { defineConfig } from 'likec4/config';\nconst name: string = 'ts';\nexport default defineConfig({ name, imageAliases: { '@': './img' } });"],
+		['likec4.config.mts', "import { defineConfig } from '@likec4/config';\nexport default defineConfig({ name: 'mts' });"],
+		['likec4.config.mjs', "export default { name: 'mjs' };"],
+		['likec4.config.js', "export default { name: 'js' };"],
+		['likec4.config.cjs', "module.exports = { name: 'cjs' };"],
+		['likec4.config.cts', "module.exports = { name: 'cts' as string };"],
+	])('evaluates %s', async (file, source) => {
+		const root = await tempRoot();
+		const folder = join(root, 'diagrams');
+		await mkdir(folder);
+		await writeFile(join(folder, file), source);
+
+		const [found] = await discoverProjects(root);
+		const expected = file.split('.').pop();
+
+		expect(found).toMatchObject({ name: expected, likec4Id: expected, folder: resolve(folder) });
+
+		if (file.endsWith('.ts')) expect(found!.imageAliases).toEqual({ '@': resolve(folder, 'img') });
+	});
+
+	it('resolves a configured folder whose config is TypeScript', async () => {
+		const root = await tempRoot();
+		await mkdir(join(root, 'arch'));
+		await writeFile(join(root, 'arch', 'likec4.config.ts'), "export default { name: 'architecture' };");
+
+		const [resolved] = await resolveProjects({ root, configured: { arch: './arch' }, discovered: [] });
+
+		expect(resolved).toMatchObject({ name: 'arch', likec4Id: 'architecture', source: 'configured' });
+	});
+
+	it('fails with the path when a config cannot be read', async () => {
+		const root = await tempRoot();
+		await mkdir(join(root, 'broken'));
+		await writeFile(join(root, 'broken', 'likec4.config.json'), '{ name: ');
+
+		await expect(discoverProjects(root)).rejects.toThrow(/broken[\\/]likec4\.config\.json could not be read/);
+	});
 });

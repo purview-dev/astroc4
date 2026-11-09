@@ -1,31 +1,15 @@
-// workspace.ts
-// path: src/workspace.ts
-// One folder LikeC4 can compile, holding every project the site renders.
-//
-// `LikeC4VitePlugin` takes a single `workspace`. A site's projects live in
-// several places (under its root, in a sibling folder, in another checkout), so
-// they are gathered as directory links under one staging folder and the plugin
-// is pointed at that. Links, not copies: the sources stay where their authors
-// edit them, and LikeC4 sees every change.
-//
-// The staging folder lives in the site's `.astro/` cache, never under
-// `node_modules/`: LikeC4 excludes `**/node_modules/**` and would register
-// nothing there.
+// `LikeC4VitePlugin` takes a single `workspace`, so every project is linked
+// (not copied, so LikeC4 sees edits) under one staging folder. It lives in
+// `.astro/`, never `node_modules/`: LikeC4 excludes `**/node_modules/**`.
 
 import { lstat, mkdir, readdir, readlink, realpath, rm, symlink } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
-import type { ResolvedProject } from './projects.js';
+import type { ResolvedProject } from './projects.ts';
 
-/** The virtual module components read project names from. */
 export const PROJECTS_MODULE_ID = 'virtual:astroc4/projects';
 
-/**
- * Link every project into `<cacheDir>/workspace` under its resolved name, and
- * remove links for projects that are no longer configured.
- *
- * @returns The staging folder to hand `LikeC4VitePlugin` as its `workspace`.
- */
+/** @returns The staging folder to hand `LikeC4VitePlugin` as its `workspace`. */
 export async function prepareWorkspace(projects: ResolvedProject[], cacheDir: string): Promise<string> {
 	const staging = join(cacheDir, 'workspace');
 	await mkdir(staging, { recursive: true });
@@ -54,7 +38,6 @@ export async function prepareWorkspace(projects: ResolvedProject[], cacheDir: st
 	return staging;
 }
 
-/** The source of `virtual:astroc4/projects` for a set of resolved projects. */
 export function projectsModule(projects: ResolvedProject[]): string {
 	const names = projects.map((project) => project.name);
 	const ids = Object.fromEntries(projects.map((project) => [project.name, project.likec4Id]));

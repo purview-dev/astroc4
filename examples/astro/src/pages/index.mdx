@@ -4,12 +4,14 @@ description: The astroc4 integration with no Starlight in the site.
 ---
 
 import LikeC4View from '@purview-dev/astroc4/components/LikeC4View.astro';
+import '../styles/site.css';
 
 # LikeC4 in plain Astro
 
-This page is a real site: `astro.config.mjs` has `astroc4()` from
-`@purview-dev/astroc4/integration`, `@astrojs/react`, `@astrojs/mdx` and
-`astro-expressive-code`. There is no Starlight here — the diagrams, the fence
+This page is a real site: `astro.config.ts` has `astroc4()` from
+`@purview-dev/astroc4/integration`, `@astrojs/mdx` and `astro-expressive-code`,
+and `astroc4()` adds `@astrojs/react`. The project's config is
+`src/likec4/likec4.config.ts`. There is no Starlight here — the diagrams, the fence
 transform and the highlighting are the same code the Starlight plugin uses.
 
 ## A view from the model
@@ -36,9 +38,10 @@ views { view index { include * } }
 
 ## LikeC4 source stays source
 
-` ```c4 ` is highlighted by Expressive Code with the grammar from `ec.config.mjs`.
-Outside Starlight there is no `expressiveCode` option for the plugin to fill in,
-so that file is the one thing the site does itself.
+` ```c4 ` is highlighted by Expressive Code with `likec4Language`, passed to
+`expressiveCode()` in `astro.config.ts`. Outside Starlight there is no
+`expressiveCode` option for the plugin to fill in, so that is the one thing the
+site does itself.
 
 ```c4
 specification {

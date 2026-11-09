@@ -1,9 +1,4 @@
 ---
-// LoadingPlaceholder.astro
-// path: src/components/LoadingPlaceholder.astro
-// Slot fallback rendered server-side while a `client:only` island hydrates.
-// Reserves roughly the right amount of space so the page doesn't jump.
-
 interface Props {
 	label: string;
 }
@@ -22,16 +17,16 @@ const { label } = Astro.props;
 </div>
 
 <style>
-	/* Same token contract as DiagramShell/DiagramFrame (see the note there). */
+	/* See DiagramShell for the token contract. */
 	.likec4-loading {
-		--likec4-border: var(--sl-color-gray-5, rgba(128, 128, 128, 0.35));
-		--likec4-surface: var(--sl-color-bg, transparent);
-		--likec4-text-muted: var(--sl-color-gray-2, rgba(128, 128, 128, 0.95));
-		--likec4-skeleton: var(--sl-color-gray-6, rgba(128, 128, 128, 0.18));
+		--_likec4-border: var(--likec4-border, var(--sl-color-gray-5, rgba(128, 128, 128, 0.35)));
+		--_likec4-surface: var(--likec4-surface, var(--sl-color-bg, transparent));
+		--_likec4-text-muted: var(--likec4-text-muted, var(--sl-color-gray-2, rgba(128, 128, 128, 0.95)));
+		--_likec4-skeleton: var(--likec4-skeleton, var(--sl-color-gray-6, rgba(128, 128, 128, 0.18)));
 
-		border: 1px dashed var(--likec4-border);
+		border: 1px dashed var(--_likec4-border);
 		border-radius: 0.5rem;
-		background: var(--likec4-surface);
+		background: var(--_likec4-surface);
 		padding: 1.25rem;
 	}
 
@@ -40,7 +35,7 @@ const { label } = Astro.props;
 		font-size: 0.875rem;
 		line-height: 1.25rem;
 		font-weight: 500;
-		color: var(--likec4-text-muted);
+		color: var(--_likec4-text-muted);
 	}
 
 	.likec4-loading__lines {
@@ -51,7 +46,7 @@ const { label } = Astro.props;
 	.likec4-loading__line {
 		height: 1rem;
 		border-radius: 0.25rem;
-		background: var(--likec4-skeleton);
+		background: var(--_likec4-skeleton);
 		animation: likec4-pulse 1.6s ease-in-out infinite;
 	}
 
