@@ -8,6 +8,9 @@
 //   bun run dev                                  # or: bun run build && bun run preview
 //   bun scripts/smoke.mjs http://localhost:4321
 
+import { existsSync, readFileSync } from 'node:fs';
+import { readdir } from 'node:fs/promises';
+
 import { chromium } from 'playwright';
 
 import { IGNORED_CONSOLE, NODE } from './hydration.js';
@@ -104,6 +107,7 @@ function expectText(where: string, actual: string[], expected: string): void {
 
 // ── Diagrams ────────────────────────────────────────────────────────────────
 await checkDiagrams('/', { expected: 5 });
+await checkDiagrams('/named-projects/', { expected: 4 });
 await checkDiagrams('/fences/', { expected: 3 });
 
 const strayFences = await page.locator('[data-language="likec4"]').count();
@@ -123,10 +127,54 @@ if (packIconCount === 0) {
 const leaked = [...imageIconSrcs].filter((src) => src.startsWith('file://'));
 if (leaked.length > 0) failures.push(`Icons: build-machine path reached an <img src> — ${leaked[0]}`);
 
-if (![...imageIconSrcs].includes('/icons/demo.svg')) {
-	failures.push(`Icons: self-hosted /icons/demo.svg never rendered (saw ${[...imageIconSrcs].join(', ') || 'none'})`);
+/**
+ * Whether an icon file rendered: LikeC4 inlines local SVGs as `data:` URIs, and
+ * astroc4 serves the rest at a URL — accept either, matched on the file itself.
+ */
+function rendered(url: string, file: URL): boolean {
+	const svg = readFileSync(file, 'utf8').trim();
+
+	return [...imageIconSrcs].some(
+		(src) => src === url || (src.startsWith('data:image/svg+xml') && decodeURIComponent(src).includes(svg.slice(0, 60).replaceAll('"', "'"))),
+	);
+}
+
+const seen = () => [...imageIconSrcs].map((src) => src.slice(0, 60)).join(', ') || 'none';
+
+if (!rendered('/icons/demo.svg', new URL('../playground/public/icons/demo.svg', import.meta.url))) {
+	failures.push(`Icons: self-hosted public/icons/demo.svg never rendered (saw ${seen()})`);
 } else {
-	console.log('✓ Self-hosted icon rewritten to /icons/demo.svg');
+	console.log('✓ Self-hosted public/ icon rendered');
+}
+
+// The headline case: an `@` alias in a project outside the site, with no change
+// to the project, renders — and is also served at the URL astroc4 gives it.
+const ALIAS_ICON = '/_astroc4/external/brand/logo.svg';
+
+if (!rendered(ALIAS_ICON, new URL('../playground-external/images/brand/logo.svg', import.meta.url))) {
+	failures.push(`Icons: aliased @/brand/logo.svg never rendered (saw ${seen()})`);
+} else {
+	console.log('✓ Aliased @/brand/logo.svg rendered from a project outside the site');
+}
+
+const aliasResponse = await page.request.get(`${baseUrl}${ALIAS_ICON}`);
+
+if (aliasResponse.status() !== 200 || !(aliasResponse.headers()['content-type'] ?? '').includes('image/svg+xml')) {
+	failures.push(`Icons: ${ALIAS_ICON} answered ${aliasResponse.status()} ${aliasResponse.headers()['content-type']}`);
+} else {
+	console.log(`✓ Aliased icon served from ${ALIAS_ICON}`);
+}
+
+// A built site must not carry the build machine's paths anywhere.
+const dist = new URL('../playground/dist/', import.meta.url);
+
+if (existsSync(dist)) {
+	const leaks = (await readdir(dist, { recursive: true }))
+		.filter((file) => /\.(html|js|mjs|json)$/.test(file))
+		.filter((file) => readFileSync(new URL(file.replaceAll('\\', '/'), dist), 'utf8').includes('file://'));
+
+	if (leaks.length > 0) failures.push(`Build output: file:// in ${leaks.slice(0, 3).join(', ')}`);
+	else console.log('✓ No file:// in playground/dist');
 }
 
 // ── Shell styling ───────────────────────────────────────────────────────────
@@ -170,12 +218,11 @@ if (colours.length < 2 || colours.some((count) => count < 4)) {
 // ── i18n ────────────────────────────────────────────────────────────────────
 // Error templates are interpolated in the browser, so they prove the
 // translation made it through the island props, not just the Astro shell.
+// (An unknown project now fails the build, so only the view-id alert remains.)
 const enAlerts = await alertsOn('/errors/');
-expectText('en island', enAlerts, 'Unknown LikeC4 projectId "missing". Available projects: playground.');
 expectText('en island', enAlerts, 'A LikeC4 viewId is required');
 
 const frAlerts = await alertsOn('/fr/errors/');
-expectText('fr island', frAlerts, 'Projet LikeC4 inconnu « missing ». Projets disponibles : playground.');
 expectText('fr island', frAlerts, 'Un viewId LikeC4 est requis');
 
 await page.goto(`${baseUrl}/fr/`, { waitUntil: 'networkidle' });

@@ -1,0 +1,30 @@
+---
+title: Named projects
+description: Projects from outside the site, aliased icons, single files and file fences.
+---
+
+import LikeC4View from '@purview-dev/astroc4/components/LikeC4View.astro';
+
+## A named project outside the site
+
+`playground-external/` sits next to the playground, not inside it, and is named
+`external` in `astro.config.mjs`. Its own `likec4.config.json` declares
+`"@": "./images"`, and its model writes `icon @/brand/logo.svg` — unchanged. The
+icon is served from `/_astroc4/external/brand/logo.svg`.
+
+<LikeC4View viewId="index" project="external" title="External project" height={320} />
+
+## A discovered project
+
+`src/likec4/` is found under the site root, as before, and named by its config.
+
+<LikeC4View viewId="publicOnly" project="playground" title="Discovered project" height={320} />
+
+## A single file
+
+<LikeC4View viewId="flow" file="diagrams/flow.c4" title="A single .c4 file" height={280} />
+
+## A fence from a file
+
+```likec4 file="../../diagrams/flow.c4" view="flow" title="Fence from a file" height=280
+```

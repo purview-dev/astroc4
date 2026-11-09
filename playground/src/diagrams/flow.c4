@@ -1,0 +1,20 @@
+// A single file, rendered with <LikeC4View file="diagrams/flow.c4">.
+specification {
+  element step
+}
+
+model {
+  write = step 'Write .c4'
+  build = step 'astro build'
+  read = step 'Read the page'
+
+  write -> build 'compiled at build time'
+  build -> read
+}
+
+views {
+  view flow {
+    title 'From source to page'
+    include *
+  }
+}

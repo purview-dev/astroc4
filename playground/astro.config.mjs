@@ -34,9 +34,12 @@ export default defineConfig({
 				root: { label: 'English', lang: 'en' },
 				fr: { label: 'Français', lang: 'fr' },
 			},
-			plugins: [starlightLikeC4()],
+			// `external` lives outside the site and declares `@` → ./images in its
+			// own likec4.config.json; its icons work with no change to it.
+			plugins: [starlightLikeC4({ projects: { external: '../playground-external' } })],
 			sidebar: [
 				{ label: 'Project views', slug: 'index' },
+				{ label: 'Named projects', slug: 'named-projects' },
 				{ label: 'Fences', slug: 'fences' },
 				{ label: 'Highlighting', slug: 'highlighting' },
 				{ label: 'Error states', slug: 'errors' },
