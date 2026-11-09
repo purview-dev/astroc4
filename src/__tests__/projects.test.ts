@@ -77,6 +77,16 @@ describe('resolveProjects', () => {
 		).rejects.toThrow(/shared[\s\S]*a[\s\S]*b|shared[\s\S]*b[\s\S]*a/);
 	});
 
+	it('fails when two projects carry the same LikeC4 id in their configs', async () => {
+		const root = await tempRoot();
+		const first = await project(join(root, 'one'), 'default');
+		const second = await project(join(root, 'two'), 'default');
+
+		await expect(
+			resolveProjects({ root, configured: { one: first, two: second }, discovered: [] }),
+		).rejects.toThrow(/"default"[\s\S]*one[\s\S]*two/);
+	});
+
 	it('resolves imageAliases to absolute folders against the project folder', async () => {
 		const root = await tempRoot();
 		const folder = await project(join(root, 'diagrams'), 'site-diagrams', {

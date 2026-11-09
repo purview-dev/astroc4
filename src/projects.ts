@@ -103,6 +103,23 @@ export async function resolveProjects(options: {
 		byName.set(project.name, project);
 	}
 
+	// LikeC4 registers a project by the `name` in its own config, so two
+	// projects from different places that share it would collide inside the
+	// compiler however differently they are named here.
+	const byId = new Map<string, ResolvedProject>();
+
+	for (const project of projects) {
+		const existing = byId.get(project.likec4Id);
+
+		if (existing) {
+			throw new Astroc4ConfigError(
+				`two LikeC4 projects declare "name": "${project.likec4Id}" in their configs: ${existing.folder} and ${project.folder}. Rename one.`,
+			);
+		}
+
+		byId.set(project.likec4Id, project);
+	}
+
 	return projects;
 }
 

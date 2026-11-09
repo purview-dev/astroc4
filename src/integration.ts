@@ -28,8 +28,11 @@ import { fileURLToPath } from 'node:url';
 
 import type { AstroConfig, AstroIntegration, AstroIntegrationLogger } from 'astro';
 import { LikeC4VitePlugin } from 'likec4/vite-plugin';
+import type { Plugin as VitePlugin } from 'vite';
 
 import { likec4Fences, preloadLikeC4 } from './fences.js';
+import { discoverProjects, resolveProjects, type ResolvedProject } from './projects.js';
+import { prepareWorkspace, PROJECTS_MODULE_ID, projectsModule } from './workspace.js';
 
 /**
  * The published package name. Scoped because npm refuses the unscoped
@@ -44,6 +47,13 @@ export interface LikeC4IntegrationOptions {
 	 * look for .c4 files somewhere other than the site root.
 	 */
 	vitePlugin?: Parameters<typeof LikeC4VitePlugin>[0];
+	/**
+	 * Named LikeC4 projects, compiled alongside those discovered under the site
+	 * root: `{ architecture: '../../docs/architecture/likec4' }`. Each folder
+	 * holds a `likec4.config.json` and may be relative to the site root or
+	 * absolute; the key is the name `<LikeC4View project="…">` uses.
+	 */
+	projects?: Record<string, string>;
 	/** Render ```likec4 fences in .mdx pages as diagrams. Defaults to `true`. */
 	fences?: boolean;
 }
@@ -106,20 +116,20 @@ function resolvesFrom(specifier: string, root: string): boolean {
  */
 export function likec4Integration({
 	vitePlugin = {},
+	projects,
 	fences = true,
 }: LikeC4IntegrationOptions = {}): AstroIntegration {
 	return {
 		name: `${PACKAGE_NAME}/integration`,
 		hooks: {
 			'astro:config:setup': async ({ command, config, updateConfig, logger }) => {
-				const optimizeDeps = missingOptimizedDependencies(
-					config.vite?.optimizeDeps?.include,
-					fileURLToPath(config.root),
-				);
+				const root = fileURLToPath(config.root);
+				const optimizeDeps = missingOptimizedDependencies(config.vite?.optimizeDeps?.include, root);
+				const { pluginOptions, resolved } = await workspaceFor(root, vitePlugin, projects, logger);
 
 				updateConfig({
 					vite: {
-						plugins: [LikeC4VitePlugin(vitePlugin)],
+						plugins: [LikeC4VitePlugin(pluginOptions), projectsPlugin(resolved)],
 						// The components ship as .astro/.tsx source, so Vite has to
 						// transform them rather than hand them to Node as-is.
 						ssr: { noExternal: [PACKAGE_NAME] },
@@ -142,6 +152,59 @@ export function likec4Integration({
 				}
 			},
 		},
+	};
+}
+
+/**
+ * The options `LikeC4VitePlugin` gets, and the projects the site can name.
+ *
+ * With `projects`, configured and discovered projects are linked into one
+ * staging workspace, because the plugin compiles a single folder. Without it,
+ * LikeC4 discovers under the site root exactly as before, and the discovered
+ * projects are only listed so components can name them. An explicit
+ * `vitePlugin.workspace` is the site taking over discovery itself, so it wins.
+ */
+async function workspaceFor(
+	root: string,
+	vitePlugin: NonNullable<LikeC4IntegrationOptions['vitePlugin']>,
+	configured: Record<string, string> | undefined,
+	logger: AstroIntegrationLogger,
+): Promise<{ pluginOptions: NonNullable<LikeC4IntegrationOptions['vitePlugin']>; resolved: ResolvedProject[] }> {
+	const hasConfigured = configured !== undefined && Object.keys(configured).length > 0;
+
+	// A site handing over its own language services, or its own workspace, has
+	// taken discovery over.
+	if (vitePlugin.workspace !== undefined || 'languageServices' in vitePlugin) {
+		if (hasConfigured) {
+			logger.warn(
+				'`projects` is ignored because `vitePlugin.workspace` or `vitePlugin.languageServices` is set; remove one of them.',
+			);
+		}
+
+		return { pluginOptions: vitePlugin, resolved: [] };
+	}
+
+	const discovered = await discoverProjects(root);
+
+	if (!hasConfigured) {
+		return { pluginOptions: vitePlugin, resolved: discovered };
+	}
+
+	const resolved = await resolveProjects({ root, configured, discovered });
+	const workspace = await prepareWorkspace(resolved, join(root, '.astro', 'astroc4'));
+
+	// Narrowed above: this branch never carries `languageServices`.
+	return { pluginOptions: { ...(vitePlugin as { workspace?: string }), workspace }, resolved };
+}
+
+/** Serves `virtual:astroc4/projects`: the names components may pass as `project`. */
+function projectsPlugin(projects: ResolvedProject[]): VitePlugin {
+	const resolvedId = `\0${PROJECTS_MODULE_ID}`;
+
+	return {
+		name: `${PACKAGE_NAME}/projects`,
+		resolveId: (id) => (id === PROJECTS_MODULE_ID ? resolvedId : undefined),
+		load: (id) => (id === resolvedId ? projectsModule(projects) : undefined),
 	};
 }
 

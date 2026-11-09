@@ -106,7 +106,11 @@ export type LikeC4StarlightPlugin = StarlightPlugin & Pick<AstroIntegration, 'ho
 export default function starlightLikeC4(options: StarlightLikeC4Options = {}): LikeC4StarlightPlugin {
 	// Only the integration's own options: `highlighting` is Starlight's, and is
 	// handled below.
-	const integration = likec4Integration({ vitePlugin: options.vitePlugin, fences: options.fences });
+	const integration = likec4Integration({
+		vitePlugin: options.vitePlugin,
+		projects: options.projects,
+		fences: options.fences,
+	});
 
 	return {
 		name: PACKAGE_NAME,
