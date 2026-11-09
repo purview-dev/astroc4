@@ -228,11 +228,14 @@ export interface FenceReporter {
 
 /** What the fence transform needs to know about its host. */
 export interface FenceOptions {
-	/** Where warnings go. Defaults to `console` with a `[likec4-fences]` label. */
+	/**
+	 * @deprecated Unused since 1.0.0-prerelease.6: a fence in a .md page renders
+	 * instead of warning, so there is nothing to report.
+	 */
 	reporter?: FenceReporter;
 	/**
-	 * Whether the site has `@astrojs/mdx`, i.e. whether a `.mdx` page can exist.
-	 * Defaults to `true`; `false` changes the advice a misplaced fence gets.
+	 * @deprecated Unused since 1.0.0-prerelease.6: fences render in .md pages
+	 * too, so whether the site has `@astrojs/mdx` no longer matters.
 	 */
 	mdx?: boolean;
 	/**
@@ -242,47 +245,17 @@ export interface FenceOptions {
 	root?: string;
 }
 
-/**
- * The fallback for callers without an Astro logger — the unit tests, and any
- * use of the mdast plugin outside a running Astro config. The label matches the
- * one `src/integration.ts` forks from the site's integration logger, so the
- * message reads the same either way.
- */
-const CONSOLE_REPORTER: FenceReporter = {
-	warn: (message) => console.warn(`[likec4-fences] ${message}`),
-};
-
 // region plugin
-export function likec4Fences({ reporter = CONSOLE_REPORTER, mdx = true, root }: FenceOptions = {}): MdastPluginEntry {
+export function likec4Fences({ root }: FenceOptions = {}): MdastPluginEntry {
 	// A factory runs once per document, so `used` is safely per-file.
 	return (factory: PluginFactoryContext) => {
-		// Astro only supports components in .mdx. Leaving the fence as a code
-		// block is the graceful outcome, but say so — a silent code block where
-		// a diagram was intended is easy to miss in review.
-		if (factory.sourceFormat !== 'mdx') {
-			if (!factory.source.includes('```' + FENCE_LANG)) return null;
-
-			// Advice that cannot work is worse than none: renaming the page to
-			// `.mdx` does nothing on a site without `@astrojs/mdx`.
-			const fix = mdx
-				? 'Rename the page to .mdx, or use <LikeC4View /> directly.'
-				: 'Add @astrojs/mdx (`astro add mdx`) and rename the page to .mdx, or use <LikeC4View /> directly.';
-
-			return {
-				name: 'likec4-fences:warn',
-				code(node, ctx) {
-					if (node.lang !== FENCE_LANG) return;
-
-					reporter.warn(
-						`${describe(ctx.fileURL)} has a \`\`\`${FENCE_LANG} fence, but fences only ` +
-							`render as diagrams in .mdx files. ${fix}`,
-					);
-				},
-			};
-		}
-
 		if (!factory.source.includes('```' + FENCE_LANG)) return null;
 
+		// A .mdx page gets the diagram components. A .md page cannot hold a
+		// component, so it gets a placeholder carrying the same laid-out model,
+		// which the page script astroc4 injects (src/components/md-fences.tsx)
+		// mounts in the browser — fences work the same in both.
+		const markdown = factory.sourceFormat !== 'mdx';
 		const used = new Set<ComponentName>();
 
 		return {
@@ -308,6 +281,15 @@ export function likec4Fences({ reporter = CONSOLE_REPORTER, mdx = true, root }: 
 				if (source.length === 0) {
 					if (!options.view) {
 						throw new Error(`${where} is empty, so it needs \`view="<id>"\` to name a view in the project model.`);
+					}
+
+					if (markdown) {
+						ctx.replaceNode(node, {
+							raw: fencePlaceholder({ ...placeholderCommon(options), viewId: options.view, project: options.project }),
+							mdxExpressions: false,
+						});
+
+						return;
 					}
 
 					used.add(PROJECT_COMPONENT);
@@ -340,6 +322,15 @@ export function likec4Fences({ reporter = CONSOLE_REPORTER, mdx = true, root }: 
 					);
 				}
 
+				if (markdown) {
+					ctx.replaceNode(node, {
+						raw: fencePlaceholder({ ...placeholderCommon(options), viewId, model: layout.dump }),
+						mdxExpressions: false,
+					});
+
+					return;
+				}
+
 				used.add(INLINE_COMPONENT);
 
 				ctx.replaceNode(node, {
@@ -364,6 +355,63 @@ export function likec4Fences({ reporter = CONSOLE_REPORTER, mdx = true, root }: 
 	};
 }
 // endregion
+
+/** What a .md page's placeholder carries for the page script to mount. */
+export interface FencePlaceholder {
+	viewId: string;
+	/** The laid-out model of an inline or `file=` fence; absent for a project view. */
+	model?: unknown;
+	/** The project of an empty `view="…"` fence. */
+	project?: string;
+	title?: string;
+	description?: string;
+	height?: number;
+}
+
+/**
+ * The HTML a .md fence becomes: a shell and a sized frame, with the view and
+ * the model as data attributes for `md-fences.tsx` to mount into. Everything
+ * written is escaped — titles and model labels are author text.
+ */
+export function fencePlaceholder({ viewId, model, project, title, description, height = 420 }: FencePlaceholder): string {
+	const data = [
+		`data-astroc4-fence`,
+		`data-view-id="${escapeHtml(viewId)}"`,
+		project ? `data-project="${escapeHtml(project)}"` : '',
+		model === undefined ? '' : `data-model="${escapeHtml(JSON.stringify(model))}"`,
+	]
+		.filter(Boolean)
+		.join(' ');
+
+	return [
+		`<section class="not-content likec4-md-fence" ${data} style="margin: 1.5rem 0; border: 1px solid rgba(128, 128, 128, 0.35); border-radius: 12px; padding: 1rem;">`,
+		title ? `<h3 style="margin: 0 0 0.25rem;">${escapeHtml(title)}</h3>` : '',
+		description ? `<p style="margin: 0 0 0.75rem; opacity: 0.8;">${escapeHtml(description)}</p>` : '',
+		`<div class="likec4-frame" style="position: relative; width: 100%; height: ${height}px; min-height: ${height}px;">`,
+		`<p class="likec4-loading" aria-live="polite">Loading diagram…</p>`,
+		`</div>`,
+		`</section>`,
+	].join('');
+}
+
+function placeholderCommon(options: FenceMeta): Pick<FencePlaceholder, 'title' | 'description' | 'height'> {
+	const height = Number.parseInt(options.height ?? '', 10);
+
+	return {
+		title: options.title,
+		description: options.description,
+		height: Number.isFinite(height) ? height : undefined,
+	};
+}
+
+function escapeHtml(value: string): string {
+	return value
+		.replaceAll('&', '&amp;')
+		.replaceAll('"', '&quot;')
+		.replaceAll("'", '&#39;')
+		.replaceAll('<', '&lt;')
+		.replaceAll('>', '&gt;');
+}
 
 /**
  * The source of a fence's `file="…"`, resolved against the page holding the

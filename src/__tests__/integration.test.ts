@@ -39,6 +39,7 @@ async function setup(
 		// condition a real site meets.
 		config: { root: pathToFileURL(process.cwd()), vite, integrations },
 		updateConfig,
+		injectScript: vi.fn(),
 		logger,
 	} as never);
 
@@ -72,6 +73,23 @@ describe('likec4Integration', () => {
 		expect(vite.plugins[3].name).toBe(`${PACKAGE_NAME}/file-layout`);
 		expect(vite.ssr).toEqual({ noExternal: [PACKAGE_NAME] });
 		expect(vite.optimizeDeps).toEqual({ include: ['react/compiler-runtime'] });
+	});
+
+	it('injects a page script that mounts .md fences only on pages that have one', async () => {
+		const injectScript = vi.fn();
+		const updateConfig = vi.fn();
+		const logger = stubLogger();
+
+		await likec4Integration().hooks['astro:config:setup']!({
+			command: 'dev',
+			config: { root: pathToFileURL(process.cwd()), vite: {}, integrations: [] },
+			updateConfig,
+			injectScript,
+			logger,
+		} as never);
+
+		expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('[data-astroc4-fence]'));
+		expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining(`import('${PACKAGE_NAME}/components/md-fences')`));
 	});
 
 	it('registers the fence transform with the site Markdown processor', async () => {

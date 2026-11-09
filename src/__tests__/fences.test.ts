@@ -5,7 +5,11 @@ import { pathToFileURL } from 'node:url';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { likec4Fences, parseFenceMeta, type FenceReporter } from '../fences.js';
+import { fencePlaceholder, likec4Fences, parseFenceMeta } from '../fences.js';
+
+/** Undo the HTML attribute escaping a browser would undo when reading `dataset`. */
+const decodeAttribute = (value: string) =>
+	value.replaceAll('&quot;', '"').replaceAll('&#39;', "'").replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&');
 
 describe('parseFenceMeta', () => {
 	it('returns nothing for an absent or empty meta string', () => {
@@ -67,13 +71,6 @@ const fencePlugin = likec4Fences() as unknown as (factory: {
 	sourceFormat: string;
 }) => FencePlugin;
 
-/** The same plugin, wired to a reporter (and MDX presence) instead of the fallback. */
-const fencePluginWith = (reporter: FenceReporter, mdx = true) =>
-	likec4Fences({ reporter, mdx }) as unknown as (factory: {
-		source: string;
-		sourceFormat: string;
-	}) => FencePlugin;
-
 const pluginFor = (
 	source: string,
 	sourceFormat: 'mdx' | 'md' = 'mdx',
@@ -92,41 +89,52 @@ describe('the ```likec4 fence transform', () => {
 		expect(fencePlugin(page('```ts\nconst a = 1\n```').factory)).toBeNull();
 	});
 
-	it('warns rather than rendering a diagram in a .md page', async () => {
-		const { ctx, plugin } = pluginFor('```likec4\nmodel { }\n```', 'md');
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+	it('renders a .md fence as a placeholder the page script mounts, with its laid-out model', async () => {
+		const snippet = "specification { element box }\nmodel { a = box 'A' }\nviews { view flow { include * } }";
+		const { ctx, plugin, replaced } = pluginFor('```likec4 view="flow" height=360\n' + snippet + '\n```', 'md');
 
-		expect(plugin.name).toBe('likec4-fences:warn');
-		await plugin.code?.(fence(''), ctx);
+		await plugin.code?.(fence('view="flow" height=360', snippet), ctx);
 
-		expect(warn).toHaveBeenCalledWith(expect.stringContaining('page.mdx has a ```likec4 fence'));
-		expect(warn).toHaveBeenCalledWith(expect.stringContaining('only render as diagrams in .mdx'));
-		warn.mockRestore();
+		const html = (replaced[0]?.next as { raw: string; mdxExpressions: boolean }).raw;
+		expect((replaced[0]?.next as { mdxExpressions: boolean }).mdxExpressions).toBe(false);
+		expect(html).toContain('data-astroc4-fence');
+		expect(html).toContain('data-view-id="flow"');
+		expect(html).toContain('class="likec4-frame"');
+		expect(html).toContain('height: 360px');
+		const model = JSON.parse(decodeAttribute(/data-model="([^"]*)"/.exec(html)![1]!));
+		expect(Object.keys(model.views)).toContain('flow');
 	});
 
-	it('reports through the reporter it is given, so Astro can label it', async () => {
-		// `src/integration.ts` passes the site's integration logger here; the label in
-		// front of the message is then Astro's (`[likec4-fences]`), not ours.
-		const reporter: FenceReporter = { warn: vi.fn() };
-		const { ctx, plugin } = pluginFor('```likec4\nmodel { }\n```', 'md', fencePluginWith(reporter));
-		const consoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+	it('renders an empty .md fence as a project-view placeholder', async () => {
+		const { ctx, plugin, replaced } = pluginFor('```likec4 view="index" project="architecture"\n```', 'md');
 
-		await plugin.code?.(fence(''), ctx);
+		await plugin.code?.(fence('view="index" project="architecture"'), ctx);
 
-		expect(reporter.warn).toHaveBeenCalledWith(expect.stringContaining('page.mdx has a ```likec4 fence'));
-		expect(consoleWarn).not.toHaveBeenCalled();
-		consoleWarn.mockRestore();
+		const html = (replaced[0]?.next as { raw: string }).raw;
+		expect(html).toContain('data-view-id="index"');
+		expect(html).toContain('data-project="architecture"');
+		expect(html).not.toContain('data-model');
 	});
 
-	it('tells a site without @astrojs/mdx to add it, not to rename the page', async () => {
-		// Renaming to `.mdx` cannot work when nothing processes `.mdx` pages.
-		const reporter: FenceReporter = { warn: vi.fn() };
-		const { ctx, plugin } = pluginFor('```likec4\nmodel { }\n```', 'md', fencePluginWith(reporter, false));
+	it('fails an invalid .md fence the same way as an .mdx one', async () => {
+		const { ctx, plugin } = pluginFor('```likec4\nmodel { a = }\n```', 'md');
 
-		await plugin.code?.(fence(''), ctx);
+		await expect(Promise.resolve(plugin.code?.(fence('', 'model { a = }'), ctx))).rejects.toThrow(/not valid LikeC4/);
+	});
 
-		expect(reporter.warn).toHaveBeenCalledWith(expect.stringContaining('astro add mdx'));
-		expect(reporter.warn).not.toHaveBeenCalledWith(expect.stringContaining('Rename the page'));
+	it('escapes everything it writes into the placeholder', () => {
+		const html = fencePlaceholder({
+			viewId: 'v"1',
+			title: '<script>alert(1)</script>',
+			model: { label: `it's "quoted" & <tagged>` },
+			height: 420,
+		});
+
+		expect(html).not.toContain('<script>');
+		expect(html).toContain('data-view-id="v&quot;1"');
+		expect(JSON.parse(decodeAttribute(/data-model="([^"]*)"/.exec(html)![1]!))).toEqual({
+			label: `it's "quoted" & <tagged>`,
+		});
 	});
 
 	it('ignores fences in other languages', async () => {

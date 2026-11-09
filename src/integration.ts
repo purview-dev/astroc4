@@ -80,6 +80,23 @@ export interface LikeC4IntegrationOptions {
 const OPTIMIZED_DEPENDENCIES = ['react/compiler-runtime'];
 
 /**
+ * Mounts the diagrams of ```likec4 fences in .md pages (see `fencePlaceholder`).
+ *
+ * Injected into every page, so it only looks: React and LikeC4 are loaded with
+ * a dynamic `import()` on a page that has a placeholder, never on one without.
+ * `astro:page-load` covers sites using view transitions.
+ */
+const MD_FENCES_SCRIPT = [
+	`const mountLikeC4Fences = () => {`,
+	`  if (!document.querySelector('[data-astroc4-fence]:not([data-astroc4-mounted])')) return;`,
+	`  import('${PACKAGE_NAME}/components/md-fences').then((module) => module.mountFences());`,
+	`};`,
+	`if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountLikeC4Fences);`,
+	`else mountLikeC4Fences();`,
+	`document.addEventListener('astro:page-load', mountLikeC4Fences);`,
+].join('\n');
+
+/**
  * The `optimizeDeps.include` entries a site still needs for the island to
  * hydrate.
  *
@@ -127,7 +144,7 @@ export function likec4Integration({
 	return {
 		name: `${PACKAGE_NAME}/integration`,
 		hooks: {
-			'astro:config:setup': async ({ command, config, updateConfig, logger }) => {
+			'astro:config:setup': async ({ command, config, updateConfig, injectScript, logger }) => {
 				const root = fileURLToPath(config.root);
 				const optimizeDeps = missingOptimizedDependencies(config.vite?.optimizeDeps?.include, root);
 				const { pluginOptions, resolved, stagingDir } = await workspaceFor(root, vitePlugin, projects, logger);
@@ -148,6 +165,9 @@ export function likec4Integration({
 
 				if (fences) {
 					await registerFences(config, updateConfig, logger);
+					// .md pages cannot hold the diagram components, so their fences are
+					// placeholders; this mounts them. It costs nothing on a page without one.
+					injectScript('page', MD_FENCES_SCRIPT);
 				}
 
 				await ensureReactRenderer(config, updateConfig, logger);
@@ -264,11 +284,6 @@ async function ensureReactRenderer(
 /**
  * Append the fence transform to the site's existing Sätteri processor, keeping
  * whatever Astro and other integrations already registered on it.
- *
- * Warnings go through Astro's logger, not `console`: the logger honours the log
- * level the site ran the CLI with, and `fork()` labels the message with the part
- * of this package that produced it (`[likec4-fences]`), which is what the
- * Troubleshooting page quotes.
  */
 async function registerFences(
 	config: AstroConfig,
@@ -277,17 +292,8 @@ async function registerFences(
 ): Promise<void> {
 	const { satteri, isSatteriProcessor } = await import('@astrojs/markdown-satteri');
 	const existing = config.markdown?.processor;
-	const fences = () => {
-		const fenceLogger = logger.fork('likec4-fences');
-
-		return likec4Fences({
-			reporter: { warn: (message) => fenceLogger.warn(message) },
-			// Whether the advice "rename the page to .mdx" can actually work.
-			mdx: config.integrations.some((integration) => integration.name === '@astrojs/mdx'),
-			// A fence's `file="…"` must stay inside the site.
-			root: fileURLToPath(config.root),
-		});
-	};
+	// A fence's `file="…"` must stay inside the site.
+	const fences = () => likec4Fences({ root: fileURLToPath(config.root) });
 
 	// No processor configured means Astro's default, which is Sätteri — also true
 	// outside Starlight.

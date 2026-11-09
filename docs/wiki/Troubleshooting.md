@@ -104,8 +104,8 @@ because it will fail the same way on every build. Check the tag (`v1.60.0`, not
 
 1. Is `expressiveCode: false` in the Starlight config? The plugin logs a warning
    and skips highlighting, because there are no code blocks to highlight.
-2. Is the fence ` ```c4 ` or ` ```likec4 `? A ` ```likec4 ` fence in **`.mdx`**
-   becomes a diagram, not code; use `c4` to show source, or ``<Code lang="likec4">``.
+2. Is the fence ` ```c4 ` or ` ```likec4 `? A ` ```likec4 ` fence (in `.md` or
+   `.mdx`) becomes a diagram, not code; use `c4` to show source, or ``<Code lang="likec4">``.
 3. Look at the HTML, not the exit code: `<pre data-language="c4">` should contain
    several `--0:#…` colour variables. One colour means the grammar never reached
    Shiki.
@@ -119,16 +119,18 @@ You cannot have both: with Expressive Code disabled Starlight renders code with
 Astro's own `<Code>`, which reads `markdown.shikiConfig`, not the Expressive Code
 options this plugin sets.
 
-## A fence stayed a code block
+## A fence in a `.md` page shows "Loading diagram…" forever
 
-The page is `.md`. Astro only supports components in `.mdx`, so the transform
-leaves the fence alone and logs:
+Since `1.0.0-prerelease.6` a fence in a `.md` page is a placeholder that a script
+astroc4 injects into every page mounts in the browser (a `.md` page cannot hold a
+component). If it never mounts:
 
-```
-[likec4-fences] /path/page.md has a ```likec4 fence, but fences only render as diagrams in .mdx files.
-```
-
-Rename the page, or use `<LikeC4View>` from an `.astro` layout.
+1. Check the browser console for a failed `import()` of
+   `@purview-dev/astroc4/components/md-fences`.
+2. Check the integration ran: the page's HTML has a `data-astroc4-fence` element
+   and a page script containing `[data-astroc4-fence]`.
+3. A page rendered outside Astro's pipeline (raw HTML, a custom renderer) does not
+   get the injected script.
 
 ## Build fails: `Several LikeC4 projects exist (…); pass project="…"`
 

@@ -6,8 +6,8 @@ Interactive [LikeC4](https://likec4.dev) architecture diagrams for Astro and
 Starlight.
 
 - `<LikeC4View viewId="…" />` — render a view from the site's `.c4` model.
-- ` ```likec4 ` fences in `.mdx` — either inline DSL, compiled and laid out at
-  build time, or an empty fence with `view="…"` pointing at the model.
+- ` ```likec4 ` fences in `.md` and `.mdx` — either inline DSL, compiled and laid
+  out at build time, or an empty fence with `view="…"` pointing at the model.
 - LikeC4 syntax highlighting for Expressive Code (`.c4` files, ` ```c4 `),
   derived at build time from the Langium grammar in
   [likec4/likec4](https://github.com/likec4/likec4) — no `ec.config.mjs` under
@@ -88,7 +88,8 @@ export default defineConfig({
 ```
 
 The page is the same `<LikeC4View>` import. Two things the site supplies:
-`@astrojs/mdx` (` ```likec4 ` fences only become diagrams in `.mdx`), and
+`@astrojs/mdx` (for `<LikeC4View>` in a page; ` ```likec4 ` fences work in plain
+`.md` without it), and
 `astro-expressive-code` plus an `ec.config.mjs` that registers `likec4Language`
 when you want ` ```c4 ` highlighted — Starlight has an `expressiveCode` option for
 the plugin to fill in, Astro does not.

@@ -1,7 +1,13 @@
 # Fences
 
-A ` ```likec4 ` fence is a diagram. In `.mdx` pages it is rewritten at build time
-into a component, so the page carries a laid-out model rather than DSL.
+A ` ```likec4 ` fence is a diagram, in `.md` and `.mdx` pages alike. Either way it
+is compiled and laid out at build time, so the page carries a laid-out model
+rather than DSL:
+
+- in `.mdx`, the fence is rewritten into a component;
+- in `.md`, which cannot hold a component, it becomes a placeholder with the same
+  model, and a page script astroc4 injects mounts the diagram in the browser. That
+  script loads the diagram code only on a page that has a placeholder.
 
 ## Two forms
 
@@ -66,7 +72,7 @@ snippet once even though the page is re-rendered on every dev edit.
 | ``…is empty, so it needs `view="<id>"` to name a view in the project model.`` | An empty fence with no `view`. |
 | ``…is not valid LikeC4 — <parser message>`` | The DSL does not parse; the file name and only the first line of each parser error are shown. |
 | ``…has no view "<id>". Declared: <list>.`` | The named view is not in the snippet. |
-| `[likec4-fences] … has a likec4 fence, but fences only render as diagrams in .mdx files` | The page is `.md`, which cannot host a component. It stays a code block, deliberately. |
+| ``…uses file="…", which is outside the site`` | A fence's `file=` resolves outside the site root. |
 
 ## Fences versus components
 

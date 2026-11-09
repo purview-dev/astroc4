@@ -41,6 +41,7 @@ export default defineConfig({
 				{ label: 'Project views', slug: 'index' },
 				{ label: 'Named projects', slug: 'named-projects' },
 				{ label: 'Fences', slug: 'fences' },
+				{ label: 'Fences in Markdown', slug: 'markdown-fences' },
 				{ label: 'Highlighting', slug: 'highlighting' },
 				{ label: 'Error states', slug: 'errors' },
 			],

@@ -48,7 +48,8 @@
     },
     "./grammar/likec4.tmLanguage.json": "./dist/likec4.tmLanguage.json",
     "./components/LikeC4View.astro": "./src/components/LikeC4View.astro",
-    "./components/LikeC4Fence.astro": "./src/components/LikeC4Fence.astro"
+    "./components/LikeC4Fence.astro": "./src/components/LikeC4Fence.astro",
+    "./components/md-fences": "./src/components/md-fences.tsx"
   },
   "files": [
     "dist",

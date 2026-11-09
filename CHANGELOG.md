@@ -8,6 +8,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Fences work in plain `.md`.** A ` ```likec4 ` fence in a `.md` page — which
+  cannot hold a component — is compiled and laid out at build time like one in
+  `.mdx`, written as a placeholder carrying the model, and mounted in the browser
+  by a page script the integration injects. The script loads the diagram code
+  only on a page that has a placeholder. Replaces the "fences only render as
+  diagrams in .mdx files" warning; `FenceOptions.reporter` and `mdx` are
+  deprecated and unused.
 - **`imageAliases` just work.** A project's own `likec4.config.json` can declare
   `"@": "../../.assets/images"` and its model can say `icon @/azure/entra.svg`
   with no change for astroc4. Every icon LikeC4 compiles to a local file —

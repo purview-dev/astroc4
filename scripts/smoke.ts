@@ -109,6 +109,8 @@ function expectText(where: string, actual: string[], expected: string): void {
 await checkDiagrams('/', { expected: 5 });
 await checkDiagrams('/named-projects/', { expected: 4 });
 await checkDiagrams('/fences/', { expected: 3 });
+// Plain .md: placeholders mounted by the injected page script, not islands.
+await checkDiagrams('/markdown-fences/', { expected: 2 });
 
 const strayFences = await page.locator('[data-language="likec4"]').count();
 if (strayFences > 0) {

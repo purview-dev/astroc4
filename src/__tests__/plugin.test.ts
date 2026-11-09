@@ -176,6 +176,7 @@ describe('astro add', () => {
 			command: 'dev',
 			config: { root: pathToFileURL(process.cwd()), vite: {}, integrations: [] },
 			updateConfig,
+			injectScript: vi.fn(),
 			logger: stubLogger(),
 		} as never);
 
@@ -197,6 +198,7 @@ describe('astro add', () => {
 				integrations: [{ name: '@astrojs/starlight' }],
 			},
 			updateConfig: vi.fn(),
+			injectScript: vi.fn(),
 			logger,
 		} as never);
 
@@ -211,6 +213,7 @@ describe('astro add', () => {
 			command: 'dev',
 			config: { root: pathToFileURL(process.cwd()), vite: {}, integrations: [{ name: '@astrojs/mdx' }] },
 			updateConfig: vi.fn(),
+			injectScript: vi.fn(),
 			logger,
 		} as never);
 
@@ -218,23 +221,23 @@ describe('astro add', () => {
 	});
 });
 
-describe('logging', () => {
-	it('warns about a fence in a .md page through the Astro logger, not the console', async () => {
-		// Astro's logger honours the CLI log level and labels the message with the
-		// integration's name; `fork` keeps "likec4-fences" as the label, which is
-		// the string the Troubleshooting page quotes.
+describe('.md fences', () => {
+	it('the Starlight plugin injects the script that mounts them', async () => {
+		// A fence in a .md page renders, rather than warning; the injected page
+		// script mounts its placeholder (see fences.test.ts and md-fences.tsx).
 		const { addIntegration } = await setup();
 		const integration = addIntegration.mock.calls[0]?.[0] as AstroIntegration;
-		const logger = stubLogger();
+		const injectScript = vi.fn();
 
 		await integration.hooks['astro:config:setup']!({
 			command: 'dev',
 			config: { root: pathToFileURL(process.cwd()), vite: {}, integrations: [] },
 			updateConfig: vi.fn(),
-			logger,
+			injectScript,
+			logger: stubLogger(),
 		} as never);
 
-		expect(logger.fork).toHaveBeenCalledWith('likec4-fences');
+		expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('[data-astroc4-fence]'));
 	});
 });
 

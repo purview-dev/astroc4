@@ -41,7 +41,7 @@ Three things are the site's to provide, not the integration's:
 
 | Integration | Why |
 | --- | --- |
-| `@astrojs/mdx` | A ` ```likec4 ` fence only becomes a diagram in an `.mdx` page — Astro's rule, not this plugin's. |
+| `@astrojs/mdx` | Only for `<LikeC4View>` in a page, or fences in `.mdx`. ` ```likec4 ` fences in plain `.md` render without it. |
 | `astro-expressive-code` | Only if you want ` ```c4 ` highlighted. Starlight ships it; plain Astro does not. |
 | `@astrojs/markdown-satteri` | Astro 7's default processor, and what the fence transform plugs into. It is a peer dependency, so Bun and npm install it with the package. |
 

@@ -87,8 +87,7 @@ Both are read with `process.env`, so they apply to `astro dev`, `astro build`,
 
 - **The grammar source.** It is always the Langium grammar; the TextMate grammar
   upstream maintains by hand drifts, and the derivation is what the tests pin.
-- **Where fences render.** Only `.mdx` pages can host a component, so a
-  ` ```likec4 ` fence in a `.md` page is left as a code block with a warning
-  naming the file.
+- **Where fences render.** Everywhere: `.mdx` pages get the components, `.md`
+  pages get a placeholder the injected page script mounts.
 - **Layout timing.** Diagrams are laid out during the build, never in the
   browser, so an invalid model cannot reach production.

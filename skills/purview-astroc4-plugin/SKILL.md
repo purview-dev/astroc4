@@ -39,7 +39,7 @@ project needs a `likec4.config.json` beside it; `{}` is enough.
 
 | Need | Use |
 | --- | --- |
-| A diagram whose DSL belongs next to the prose | ` ```likec4 ` fence with inline DSL, in an `.mdx` page |
+| A diagram whose DSL belongs next to the prose | ` ```likec4 ` fence with inline DSL, in a `.md` or `.mdx` page |
 | A view of the model that already lives in `src/likec4` | ` ```likec4 view="id" ` or `<LikeC4View viewId="id" />` |
 | Show LikeC4 *source* rather than a diagram | ` ```c4 ` fence, or `<Code lang="likec4">` |
 
