@@ -132,6 +132,10 @@ component). If it never mounts:
    and a page script containing `[data-astroc4-fence]`.
 3. A page rendered outside Astro's pipeline (raw HTML, a custom renderer) does not
    get the injected script.
+4. In `astro dev` on `1.0.0-prerelease.6`, the console shows
+   `@vitejs/plugin-react can't detect preamble`: @astrojs/react installs React's
+   fast-refresh preamble only on pages with an island. Upgrade to
+   `1.0.0-prerelease.7`, whose script installs it first. Builds are unaffected.
 
 
 ## Build fails: `Several LikeC4 projects exist (…); pass project="…"`

@@ -42,11 +42,18 @@ const OPTIMIZED_DEPENDENCIES = ['react/compiler-runtime'];
 /**
  * Mounts the fences of .md pages. Injected into every page, so React and LikeC4
  * are only `import()`ed on a page that has a placeholder.
+ *
+ * In dev, @astrojs/react installs React's fast-refresh preamble only on pages with
+ * an island, and a .md page has none, so the script installs it first. Outside dev,
+ * @vitejs/plugin-react serves the preamble module empty.
  */
 const MD_FENCES_SCRIPT = [
 	`const mountLikeC4Fences = () => {`,
 	`  if (!document.querySelector('[data-astroc4-fence]:not([data-astroc4-mounted])')) return;`,
-	`  import('${PACKAGE_NAME}/components/md-fences').then((module) => module.mountFences());`,
+	`  const preamble = window.$RefreshReg$ ? Promise.resolve() : import('@vitejs/plugin-react/preamble');`,
+	`  preamble`,
+	`    .then(() => import('${PACKAGE_NAME}/components/md-fences'))`,
+	`    .then((module) => module.mountFences());`,
 	`};`,
 	`if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountLikeC4Fences);`,
 	`else mountLikeC4Fences();`,
