@@ -5,6 +5,12 @@
 
 /// <reference types="likec4/vite-plugin-modules" />
 
+/** Served by the integration (src/workspace.ts): the names `project` accepts. */
+declare module 'virtual:astroc4/projects' {
+	export const projectNames: string[];
+	export const likec4IdFor: Record<string, string>;
+}
+
 declare namespace StarlightApp {
 	type LikeC4UIStrings = (typeof import('./translations.js'))['translations']['en'];
 	// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- declaration merging

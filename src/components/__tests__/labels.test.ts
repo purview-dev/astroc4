@@ -44,6 +44,17 @@ describe('format', () => {
 	});
 });
 
+describe('projectRequired', () => {
+	it('has an English default and a translation key', () => {
+		expect(translations.en['likec4.error.projectRequired']).toBe(
+			'Several LikeC4 projects exist ({available}); pass project="…".',
+		);
+		expect(getIslandLabels(getTranslator(undefined), 'likec4.view.loading').projectRequired).toBe(
+			translations.en['likec4.error.projectRequired'],
+		);
+	});
+});
+
 describe('translations', () => {
 	it('uses single-brace placeholders, which i18next leaves alone', () => {
 		for (const value of Object.values(translations.en)) {

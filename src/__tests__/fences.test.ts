@@ -1,3 +1,8 @@
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import { likec4Fences, parseFenceMeta, type FenceReporter } from '../fences.js';
@@ -158,6 +163,52 @@ describe('the ```likec4 fence transform', () => {
 		expect(inserted).toHaveLength(1);
 		expect(inserted[0]?.nodes).toHaveLength(1);
 		expect(JSON.stringify(inserted[0]?.nodes)).toContain('@purview-dev/astroc4/components/LikeC4View.astro');
+	});
+
+	it('passes project= through to the project view component', async () => {
+		const { ctx, plugin, replaced } = pluginFor('```likec4 view="index" project="architecture"\n```');
+
+		await plugin.code?.(fence('view="index" project="architecture"'), ctx);
+
+		expect(replaced[0]?.next).toMatchObject({
+			name: '__LikeC4View',
+			attributes: expect.arrayContaining([{ type: 'mdxJsxAttribute', name: 'project', value: 'architecture' }]),
+		});
+	});
+
+	it('renders a file= fence from the file relative to the page', async () => {
+		const site = await mkdtemp(join(tmpdir(), 'astroc4-fence-'));
+		const pageFile = join(site, 'src', 'content', 'docs', 'page.mdx');
+		await mkdir(join(dirname(pageFile), 'flows'), { recursive: true });
+		await writeFile(
+			join(dirname(pageFile), 'flows', 'request.c4'),
+			"specification { element box }\nmodel { a = box 'A' }\nviews { view requestPath { include * } }\n",
+		);
+		const replaced: { next: any }[] = [];
+		const plugin = (likec4Fences({ root: site }) as any)({
+			source: '```likec4 file="./flows/request.c4" view="requestPath"\n```',
+			sourceFormat: 'mdx',
+		});
+
+		await plugin.code(fence('file="./flows/request.c4" view="requestPath"'), {
+			fileURL: pathToFileURL(pageFile),
+			replaceNode: (_: unknown, next: any) => replaced.push({ next }),
+		});
+
+		expect(replaced[0]?.next.name).toBe('__LikeC4Fence');
+		expect(replaced[0]?.next.attributes).toEqual(
+			expect.arrayContaining([{ type: 'mdxJsxAttribute', name: 'viewId', value: 'requestPath' }]),
+		);
+	});
+
+	it('fails a file= fence that escapes the site root', async () => {
+		const site = await mkdtemp(join(tmpdir(), 'astroc4-fence-'));
+		const pageFile = join(site, 'src', 'content', 'docs', 'page.mdx');
+		const plugin = (likec4Fences({ root: site }) as any)({ source: '```likec4 file="../../../../x.c4"\n```', sourceFormat: 'mdx' });
+
+		await expect(
+			plugin.code(fence('file="../../../../x.c4"'), { fileURL: pathToFileURL(pageFile), replaceNode: () => {} }),
+		).rejects.toThrow(/outside the site/);
 	});
 
 	it('inserts nothing when no fence was rewritten', async () => {

@@ -1,22 +1,35 @@
 ---
 // LikeC4View.astro
 // path: src/components/LikeC4View.astro
-// Docs-facing wrapper around the LikeC4 React island. Use this from .mdx pages:
+// Docs-facing wrapper around the LikeC4 React islands. Use this from .mdx pages:
 //   import LikeC4View from '@purview-dev/astroc4/components/LikeC4View.astro';
-//   <LikeC4View viewId="index" />
-//   <LikeC4View viewId="edge" projectId="my-project" height={560} />
+//   <LikeC4View viewId="index" />                                  (the only project)
+//   <LikeC4View viewId="edge" project="architecture" height={560} /> (a named or discovered project)
+//   <LikeC4View viewId="flow" file="diagrams/flow.c4" />           (one .c4 file under src/)
+//
+// The project is resolved here, on the server, so an unknown name — or no name
+// when the site has several projects — fails the build instead of rendering an
+// error box in the browser.
+
+import { likec4IdFor, projectNames } from 'virtual:astroc4/projects';
 
 import DiagramFrame from './DiagramFrame.astro';
 import DiagramShell from './DiagramShell.astro';
+import LikeC4InlineView from './LikeC4InlineView';
 import LikeC4ProjectView from './LikeC4ProjectView';
 import LoadingPlaceholder from './LoadingPlaceholder.astro';
 import { getIslandLabels, getTranslator } from './labels';
+import { fileKey, resolveProjectId } from './utils';
 
 interface Props {
-	/** View id inside the selected LikeC4 project. */
+	/** View id inside the selected LikeC4 project or file. */
 	viewId: string;
-	/** Optional project id (maps to `likec4:react/<projectId>`). */
+	/** A project named in the plugin's `projects` option, or discovered under the site root. */
+	project?: string;
+	/** @deprecated Use `project`. */
 	projectId?: string;
+	/** A single `.c4` file, relative to the site's `src/` folder. */
+	file?: string;
 	/** Shell heading. */
 	title?: string;
 	description?: string;
@@ -35,13 +48,55 @@ const labels = getIslandLabels(t, 'likec4.view.loading');
 
 const {
 	viewId,
+	project,
 	projectId,
+	file,
 	title = t('likec4.view.title'),
 	description = t('likec4.view.description'),
 	height = 480,
 	collapsible = true,
 	defaultOpen = true,
 } = Astro.props;
+
+let inlineModel: unknown;
+let likec4Id: string | undefined;
+
+if (file !== undefined) {
+	// Every .c4 file under src/, compiled on import by the file-layout plugin.
+	const layouts = import.meta.glob<{ dump: unknown; viewIds: string[] }>('/src/**/*.c4', {
+		query: '?astroc4-layout',
+		import: 'default',
+	});
+	const key = fileKey(file);
+	const load = key ? layouts[key] : undefined;
+
+	if (!load) {
+		throw new Error(
+			`[astroc4] <LikeC4View file="${file}"> must name a .c4 file under src/` +
+				(key ? `; ${key} does not exist.` : '.'),
+		);
+	}
+
+	const layout = await load();
+
+	if (!layout.viewIds.includes(viewId)) {
+		throw new Error(`[astroc4] ${key} has no view "${viewId}". Declared: ${layout.viewIds.join(', ')}.`);
+	}
+
+	inlineModel = layout.dump;
+} else if (projectNames.length > 0) {
+	const resolution = resolveProjectId(project ?? projectId, projectNames, labels);
+
+	if (resolution.error) {
+		throw new Error(`[astroc4] <LikeC4View viewId="${viewId}">: ${resolution.error}`);
+	}
+
+	likec4Id = likec4IdFor[resolution.resolvedProjectId!];
+} else {
+	// The site took discovery over (`vitePlugin.workspace`), so only the island
+	// knows the projects.
+	likec4Id = project ?? projectId;
+}
 ---
 
 <DiagramShell
@@ -57,13 +112,21 @@ const {
 	</div>
 
 	<DiagramFrame height={height}>
-		<LikeC4ProjectView viewId={viewId} projectId={projectId} labels={labels} client:only="react">
-			{
-				/* `slot="fallback"` is required: default-slot children of a `client:only`
-			    island are parked in an inert <template> and never painted. */
-			}
-			<LoadingPlaceholder slot="fallback" label={labels.loading} />
-		</LikeC4ProjectView>
+		{
+			inlineModel !== undefined ? (
+				<LikeC4InlineView model={inlineModel} viewId={viewId} labels={labels} client:only="react">
+					<LoadingPlaceholder slot="fallback" label={labels.loading} />
+				</LikeC4InlineView>
+			) : (
+				<LikeC4ProjectView viewId={viewId} projectId={likec4Id} labels={labels} client:only="react">
+					{
+						/* `slot="fallback"` is required: default-slot children of a `client:only`
+					    island are parked in an inert <template> and never painted. */
+					}
+					<LoadingPlaceholder slot="fallback" label={labels.loading} />
+				</LikeC4ProjectView>
+			)
+		}
 	</DiagramFrame>
 </DiagramShell>
 

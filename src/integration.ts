@@ -31,6 +31,7 @@ import { LikeC4VitePlugin } from 'likec4/vite-plugin';
 import type { Plugin as VitePlugin } from 'vite';
 
 import { likec4Fences, preloadLikeC4 } from './fences.js';
+import { fileLayoutPlugin } from './file-layout.js';
 import { astroc4IconPlugin, type Astroc4IconPlugin } from './icon-plugin.js';
 import { discoverProjects, resolveProjects, type ResolvedProject } from './projects.js';
 import { prepareWorkspace, PROJECTS_MODULE_ID, projectsModule } from './workspace.js';
@@ -135,7 +136,7 @@ export function likec4Integration({
 
 				updateConfig({
 					vite: {
-						plugins: [LikeC4VitePlugin(pluginOptions), projectsPlugin(resolved), icons],
+						plugins: [LikeC4VitePlugin(pluginOptions), projectsPlugin(resolved), icons, fileLayoutPlugin()],
 						// The components ship as .astro/.tsx source, so Vite has to
 						// transform them rather than hand them to Node as-is.
 						ssr: { noExternal: [PACKAGE_NAME] },
@@ -279,6 +280,8 @@ async function registerFences(
 			reporter: { warn: (message) => fenceLogger.warn(message) },
 			// Whether the advice "rename the page to .mdx" can actually work.
 			mdx: config.integrations.some((integration) => integration.name === '@astrojs/mdx'),
+			// A fence's `file="…"` must stay inside the site.
+			root: fileURLToPath(config.root),
 		});
 	};
 

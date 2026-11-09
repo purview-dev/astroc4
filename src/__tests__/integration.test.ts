@@ -64,11 +64,12 @@ describe('likec4Integration', () => {
 
 		const vite = viteOf(updateConfig);
 
-		// LikeC4's plugin, the one serving `virtual:astroc4/projects`, and the
-		// one rewriting and serving local icons.
-		expect(vite.plugins).toHaveLength(3);
+		// LikeC4's plugin, the one serving `virtual:astroc4/projects`, the one
+		// rewriting and serving local icons, and the one compiling `file=` views.
+		expect(vite.plugins).toHaveLength(4);
 		expect(vite.plugins[1].name).toBe(`${PACKAGE_NAME}/projects`);
 		expect(vite.plugins[2].name).toBe(`${PACKAGE_NAME}/icons`);
+		expect(vite.plugins[3].name).toBe(`${PACKAGE_NAME}/file-layout`);
 		expect(vite.ssr).toEqual({ noExternal: [PACKAGE_NAME] });
 		expect(vite.optimizeDeps).toEqual({ include: ['react/compiler-runtime'] });
 	});

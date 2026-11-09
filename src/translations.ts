@@ -25,6 +25,7 @@ export const translations = {
 		'likec4.error.viewIdRequired': 'A LikeC4 viewId is required to render the diagram.',
 		'likec4.error.noProjects': 'No LikeC4 projects are available in this workspace.',
 		'likec4.error.unknownProject': 'Unknown LikeC4 projectId "{projectId}". Available projects: {available}.',
+		'likec4.error.projectRequired': 'Several LikeC4 projects exist ({available}); pass project="…".',
 		'likec4.error.unresolvedProject': 'Unable to resolve a LikeC4 project.',
 		'likec4.error.loadFailed': 'Unable to load LikeC4 project "{projectId}".',
 	},

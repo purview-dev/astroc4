@@ -23,6 +23,8 @@ export type IslandLabels = {
 	noProjects: string;
 	/** Template: `{projectId}`, `{available}`. */
 	unknownProject: string;
+	/** Template: `{available}`. */
+	projectRequired: string;
 	unresolvedProject: string;
 	/** Template: `{projectId}`. */
 	loadFailed: string;
@@ -53,6 +55,7 @@ export function getIslandLabels(t: Translate, loadingKey: TranslationKey): Islan
 		viewIdRequired: t('likec4.error.viewIdRequired'),
 		noProjects: t('likec4.error.noProjects'),
 		unknownProject: t('likec4.error.unknownProject'),
+		projectRequired: t('likec4.error.projectRequired'),
 		unresolvedProject: t('likec4.error.unresolvedProject'),
 		loadFailed: t('likec4.error.loadFailed'),
 	};

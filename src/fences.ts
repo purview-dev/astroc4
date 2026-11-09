@@ -24,6 +24,8 @@
 // integration (src/index.mjs) registers it; sites do not add it themselves.
 
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { dirname, isAbsolute, relative, resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
@@ -136,6 +138,11 @@ export function parseFenceMeta(meta: string | null | undefined): FenceMeta {
 	return options;
 }
 
+/** Compile and lay out LikeC4 source; shared by fences and `<LikeC4View file>`. */
+export async function layoutSource(source: string): Promise<Layout> {
+	return layoutSnippet(source);
+}
+
 async function layoutSnippet(source: string): Promise<Layout> {
 	const key = createHash('sha256').update(source).digest('hex');
 	const cached = layoutCache.get(key);
@@ -228,6 +235,11 @@ export interface FenceOptions {
 	 * Defaults to `true`; `false` changes the advice a misplaced fence gets.
 	 */
 	mdx?: boolean;
+	/**
+	 * The site root. A fence's `file="…"` must stay inside it. Without one,
+	 * `file=` is refused.
+	 */
+	root?: string;
 }
 
 /**
@@ -241,7 +253,7 @@ const CONSOLE_REPORTER: FenceReporter = {
 };
 
 // region plugin
-export function likec4Fences({ reporter = CONSOLE_REPORTER, mdx = true }: FenceOptions = {}): MdastPluginEntry {
+export function likec4Fences({ reporter = CONSOLE_REPORTER, mdx = true, root }: FenceOptions = {}): MdastPluginEntry {
 	// A factory runs once per document, so `used` is safely per-file.
 	return (factory: PluginFactoryContext) => {
 		// Astro only supports components in .mdx. Leaving the fence as a code
@@ -281,7 +293,9 @@ export function likec4Fences({ reporter = CONSOLE_REPORTER, mdx = true }: FenceO
 
 				const where = `${describe(ctx.fileURL)}: \`\`\`${FENCE_LANG} fence`;
 				const options = parseFenceMeta(node.meta);
-				const source = (node.value ?? '').trim();
+				const source = options.file
+					? await readFenceFile(options.file, ctx.fileURL, root, where)
+					: (node.value ?? '').trim();
 
 				const common = {
 					title: options.title,
@@ -301,7 +315,7 @@ export function likec4Fences({ reporter = CONSOLE_REPORTER, mdx = true }: FenceO
 					ctx.replaceNode(node, {
 						type: 'mdxJsxFlowElement',
 						name: PROJECT_COMPONENT,
-						attributes: attributes({ ...common, viewId: options.view }),
+						attributes: attributes({ ...common, viewId: options.view, project: options.project }),
 						children: [],
 					});
 
@@ -350,5 +364,34 @@ export function likec4Fences({ reporter = CONSOLE_REPORTER, mdx = true }: FenceO
 	};
 }
 // endregion
+
+/**
+ * The source of a fence's `file="…"`, resolved against the page holding the
+ * fence. Refused when it would leave the site: a page should not be able to
+ * pull arbitrary files from the build machine into the site.
+ */
+async function readFenceFile(
+	file: string,
+	pageURL: URL | undefined,
+	root: string | undefined,
+	where: string,
+): Promise<string> {
+	if (!pageURL || !root) {
+		throw new Error(`${where} uses file="${file}", which needs the page's location and the site root.`);
+	}
+
+	const path = resolve(dirname(fileURLToPath(pageURL)), file);
+	const fromRoot = relative(resolve(root), path);
+
+	if (fromRoot.startsWith('..') || isAbsolute(fromRoot)) {
+		throw new Error(`${where} uses file="${file}", which is outside the site (${path}).`);
+	}
+
+	try {
+		return (await readFile(path, 'utf8')).trim();
+	} catch {
+		throw new Error(`${where} uses file="${file}", which does not exist (${path}).`);
+	}
+}
 
 export default likec4Fences;
