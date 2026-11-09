@@ -214,6 +214,11 @@ cpSync(join(root, 'playground'), site, {
 	filter: (source) => !/[\\/](node_modules|dist|\.astro)([\\/]|$)/.test(source),
 });
 
+// The playground names `playground-external` (`projects: { external: '../playground-external' }`),
+// a LikeC4 project beside it with an `@` image alias outside any `public/`. Copy it to the same
+// place relative to the site, so the packed consumer proves named projects and alias icons too.
+cpSync(join(root, 'playground-external'), join(work, 'playground-external'), { recursive: true });
+
 // The playground imports `../dist/index.js` — the built file beside it. A
 // consumer imports the package name, and so must the copy.
 const siteConfig = join(site, 'astro.config.mjs');
