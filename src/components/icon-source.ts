@@ -10,6 +10,11 @@
 // Files under `public/` are the exception worth supporting: Astro serves them
 // verbatim at the site root, so the absolute path can be rewritten back to the
 // URL it will actually be served from.
+//
+// Every other local icon — through an `imageAliases` alias or a relative path —
+// is rewritten at build time by `src/icon-plugin.ts` to its `/_astroc4/…` URL,
+// so it arrives here as `url` already. A `file://` value still reaching this
+// function is one the build could not attribute to a project.
 
 /** Everything after a `/public/` segment, which Astro serves at the site root. */
 const PUBLIC_SEGMENT = /\/public\/(.+)$/;

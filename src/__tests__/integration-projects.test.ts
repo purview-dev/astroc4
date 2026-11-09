@@ -63,6 +63,27 @@ describe('likec4Integration with projects', () => {
 		expect(source).toContain('"architecture":"external-model"');
 	});
 
+	it('installs the icon plugin and copies gathered icons when the build is done', async () => {
+		const temp = await mkdtemp(join(tmpdir(), 'astroc4-site-'));
+		const site = join(temp, 'site');
+		await mkdir(site);
+		const external = await folderWithConfig(join(temp, 'external'), 'external-model');
+		const integration = likec4Integration({ projects: { architecture: external }, fences: false });
+		const updateConfig = vi.fn();
+		const logger = { info: vi.fn(), warn: vi.fn(), fork: vi.fn() };
+
+		await integration.hooks['astro:config:setup']!({
+			command: 'build',
+			config: { root: pathToFileURL(join(site, '/')), base: '/', vite: {}, integrations: [] },
+			updateConfig,
+			logger,
+		} as never);
+
+		const plugins = (updateConfig.mock.calls[0]?.[0] as { vite: { plugins: any[] } }).vite.plugins;
+		expect(plugins.map((plugin) => plugin.name)).toContain('@purview-dev/astroc4/icons');
+		expect(typeof integration.hooks['astro:build:done']).toBe('function');
+	});
+
 	it('keeps an explicit vitePlugin.workspace and says projects is ignored', async () => {
 		const site = await mkdtemp(join(tmpdir(), 'astroc4-site-'));
 		const external = await folderWithConfig(join(site, '..', `ext-${Date.now()}`), 'ext');

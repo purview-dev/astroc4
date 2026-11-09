@@ -31,6 +31,7 @@ import { LikeC4VitePlugin } from 'likec4/vite-plugin';
 import type { Plugin as VitePlugin } from 'vite';
 
 import { likec4Fences, preloadLikeC4 } from './fences.js';
+import { astroc4IconPlugin, type Astroc4IconPlugin } from './icon-plugin.js';
 import { discoverProjects, resolveProjects, type ResolvedProject } from './projects.js';
 import { prepareWorkspace, PROJECTS_MODULE_ID, projectsModule } from './workspace.js';
 
@@ -119,6 +120,9 @@ export function likec4Integration({
 	projects,
 	fences = true,
 }: LikeC4IntegrationOptions = {}): AstroIntegration {
+	// Created in `astro:config:setup`, read again when the build is done.
+	let icons: Astroc4IconPlugin | undefined;
+
 	return {
 		name: `${PACKAGE_NAME}/integration`,
 		hooks: {
@@ -127,9 +131,11 @@ export function likec4Integration({
 				const optimizeDeps = missingOptimizedDependencies(config.vite?.optimizeDeps?.include, root);
 				const { pluginOptions, resolved } = await workspaceFor(root, vitePlugin, projects, logger);
 
+				icons = astroc4IconPlugin({ projects: resolved, base: config.base ?? '/', siteRoot: root });
+
 				updateConfig({
 					vite: {
-						plugins: [LikeC4VitePlugin(pluginOptions), projectsPlugin(resolved)],
+						plugins: [LikeC4VitePlugin(pluginOptions), projectsPlugin(resolved), icons],
 						// The components ship as .astro/.tsx source, so Vite has to
 						// transform them rather than hand them to Node as-is.
 						ssr: { noExternal: [PACKAGE_NAME] },
@@ -150,6 +156,10 @@ export function likec4Integration({
 				if (command === 'build') {
 					await preloadLikeC4();
 				}
+			},
+			// Every icon the compiled models referenced, at the URL they now name.
+			'astro:build:done': async ({ dir }) => {
+				await icons?.emit(fileURLToPath(dir));
 			},
 		},
 	};
