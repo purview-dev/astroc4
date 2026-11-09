@@ -11,7 +11,7 @@ import {
 	grammarSha,
 	resolveLikeC4Grammar,
 	validateRef,
-} from '../source.js';
+} from '../source.ts';
 
 const mini = readFileSync(new URL('../__fixtures__/mini.langium', import.meta.url), 'utf8');
 
@@ -40,7 +40,6 @@ const failing = (message = 'getaddrinfo ENOTFOUND raw.githubusercontent.com') =>
 
 const cacheFiles = () => readdir(cacheDir);
 
-/** A logger that records instead of printing. */
 function quiet() {
 	return { info: vi.fn(), warn: vi.fn() };
 }

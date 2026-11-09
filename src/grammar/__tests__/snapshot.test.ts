@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { parseLangium } from '../langium.js';
-import { grammarSha } from '../source.js';
-import { buildTmLanguage } from '../textmate.js';
+import { parseLangium } from '../langium.ts';
+import { grammarSha } from '../source.ts';
+import { buildTmLanguage } from '../textmate.ts';
 
 const langium = readFileSync(new URL('../like-c4.langium', import.meta.url), 'utf8');
 const committed = JSON.parse(readFileSync(new URL('../likec4.tmLanguage.json', import.meta.url), 'utf8'));

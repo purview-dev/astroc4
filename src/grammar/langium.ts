@@ -1,35 +1,19 @@
-// langium.mjs
-// path: src/grammar/langium.mjs
-// Reduces the LikeC4 Langium grammar to the vocabulary a TextMate grammar
-// needs: which words open a block, which are plain keywords, which are
-// property names, which belong to a closed value domain (shapes, colours,
-// arrow heads…) and which tokens have to be matched structurally (comments,
-// strings, icon ids).
-//
-// The grammar is read from likec4/likec4 at a ref the site chooses:
-// `packages/language-server/src/like-c4.langium`. Deriving from it is what
-// keeps highlighting in step with the language — `ElementShape` gained `agent`
-// after v1.59.4, and the TextMate grammar upstream maintains by hand still
-// does not know about it.
-//
-// Deliberately no Langium dependency: this is a tolerant scanner over one
-// file, not a parser for the grammar language, and it has to survive upstream
-// reformatting. Anything it cannot classify is dropped rather than guessed.
+// Reduces the LikeC4 Langium grammar to the vocabulary a TextMate grammar needs.
+// Deliberately no Langium dependency: a tolerant scanner that has to survive
+// upstream reformatting, so anything it cannot classify is dropped, not guessed.
 
-/** Rules that describe a closed set of values are named after what they hold. */
+/** `…Id returns string` rules are identifiers, not closed value domains. */
 const NOT_VALUE_DOMAINS = /Id$/;
 
 /** Property names the grammar matches as `key='…'` assignments. */
 const PROPERTY_SUPPLEMENTS = ['kind', 'tag'];
 
-/** A token produced by the scanner. */
 export type TokenType = 'literal' | 'regex' | 'ident' | 'punct';
 export interface Token {
 	type: TokenType;
 	value: string;
 }
 
-/** A `terminal` rule, with its value as written. */
 export interface Terminal {
 	hidden: boolean;
 	kind: 'regex' | 'literal';
@@ -37,7 +21,6 @@ export interface Terminal {
 	value: string;
 }
 
-/** A parser rule, fragment or terminal, as the scanner reads it. */
 export interface Rule {
 	name: string;
 	kind: 'rule' | 'fragment' | 'terminal';
@@ -46,7 +29,6 @@ export interface Rule {
 	tokens: Token[];
 }
 
-/** Everything the TextMate generator needs to know about the language. */
 export interface Vocabulary {
 	/** Keywords that open a `{ … }` block. */
 	blocks: string[];
@@ -97,10 +79,8 @@ export function parseLangium(source: string): Vocabulary {
 
 	const terminals = readTerminals(rules);
 
-	// A grammar with parser rules but no structure at all is not a LikeC4
-	// grammar — most likely the path now holds something else. A small grammar
-	// can legitimately have no "leftover" keywords, so blocks and value domains
-	// count too.
+	// A small grammar can legitimately have no leftover keywords, so blocks and
+	// value domains count too.
 	if (keywords.length === 0 && blocks.length === 0 && Object.keys(enums).length === 0) {
 		throw new Error('the file contains no LikeC4 keywords — the Langium grammar could not be read');
 	}
@@ -510,7 +490,6 @@ function resolveEnums(rules: Rule[]): Record<string, string[]> {
 	return enums;
 }
 
-/** Reads every `terminal` rule, keyed by name. */
 function readTerminals(rules: Rule[]): Record<string, Terminal> {
 	const terminals: Record<string, Terminal> = {};
 

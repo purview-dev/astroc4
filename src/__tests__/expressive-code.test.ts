@@ -1,7 +1,7 @@
 import { type BundledLanguage, createHighlighter } from 'shiki';
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { likec4Language } from '../expressive-code.js';
+import { likec4Language } from '../expressive-code.ts';
 
 type Highlighter = Awaited<ReturnType<typeof createHighlighter>>;
 

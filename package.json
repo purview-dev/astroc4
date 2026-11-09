@@ -1,6 +1,6 @@
 {
   "name": "@purview-dev/astroc4",
-  "version": "1.0.0-prerelease.5",
+  "version": "1.0.0-prerelease.6",
   "description": "Interactive LikeC4 architecture diagrams for Astro and Starlight: <LikeC4View>, ```likec4 fences, and LikeC4 syntax highlighting derived from the live Langium grammar.",
   "license": "MIT",
   "author": {
@@ -48,7 +48,8 @@
     },
     "./grammar/likec4.tmLanguage.json": "./dist/likec4.tmLanguage.json",
     "./components/LikeC4View.astro": "./src/components/LikeC4View.astro",
-    "./components/LikeC4Fence.astro": "./src/components/LikeC4Fence.astro"
+    "./components/LikeC4Fence.astro": "./src/components/LikeC4Fence.astro",
+    "./components/md-fences": "./src/components/md-fences.tsx"
   },
   "files": [
     "dist",
@@ -117,6 +118,10 @@
   "packageManager": "bun@1.4.4",
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "bundle-require": "^5.1.0",
+    "esbuild": "^0.28.2",
+    "json5": "^2.2.3"
   }
 }
-

@@ -2,22 +2,22 @@
 
 Everything is configured through one call, and that call is one of two:
 
-```js
+```ts
 // Starlight: the plugin entry point
 starlight({
 	plugins: [
 		astroc4({
 			fences: true,
-			vitePlugin: { workspace: 'diagrams' },
+			projects: { architecture: '../../docs/architecture/likec4' },
 			highlighting: { ref: 'v1.60.0' },
 		}),
 	],
 });
 ```
 
-```js
+```ts
 // Plain Astro: the integration entry point
-integrations: [astroc4(), expressiveCode(), mdx(), react()];
+integrations: [expressiveCode({ shiki: { langs: [likec4Language] } }), astroc4(), mdx()];
 ```
 
 `highlighting` exists only on the Starlight plugin, because it is an injection
@@ -29,8 +29,9 @@ else is shared, because both entry points call the same integration.
 
 | Option | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `fences` | `boolean` | `true` | Turn ` ```likec4 ` fences into diagrams. `false` leaves them as code blocks. |
-| `vitePlugin` | `object` | `{}` | Passed straight to LikeC4's `LikeC4VitePlugin`, e.g. `{ workspace: 'diagrams' }` to look for `.c4` files somewhere other than the site root. |
+| `fences` | `boolean` | `true` | Turn ` ```likec4 ` fences into diagrams, in `.md` and `.mdx`. `false` leaves them as code blocks and injects no page script. |
+| `projects` | `Record<string, string>` | `{}` | Named LikeC4 projects: name → folder holding a LikeC4 config file (any name LikeC4 reads, JSON or JS/TS), relative to the site root or absolute. Compiled alongside the projects discovered under the site root; their `imageAliases` and relative icons work unchanged. See [Projects](Projects.md). |
+| `vitePlugin` | `object` | `{}` | Passed straight to LikeC4's `LikeC4VitePlugin`. Setting `workspace` or `languageServices` takes discovery over, and `projects` is then ignored with a warning. |
 | `highlighting` | `true` \| `false` \| `HighlightingOptions` | `true` | **Starlight only.** Highlight LikeC4 source. `false` leaves Expressive Code entirely to the site. |
 
 ## Highlighting options
@@ -43,7 +44,7 @@ else is shared, because both entry points call the same integration.
 | `onError` | `'fail'` \| `'warn'` \| `'silent'` | `'fail'` | What to do when the grammar cannot be **fetched**. A ref that does not exist always fails, and so does a file that is no longer a LikeC4 grammar. |
 | `cacheTtl` | `number` | `3600` | Seconds a cached fetch stays fresh. |
 | `refresh` | `boolean` | `false` | Ignore the cache and refetch. |
-| `cacheDir` | `string` | the site's `node_modules` folder, in `astroc4`'s cache folder | Where to cache. |
+| `cacheDir` | `string` | `node_modules/.cache/astroc4` under the site root | Where to cache. |
 | `baseUrl` | `string` | `https://raw.githubusercontent.com` | Raw host to read from, for proxies and mirrors. |
 | `timeout` | `number` | `15000` | Request timeout in milliseconds. |
 
@@ -52,7 +53,7 @@ else is shared, because both entry points call the same integration.
 | Variable | Overrides | Use |
 | --- | --- | --- |
 | `ASTROC4_REF` | `highlighting.ref` | Pin the grammar ref from CI without editing the config file. Wins over the option. |
-| `ASTROC4_OFFLINE` | `highlighting.offline` | `1`, `true`, `yes` or `on` to use the bundled snapshot. |
+| `ASTROC4_OFFLINE` | `highlighting.offline` | `1`, `true`, `yes` or `on` to use the bundled snapshot. Only read when the config does not set `offline`. |
 
 Both are read with `process.env`, so they apply to `astro dev`, `astro build`,
 `astro check` and `astro sync` alike.
@@ -61,8 +62,10 @@ Both are read with `process.env`, so they apply to `astro dev`, `astro build`,
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `view` | first view in the snippet, or required for an empty fence | Which view to render. |
-| `title` | translated `Diagram` | Shell heading. |
+| `view` | the first view the source declares; required for an empty fence | Which view to render. |
+| `project` | the only project; required when there are several | For an empty fence: which project the view is in. |
+| `file` | — | A `.c4` file relative to the page, inside the site, rendered instead of the fence body. |
+| `title` | `Diagram` (translated in `.mdx`) | Shell heading. |
 | `description` | — | Shell sub-heading. |
 | `height` | `420` | Diagram height in pixels. |
 | `collapsible` | `true` | Render the shell as a `<details>`. |
@@ -73,7 +76,9 @@ Both are read with `process.env`, so they apply to `astro dev`, `astro build`,
 | Prop | Type | Default |
 | --- | --- | --- |
 | `viewId` | `string` | required |
-| `projectId` | `string` | first project found |
+| `project` | `string` | the only project; required when there are several |
+| `file` | `string` | — (a `.c4` file relative to `src/`) |
+| `projectId` | `string` | deprecated alias of `project` |
 | `title` / `description` | `string` | translated defaults |
 | `height` | `number` | `480` |
 | `collapsible` / `defaultOpen` | `boolean` | `true` |
@@ -82,8 +87,7 @@ Both are read with `process.env`, so they apply to `astro dev`, `astro build`,
 
 - **The grammar source.** It is always the Langium grammar; the TextMate grammar
   upstream maintains by hand drifts, and the derivation is what the tests pin.
-- **Where fences render.** Only `.mdx` pages can host a component, so a
-  ` ```likec4 ` fence in a `.md` page is left as a code block with a warning
-  naming the file.
+- **Where fences render.** Everywhere: `.mdx` pages get the components, `.md`
+  pages get a placeholder the injected page script mounts.
 - **Layout timing.** Diagrams are laid out during the build, never in the
   browser, so an invalid model cannot reach production.

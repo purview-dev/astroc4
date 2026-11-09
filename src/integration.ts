@@ -1,84 +1,62 @@
-// integration.ts
-// path: src/integration.ts
-// The Astro integration: everything `<LikeC4View>` and ```likec4 fences need,
-// with no Starlight in the picture.
-//
-//   import astroc4 from '@purview-dev/astroc4/integration';
-//   export default defineConfig({ integrations: [astroc4(), react()] });
-//
-// `src/index.ts` is the Starlight plugin, and it is this integration plus the
-// three things that only exist inside Starlight: the UI-string injection
-// (`i18n:setup`), Starlight's `expressiveCode` option, and Starlight's
-// `config:setup` context (which is where `astroConfig` and its plugins array
-// live). Both entry points call *this* file, so the Vite plugin, the fence
-// transform, the Windows preload and the `react/compiler-runtime` fix cannot
-// drift between them.
-//
-// A plain Astro site still supplies, because they are not this package's to add:
-//   - `@astrojs/react` — the diagrams are React islands (`client:only="react"`);
-//   - `@astrojs/mdx` — ```likec4 fences only become diagrams in .mdx pages;
-//   - Expressive Code (`astro-expressive-code` + `ec.config.mjs`) with
-//     `likec4Language` from `@purview-dev/astroc4/expressive-code` — Astro has no
-//     `expressiveCode` option for this integration to fill in, which is why
-//     highlighting is Starlight-only unless the site configures EC itself.
-
-import { createRequire } from 'node:module';
-import { join } from 'node:path';
+import { existsSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { AstroConfig, AstroIntegration, AstroIntegrationLogger } from 'astro';
 import { LikeC4VitePlugin } from 'likec4/vite-plugin';
+import type { Plugin as VitePlugin } from 'vite';
 
-import { likec4Fences, preloadLikeC4 } from './fences.js';
+import { likec4Fences, preloadLikeC4 } from './fences.ts';
+import { fileLayoutPlugin } from './file-layout.ts';
+import { astroc4IconPlugin, type Astroc4IconPlugin } from './icon-plugin.ts';
+import { discoverProjects, resolveProjects, type ResolvedProject } from './projects.ts';
+import { prepareWorkspace, PROJECTS_MODULE_ID, projectsModule } from './workspace.ts';
 
-/**
- * The published package name. Scoped because npm refuses the unscoped
- * `astroc4` — "too similar to existing package astro" — and because the scope
- * makes the specifiers this plugin writes into a site's pages unambiguous.
- */
+/** Scoped because npm refuses the unscoped `astroc4` as too similar to `astro`. */
 export const PACKAGE_NAME = '@purview-dev/astroc4';
 
 export interface LikeC4IntegrationOptions {
 	/**
-	 * Passed through to `LikeC4VitePlugin` — e.g. `{ workspace: 'diagrams' }` to
-	 * look for .c4 files somewhere other than the site root.
+	 * Passed through to `LikeC4VitePlugin`. Setting `workspace` or
+	 * `languageServices` takes project discovery over, and `projects` is ignored.
 	 */
 	vitePlugin?: Parameters<typeof LikeC4VitePlugin>[0];
-	/** Render ```likec4 fences in .mdx pages as diagrams. Defaults to `true`. */
+	/**
+	 * Named LikeC4 projects, compiled alongside those discovered under the site
+	 * root: `{ architecture: '../../docs/architecture/likec4' }`. Folders are
+	 * relative to the site root or absolute.
+	 */
+	projects?: Record<string, string>;
+	/** Render ```likec4 fences in .md and .mdx pages as diagrams. Defaults to `true`. */
 	fences?: boolean;
 }
 
 /**
- * Dependencies the browser entry point needs Vite to pre-bundle.
- *
- * `likec4/react` is compiled with the React Compiler, so it imports `c` from
- * `react/compiler-runtime` — a CommonJS file (`module.exports = require(...)`)
- * on every React 19. The island itself is source in this package, so in dev
- * Vite can serve that import raw instead of rewriting it to an optimized ES
- * module, and the island dies before it mounts:
- *
- *   [astro-island] Error hydrating /node_modules/@purview-dev/astroc4/src/components/LikeC4ProjectView.tsx
- *   SyntaxError: The requested module '/node_modules/react/compiler-runtime.js'
- *   does not provide an export named 'c'
- *
- * `astro build` bundles the dependency correctly, which is exactly why the
- * failure is easy to miss: the site builds green with blank diagrams. Listing
- * it as an optimized dependency is the fix.
+ * `likec4/react` is built with the React Compiler and imports `c` from
+ * `react/compiler-runtime`, which React 19 ships as CommonJS. Unless Vite
+ * pre-bundles it, `astro dev` serves it raw and every island fails with
+ * "does not provide an export named 'c'" — while `astro build` stays green.
  */
 const OPTIMIZED_DEPENDENCIES = ['react/compiler-runtime'];
 
 /**
- * The `optimizeDeps.include` entries a site still needs for the island to
- * hydrate.
- *
- * Only the missing ones are returned: Astro merges the `vite` option with
- * Vite's `mergeConfig`, which concatenates arrays, so re-sending a site's own
- * entries would duplicate them. An entry that does not resolve is left out —
- * a site without React cannot render the island anyway, and naming a package
- * Vite cannot find breaks the optimizer with a less useful error.
- *
- * @param include The site's existing `vite.optimizeDeps.include`.
- * @param root The site root, where the dependency has to resolve from.
+ * Mounts the fences of .md pages. Injected into every page, so React and LikeC4
+ * are only `import()`ed on a page that has a placeholder.
+ */
+const MD_FENCES_SCRIPT = [
+	`const mountLikeC4Fences = () => {`,
+	`  if (!document.querySelector('[data-astroc4-fence]:not([data-astroc4-mounted])')) return;`,
+	`  import('${PACKAGE_NAME}/components/md-fences').then((module) => module.mountFences());`,
+	`};`,
+	`if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountLikeC4Fences);`,
+	`else mountLikeC4Fences();`,
+	`document.addEventListener('astro:page-load', mountLikeC4Fences);`,
+].join('\n');
+
+/**
+ * The `optimizeDeps.include` entries the site still lacks. Only missing ones:
+ * Vite's `mergeConfig` concatenates arrays. Unresolvable ones are skipped, since
+ * naming a package Vite cannot find breaks the optimizer.
  */
 export function missingOptimizedDependencies(include: unknown, root: string): string[] {
 	const existing = Array.isArray(include) ? include : [];
@@ -88,81 +66,118 @@ export function missingOptimizedDependencies(include: unknown, root: string): st
 	);
 }
 
-/** Whether `specifier` resolves from a site root. */
+// Walks node_modules as Vite does: under Bun, `createRequire` also finds
+// packages in Bun's global cache, which Vite never looks in.
 function resolvesFrom(specifier: string, root: string): boolean {
-	try {
-		// `createRequire` only uses the path as a resolution base, so the file it
-		// names need not exist (`playground/` has no `package.json` of its own).
-		createRequire(join(root, 'package.json')).resolve(specifier);
-		return true;
-	} catch {
-		return false;
+	const name = specifier.split('/', specifier.startsWith('@') ? 2 : 1).join('/');
+
+	for (let dir = resolve(root); ; dir = dirname(dir)) {
+		if (existsSync(join(dir, 'node_modules', name, 'package.json'))) return true;
+		if (dirname(dir) === dir) return false;
 	}
 }
 
-/**
- * The integration both entry points install: LikeC4's Vite plugin, the fence
- * transform, and the dev-only bits that keep the islands hydrating.
- */
 export function likec4Integration({
 	vitePlugin = {},
+	projects,
 	fences = true,
 }: LikeC4IntegrationOptions = {}): AstroIntegration {
+	let icons: Astroc4IconPlugin | undefined;
+
 	return {
 		name: `${PACKAGE_NAME}/integration`,
 		hooks: {
-			'astro:config:setup': async ({ command, config, updateConfig, logger }) => {
-				const optimizeDeps = missingOptimizedDependencies(
-					config.vite?.optimizeDeps?.include,
-					fileURLToPath(config.root),
-				);
+			'astro:config:setup': async ({ command, config, updateConfig, injectScript, logger }) => {
+				const root = fileURLToPath(config.root);
+				const optimizeDeps = missingOptimizedDependencies(config.vite?.optimizeDeps?.include, root);
+				const { pluginOptions, resolved, stagingDir } = await workspaceFor(root, vitePlugin, projects, logger);
+
+				icons = astroc4IconPlugin({ projects: resolved, base: config.base ?? '/', siteRoot: root, stagingDir });
 
 				updateConfig({
 					vite: {
-						plugins: [LikeC4VitePlugin(vitePlugin)],
-						// The components ship as .astro/.tsx source, so Vite has to
-						// transform them rather than hand them to Node as-is.
+						plugins: [LikeC4VitePlugin(pluginOptions), projectsPlugin(resolved), icons, fileLayoutPlugin()],
+						// The components ship as .astro/.tsx source for Vite to transform.
 						ssr: { noExternal: [PACKAGE_NAME] },
-						// Omitted entirely when the site already lists them: `vite` is
-						// merged with Vite's `mergeConfig`, which concatenates arrays.
 						...(optimizeDeps.length > 0 ? { optimizeDeps: { include: optimizeDeps } } : {}),
 					},
 				});
 
 				if (fences) {
-					await registerFences(config, updateConfig, logger);
+					await registerFences(config, updateConfig, logger, resolved);
+					injectScript('page', MD_FENCES_SCRIPT);
 				}
 
 				await ensureReactRenderer(config, updateConfig, logger);
 
-				// `command` is only available here, not in `astro:config:done` — and
-				// this must stay build-only; see `loadLikeC4` in ./fences.ts.
+				// Build only: loading LikeC4 eagerly in dev restarts the server (see ./fences.ts).
 				if (command === 'build') {
 					await preloadLikeC4();
 				}
+			},
+			'astro:build:done': async ({ dir }) => {
+				await icons?.emit(fileURLToPath(dir));
 			},
 		},
 	};
 }
 
 /**
- * Add `@astrojs/react` when the site has not.
- *
- * The islands are `client:only="react"`, so without a React renderer
- * `<LikeC4View>` fails at build with Astro's generic "no renderer" error, which
- * mentions React but not this package. `@astrojs/react` is a peer dependency, so
- * it is installed; adding it here is the difference between
- * `astro add @purview-dev/astroc4` producing a working site and producing one
- * that builds until the first diagram.
- *
- * Pushed integrations have their hooks run after this one — Astro's config loop
- * reads integrations added while it runs, which is how Starlight adds Expressive
- * Code — so the renderer registers in the same pass.
- *
- * Not added, on purpose: `@astrojs/mdx` (it changes what content types a site
- * has) and `astro-expressive-code` (it takes over every code block on the site).
- * Both are the site's decision; the [docs](docs/wiki/guide/Plain-Astro.md) say
- * what to install, and a fence in a `.md` page says what is missing.
+ * The options `LikeC4VitePlugin` gets, and the projects pages can name. With
+ * `projects`, every project is linked into one staging workspace, because the
+ * plugin compiles a single folder.
+ */
+async function workspaceFor(
+	root: string,
+	vitePlugin: NonNullable<LikeC4IntegrationOptions['vitePlugin']>,
+	configured: Record<string, string> | undefined,
+	logger: AstroIntegrationLogger,
+): Promise<{
+	pluginOptions: NonNullable<LikeC4IntegrationOptions['vitePlugin']>;
+	resolved: ResolvedProject[];
+	stagingDir?: string;
+}> {
+	const hasConfigured = configured !== undefined && Object.keys(configured).length > 0;
+
+	if (vitePlugin.workspace !== undefined || 'languageServices' in vitePlugin) {
+		if (hasConfigured) {
+			logger.warn(
+				'`projects` is ignored because `vitePlugin.workspace` or `vitePlugin.languageServices` is set; remove one of them.',
+			);
+		}
+
+		return { pluginOptions: vitePlugin, resolved: [] };
+	}
+
+	const discovered = await discoverProjects(root);
+
+	if (!hasConfigured) {
+		return { pluginOptions: vitePlugin, resolved: discovered };
+	}
+
+	const resolved = await resolveProjects({ root, configured, discovered });
+	const workspace = await prepareWorkspace(resolved, join(root, '.astro', 'astroc4'));
+
+	return { pluginOptions: { ...(vitePlugin as { workspace?: string }), workspace }, resolved, stagingDir: workspace };
+}
+
+/** Serves `virtual:astroc4/projects`: the names components may pass as `project`. */
+function projectsPlugin(projects: ResolvedProject[]): VitePlugin {
+	const resolvedId = `\0${PROJECTS_MODULE_ID}`;
+
+	return {
+		name: `${PACKAGE_NAME}/projects`,
+		resolveId: (id) => (id === PROJECTS_MODULE_ID ? resolvedId : undefined),
+		load: (id) => (id === resolvedId ? projectsModule(projects) : undefined),
+	};
+}
+
+/**
+ * Add `@astrojs/react` when the site has not: without a renderer the
+ * `client:only="react"` islands fail with Astro's generic "no renderer" error.
+ * Integrations pushed here still have their hooks run in this pass. MDX and
+ * Expressive Code are left to the site, because they change its content types
+ * and code blocks.
  */
 async function ensureReactRenderer(
 	config: AstroConfig,
@@ -183,34 +198,23 @@ async function ensureReactRenderer(
 	}
 }
 
-/**
- * Append the fence transform to the site's existing Sätteri processor, keeping
- * whatever Astro and other integrations already registered on it.
- *
- * Warnings go through Astro's logger, not `console`: the logger honours the log
- * level the site ran the CLI with, and `fork()` labels the message with the part
- * of this package that produced it (`[likec4-fences]`), which is what the
- * Troubleshooting page quotes.
- */
+/** Append the fence transform to the site's Sätteri processor, keeping its plugins. */
 async function registerFences(
 	config: AstroConfig,
 	updateConfig: (config: Record<string, unknown>) => void,
 	logger: AstroIntegrationLogger,
+	projects: ResolvedProject[],
 ): Promise<void> {
 	const { satteri, isSatteriProcessor } = await import('@astrojs/markdown-satteri');
 	const existing = config.markdown?.processor;
-	const fences = () => {
-		const fenceLogger = logger.fork('likec4-fences');
-
-		return likec4Fences({
-			reporter: { warn: (message) => fenceLogger.warn(message) },
-			// Whether the advice "rename the page to .mdx" can actually work.
-			mdx: config.integrations.some((integration) => integration.name === '@astrojs/mdx'),
+	const fences = () =>
+		likec4Fences({
+			root: fileURLToPath(config.root),
+			// Empty when the site took discovery over: then only the browser knows.
+			projects: projects.length > 0 ? projects.map((project) => project.name) : undefined,
 		});
-	};
 
-	// No processor configured means Astro's default, which is Sätteri — also true
-	// outside Starlight.
+	// No processor configured means Astro's default, which is Sätteri.
 	if (existing === undefined) {
 		updateConfig({ markdown: { processor: satteri({ mdastPlugins: [fences()] }) } });
 		return;

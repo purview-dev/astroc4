@@ -7,12 +7,9 @@ import LikeC4View from '@purview-dev/astroc4/components/LikeC4View.astro';
 
 These are deliberately broken, so the messages can be checked (and checked in
 translation). A missing *view* is reported by the LikeC4 renderer itself; the
-two below are the plugin's own.
-
-## Unknown project
-
-<LikeC4View viewId="index" projectId="missing" title="Unknown project" height={120} />
+one below is the plugin's own. An unknown `project` — or none, when the site has
+several projects — fails the build instead, naming the projects it knows.
 
 ## Empty view id
 
-<LikeC4View viewId=" " title="No view id" height={120} />
+<LikeC4View viewId=" " project="playground" title="No view id" height={120} />

@@ -1,11 +1,5 @@
 ---
-// DiagramFrame.astro
-// path: src/components/DiagramFrame.astro
-// The sized container a LikeC4 island renders into. Shared by <LikeC4View>
-// (project model) and <LikeC4Fence> (inline DSL) so both size identically.
-
 interface Props {
-	/** Rendered height in pixels. */
 	height?: number;
 }
 
@@ -17,23 +11,19 @@ const { height = 480 } = Astro.props;
 </div>
 
 <style>
-	/* LikeC4's renderer measures its container, so it needs a concrete height
-	   rather than collapsing to the intrinsic size of an absolutely-positioned
-	   canvas. The per-instance value arrives as an inline custom property. */
-	/* Same token contract as DiagramShell: Starlight's palette when present,
-	   scheme-neutral fallbacks when not (see the note there). */
+	/* LikeC4's renderer measures its container, so it needs a concrete height.
+	   See DiagramShell for the token contract. */
 	.likec4-frame {
-		--likec4-border: var(--sl-color-gray-5, rgba(128, 128, 128, 0.35));
-		--likec4-surface: var(--sl-color-bg, transparent);
-		--likec4-danger: var(--sl-color-red, #c0392b);
-		--likec4-danger-soft: var(--sl-color-red-low, rgba(192, 57, 43, 0.12));
-		--likec4-danger-text: var(--sl-color-red-high, #8b1d1d);
+		--_likec4-surface: var(--likec4-surface, var(--sl-color-bg, transparent));
+		--_likec4-danger: var(--likec4-danger, var(--sl-color-red, #c0392b));
+		--_likec4-danger-soft: var(--likec4-danger-soft, var(--sl-color-red-low, rgba(192, 57, 43, 0.12)));
+		--_likec4-danger-text: var(--likec4-danger-text, var(--sl-color-red-high, #8b1d1d));
 
 		min-height: var(--likec4-height);
 	}
 
-	/* :global() because the markup below this point is created at runtime by
-	   LikeC4 (or by the React error boundary) and so carries no scope hash. */
+	/* :global() because LikeC4 and the error boundary create this markup at
+	   runtime, without a scope hash. */
 	.likec4-frame :global(.likec4-view),
 	.likec4-frame :global([data-likec4-view]) {
 		width: 100%;
@@ -43,13 +33,13 @@ const { height = 480 } = Astro.props;
 	}
 
 	.likec4-frame :global(.likec4-error) {
-		border: 1px solid var(--likec4-danger);
+		border: 1px solid var(--_likec4-danger);
 		border-radius: 0.5rem;
-		background: var(--likec4-danger-soft);
+		background: var(--_likec4-danger-soft);
 		padding: 1rem;
 		font-size: 0.875rem;
 		line-height: 1.25rem;
-		color: var(--likec4-danger-text);
+		color: var(--_likec4-danger-text);
 	}
 
 	.likec4-frame :global(.likec4-error p) {
@@ -63,7 +53,7 @@ const { height = 480 } = Astro.props;
 
 	.likec4-frame :global(.likec4-error__retry) {
 		margin-top: 0.75rem;
-		border: 1px solid var(--likec4-danger);
+		border: 1px solid var(--_likec4-danger);
 		border-radius: 0.375rem;
 		background: transparent;
 		padding: 0.375rem 0.75rem;
@@ -75,6 +65,6 @@ const { height = 480 } = Astro.props;
 	}
 
 	.likec4-frame :global(.likec4-error__retry:hover) {
-		background: var(--likec4-surface);
+		background: var(--_likec4-surface);
 	}
 </style>

@@ -1,7 +1,3 @@
-// LikeC4ProjectView.tsx
-// path: src/components/LikeC4ProjectView.tsx
-// React island that loads a LikeC4 project model (via the `likec4:*` virtual
-// modules provided by LikeC4VitePlugin) and renders one view from it.
 // Browser-only: mount it with `client:only="react"`.
 
 import { type ElementIconRenderer, getProjectIcons } from 'likec4:icons';
@@ -24,7 +20,6 @@ import {
 type Props = {
 	viewId: string;
 	projectId?: string;
-	/** Translated on the server; defaults to English. */
 	labels?: IslandLabels;
 };
 

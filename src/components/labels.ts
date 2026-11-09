@@ -1,19 +1,13 @@
-// labels.ts
-// path: src/components/labels.ts
-// Resolves the plugin's UI strings for a page. The Astro wrappers translate on
-// the server and pass the islands plain strings, because `Astro.locals.t` does
-// not exist in the browser.
+// The Astro wrappers translate on the server and pass islands plain strings,
+// because `Astro.locals.t` does not exist in the browser.
 
-// Ships alongside this file: `files` publishes `src/components` *and*
-// `src/translations.ts`, so the components stay self-contained source. The
-// specifier keeps its `.js` extension because that is what the emitted
-// declarations carry and what the site's bundler maps back to this `.ts` file.
-import { translations } from '../translations.js';
+// `files` publishes `src/translations.ts` next to `src/components`, so this
+// resolves in an installed package.
+import { translations } from '../translations.ts';
 
 export type TranslationKey = keyof (typeof translations)['en'];
 export type Translate = (key: TranslationKey) => string;
 
-/** Every string an island can show after hydration. */
 export type IslandLabels = {
 	loading: string;
 	errorTitle: string;
@@ -23,6 +17,8 @@ export type IslandLabels = {
 	noProjects: string;
 	/** Template: `{projectId}`, `{available}`. */
 	unknownProject: string;
+	/** Template: `{available}`. */
+	projectRequired: string;
 	unresolvedProject: string;
 	/** Template: `{projectId}`. */
 	loadFailed: string;
@@ -30,10 +26,7 @@ export type IslandLabels = {
 
 const english: Translate = (key) => translations.en[key];
 
-/**
- * Wrap `Astro.locals.t`, falling back to English when it is absent — which it
- * is on any page Starlight does not render, such as a plain `src/pages/` route.
- */
+/** `t` is absent on any page Starlight does not render, so English is the fallback. */
 export function getTranslator(t: unknown): Translate {
 	if (typeof t !== 'function') return english;
 
@@ -53,6 +46,7 @@ export function getIslandLabels(t: Translate, loadingKey: TranslationKey): Islan
 		viewIdRequired: t('likec4.error.viewIdRequired'),
 		noProjects: t('likec4.error.noProjects'),
 		unknownProject: t('likec4.error.unknownProject'),
+		projectRequired: t('likec4.error.projectRequired'),
 		unresolvedProject: t('likec4.error.unresolvedProject'),
 		loadFailed: t('likec4.error.loadFailed'),
 	};
@@ -60,7 +54,7 @@ export function getIslandLabels(t: Translate, loadingKey: TranslationKey): Islan
 
 export const DEFAULT_LABELS: IslandLabels = getIslandLabels(english, 'likec4.view.loading');
 
-/** Fill `{name}` placeholders. Unknown names are left in place so they show up. */
+/** Unknown placeholders are left in place so they show up. */
 export function format(template: string, values: Record<string, string>): string {
 	return template.replace(/\{(\w+)\}/g, (match, name: string) => values[name] ?? match);
 }

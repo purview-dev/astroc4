@@ -117,8 +117,7 @@ describe('the PR workflow', () => {
 	it('grants the called build workflow the permissions it declares', () => {
 		// The shared workflow declares `contents: read` and `packages: read`; a
 		// called workflow cannot request more than its caller grants, and GitHub
-		// fails such a run at startup before any job exists. Missing this looked
-		// like "workflow file issue" with nothing else to go on.
+		// fails such a run at startup (reported only as "workflow file issue").
 		expect(pr).toMatch(/permissions:\s*\n\s*contents:\s*read\s*\n\s*packages:\s*read/);
 	});
 

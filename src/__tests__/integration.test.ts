@@ -7,9 +7,8 @@ import likec4Integration, {
 	missingOptimizedDependencies,
 	PACKAGE_NAME,
 	type LikeC4IntegrationOptions,
-} from '../integration.js';
+} from '../integration.ts';
 
-/** The slice of `AstroIntegrationLogger` the integration uses, with spies. */
 interface StubLogger {
 	info: ReturnType<typeof vi.fn>;
 	warn: ReturnType<typeof vi.fn>;
@@ -24,7 +23,6 @@ function stubLogger(): StubLogger {
 	return logger;
 }
 
-/** Run the integration's `astro:config:setup` hook against a stubbed context. */
 async function setup(
 	options: LikeC4IntegrationOptions = {},
 	vite: Record<string, unknown> = {},
@@ -39,13 +37,13 @@ async function setup(
 		// condition a real site meets.
 		config: { root: pathToFileURL(process.cwd()), vite, integrations },
 		updateConfig,
+		injectScript: vi.fn(),
 		logger,
 	} as never);
 
 	return { logger, updateConfig };
 }
 
-/** The `vite` option the integration handed to Astro. */
 const viteOf = (updateConfig: ReturnType<typeof vi.fn>): Record<string, any> =>
 	(updateConfig.mock.calls[0]?.[0] as { vite: Record<string, any> }).vite;
 
@@ -64,9 +62,31 @@ describe('likec4Integration', () => {
 
 		const vite = viteOf(updateConfig);
 
-		expect(vite.plugins).toHaveLength(1);
+		// LikeC4's plugin, the one serving `virtual:astroc4/projects`, the one
+		// rewriting and serving local icons, and the one compiling `file=` views.
+		expect(vite.plugins).toHaveLength(4);
+		expect(vite.plugins[1].name).toBe(`${PACKAGE_NAME}/projects`);
+		expect(vite.plugins[2].name).toBe(`${PACKAGE_NAME}/icons`);
+		expect(vite.plugins[3].name).toBe(`${PACKAGE_NAME}/file-layout`);
 		expect(vite.ssr).toEqual({ noExternal: [PACKAGE_NAME] });
 		expect(vite.optimizeDeps).toEqual({ include: ['react/compiler-runtime'] });
+	});
+
+	it('injects a page script that mounts .md fences only on pages that have one', async () => {
+		const injectScript = vi.fn();
+		const updateConfig = vi.fn();
+		const logger = stubLogger();
+
+		await likec4Integration().hooks['astro:config:setup']!({
+			command: 'dev',
+			config: { root: pathToFileURL(process.cwd()), vite: {}, integrations: [] },
+			updateConfig,
+			injectScript,
+			logger,
+		} as never);
+
+		expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('[data-astroc4-fence]'));
+		expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining(`import('${PACKAGE_NAME}/components/md-fences')`));
 	});
 
 	it('registers the fence transform with the site Markdown processor', async () => {

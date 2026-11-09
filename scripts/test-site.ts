@@ -1,26 +1,7 @@
-// test-site.ts
-// path: scripts/test-site.ts
-// Packs the package and exercises it the way a user installs it: `npm pack`, two
-// throwaway sites outside this repository — a Starlight one copied from
-// `playground/`, a plain-Astro one copied from `examples/astro/` — `bun install`
-// from the registry, `astro check`, `astro build`, then a browser.
-//
-// The playground proves the plugin works from source. This proves the thing that
-// actually ships works once installed — the package boundary (`exports`, `files`,
-// declaration files, peer dependencies, both entry points) is exactly where
-// "works in the repo" and "works for a user" diverge.
-//
-// The Starlight copy exists so the **full smoke suite** (`scripts/smoke.ts`:
-// hydration, drawn nodes, icons, highlighting colours, the loading placeholder,
-// both locales) runs against the tarball on a preview server, not against the
-// repository's self-reference. The plain-Astro copy covers the second entry
-// point: `Astro.locals.t` falling back to English, chrome from the components'
-// own palette, `ec.config.mjs` highlighting, and the config `astro add` writes.
-//
-// A green `astro build` is not proof that a diagram renders: `astro build`
-// bundles `react/compiler-runtime` correctly, while dev served it raw and left
-// every island throwing "does not provide an export named 'c'". Only a browser
-// catches that, which is why every site here ends in Chromium.
+// Packs the package and installs the tarball into copies of `playground/`
+// (Starlight: the full smoke suite on a preview server) and `examples/astro/`
+// (plain Astro: hydration on a dev server, where the `react/compiler-runtime`
+// failure shows, then a rebuild in the shape `astro add` writes).
 //
 //   bun run test:site              # pack, build and smoke both consumer sites
 //   bun run test:site --keep       # keep the temp sites for debugging
@@ -34,13 +15,13 @@
 // `bunx playwright install chromium`.
 
 import { execFileSync, spawn } from 'node:child_process';
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { checkHydration } from './hydration.js';
+import { checkHydration } from './hydration.ts';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const repo = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
@@ -177,7 +158,9 @@ async function startServer(
 // ── Pack ────────────────────────────────────────────────────────────────────
 step(`Toolchain: node ${process.version}, bun ${execFileSync('bun', ['--version'], { encoding: 'utf8' }).trim()}`);
 
-const work = mkdtempSync(join(tmpdir(), 'astroc4-site-'));
+// Windows' TEMP can be an 8.3 short path (C:\Users\ABCDEF~1\…); Vite realpaths
+// modules to the long form, and the dev server then 404s its own virtual scripts.
+const work = mkdtempSync(join(realpathSync.native(tmpdir()), 'astroc4-site-'));
 
 // The tarball is only as good as `dist/`: fail here rather than packing a
 // package whose `exports` point at files that do not exist.
@@ -214,18 +197,12 @@ cpSync(join(root, 'playground'), site, {
 	filter: (source) => !/[\\/](node_modules|dist|\.astro)([\\/]|$)/.test(source),
 });
 
-// The playground imports `../dist/index.js` — the built file beside it. A
-// consumer imports the package name, and so must the copy.
-const siteConfig = join(site, 'astro.config.mjs');
-writeFileSync(
-	siteConfig,
-	readFileSync(siteConfig, 'utf8').replace(
-		"import starlightLikeC4 from '../dist/index.js';",
-		`import starlightLikeC4 from '${repo.name}';`,
-	),
-);
+// The playground names `playground-external` (`projects: { external: '../playground-external' }`),
+// a LikeC4 project beside it with an `@` image alias outside any `public/`. Copy it to the same
+// place relative to the site, so the packed consumer proves named projects and alias icons too.
+cpSync(join(root, 'playground-external'), join(work, 'playground-external'), { recursive: true });
 
-// ...and its tsconfig type-checks `../src`, which has no counterpart in a copy.
+// The playground's tsconfig type-checks `../src`, which has no counterpart in a copy.
 const siteTsconfig = join(site, 'tsconfig.json');
 writeFileSync(siteTsconfig, readFileSync(siteTsconfig, 'utf8').replace(/,\s*"\.\.\/src\/\*\*\/\*"/, ''));
 
@@ -430,12 +407,11 @@ if (/<pre data-language="likec4"/.test(plainHtml)) {
 
 const plainC4Colours = coloursOf(plainHtml, 'c4');
 
-// Highlighting there is the site's `ec.config.mjs`, not the Starlight plugin:
-// if that file stops working, the grammar never reaches Shiki.
+// Highlighting there is the site's own `expressiveCode({ shiki })`, not the plugin's.
 if (!plainC4Colours || plainC4Colours < 4) {
 	failures.push(`plain Astro: \`\`\`c4 highlighted in ${plainC4Colours ?? 0} colours, expected ≥ 4`);
 } else {
-	done(`plain Astro: \`\`\`c4 highlighted from ec.config.mjs (${plainC4Colours} colours)`);
+	done(`plain Astro: \`\`\`c4 highlighted by likec4Language (${plainC4Colours} colours)`);
 }
 
 if (!plainHtml.includes('Alpha')) failures.push('plain Astro: the fence’s model is missing the "Alpha" node');
@@ -456,6 +432,8 @@ if (hydrate) {
 			// Starlight's tokens are absent here, so this asserts the components'
 			// fallbacks actually styled the frame.
 			styling: true,
+			// examples/astro/src/styles/site.css sets it on :root.
+			accent: 'rgb(0, 70, 190)',
 		});
 
 		if (hydrationFailures.length > 0) {
@@ -479,25 +457,23 @@ if (hydrate) {
 }
 
 // ── The shape `astro add` writes ────────────────────────────────────────────
-// The CLI reads only npm metadata — the `astro-integration` keyword, the default
-// export — so it writes `import astroc4 from '@purview-dev/astroc4'` and
-// `integrations: [astroc4()]`. The default export carries the Astro protocol for
-// exactly this case, so rebuilding the same site that way has to render the same
-// diagrams. It runs after the hydration check so that check keeps testing the
+// `astro add` imports the default export into `integrations`, which has to
+// render the same diagrams. Runs after the hydration check, which tests the
 // documented `./integration` shape.
 step('Rebuilding the plain-Astro site in the shape `astro add` writes');
 
 writeFileSync(
-	join(plain, 'astro.config.mjs'),
+	join(plain, 'astro.config.ts'),
 	[
 		"import { defineConfig } from 'astro/config';",
 		"import mdx from '@astrojs/mdx';",
 		"import react from '@astrojs/react';",
 		"import expressiveCode from 'astro-expressive-code';",
 		"import astroc4 from '@purview-dev/astroc4';",
+		"import { likec4Language } from '@purview-dev/astroc4/expressive-code';",
 		'',
 		'export default defineConfig({',
-		'\tintegrations: [astroc4(), expressiveCode(), mdx(), react()],',
+		'\tintegrations: [astroc4(), expressiveCode({ shiki: { langs: [likec4Language] } }), mdx(), react()],',
 		'});',
 		'',
 	].join('\n'),

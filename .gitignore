@@ -9,3 +9,4 @@ playground/.astro/
 .env.local
 .DS_Store
 !scripts/*
+*.tgz

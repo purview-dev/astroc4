@@ -1,47 +1,87 @@
 ---
-// LikeC4View.astro
-// path: src/components/LikeC4View.astro
-// Docs-facing wrapper around the LikeC4 React island. Use this from .mdx pages:
-//   import LikeC4View from '@purview-dev/astroc4/components/LikeC4View.astro';
-//   <LikeC4View viewId="index" />
-//   <LikeC4View viewId="edge" projectId="my-project" height={560} />
+// The project is resolved on the server, so a bad `project` fails the build
+// rather than rendering an error box.
+
+import { likec4IdFor, projectNames } from 'virtual:astroc4/projects';
 
 import DiagramFrame from './DiagramFrame.astro';
 import DiagramShell from './DiagramShell.astro';
+import LikeC4InlineView from './LikeC4InlineView';
 import LikeC4ProjectView from './LikeC4ProjectView';
 import LoadingPlaceholder from './LoadingPlaceholder.astro';
 import { getIslandLabels, getTranslator } from './labels';
+import { fileKey, resolveProjectId } from './utils';
 
 interface Props {
-	/** View id inside the selected LikeC4 project. */
 	viewId: string;
-	/** Optional project id (maps to `likec4:react/<projectId>`). */
+	/** A project named in the plugin's `projects` option, or discovered under the site root. */
+	project?: string;
+	/** @deprecated Use `project`. */
 	projectId?: string;
-	/** Shell heading. */
+	/** A single `.c4` file, relative to the site's `src/` folder. */
+	file?: string;
 	title?: string;
 	description?: string;
-	/** Rendered height in pixels. */
+	/** Height in pixels. */
 	height?: number;
 	collapsible?: boolean;
 	defaultOpen?: boolean;
 }
 
-// Starlight augments `App.Locals` with `t`; a plain Astro page has no such
-// property (and an empty `Locals` interface, so naming it would not type-check),
-// which is why this is read as `unknown` and `getTranslator` falls back to
-// English when it is absent.
+// `t` is Starlight's; outside Starlight `App.Locals` is empty, hence `unknown`.
 const t = getTranslator((Astro.locals as { t?: unknown }).t);
 const labels = getIslandLabels(t, 'likec4.view.loading');
 
 const {
 	viewId,
+	project,
 	projectId,
+	file,
 	title = t('likec4.view.title'),
 	description = t('likec4.view.description'),
 	height = 480,
 	collapsible = true,
 	defaultOpen = true,
 } = Astro.props;
+
+let inlineModel: unknown;
+let likec4Id: string | undefined;
+
+if (file !== undefined) {
+	// Compiled on import by the file-layout plugin.
+	const layouts = import.meta.glob<{ dump: unknown; viewIds: string[] }>('/src/**/*.c4', {
+		query: '?astroc4-layout',
+		import: 'default',
+	});
+	const key = fileKey(file);
+	const load = key ? layouts[key] : undefined;
+
+	if (!load) {
+		throw new Error(
+			`[astroc4] <LikeC4View file="${file}"> must name a .c4 file under src/` +
+				(key ? `; ${key} does not exist.` : '.'),
+		);
+	}
+
+	const layout = await load();
+
+	if (!layout.viewIds.includes(viewId)) {
+		throw new Error(`[astroc4] ${key} has no view "${viewId}". Declared: ${layout.viewIds.join(', ')}.`);
+	}
+
+	inlineModel = layout.dump;
+} else if (projectNames.length > 0) {
+	const resolution = resolveProjectId(project ?? projectId, projectNames, labels);
+
+	if (resolution.error) {
+		throw new Error(`[astroc4] <LikeC4View viewId="${viewId}">: ${resolution.error}`);
+	}
+
+	likec4Id = likec4IdFor[resolution.resolvedProjectId!];
+} else {
+	// The site took discovery over, so only the island knows the projects.
+	likec4Id = project ?? projectId;
+}
 ---
 
 <DiagramShell
@@ -57,33 +97,38 @@ const {
 	</div>
 
 	<DiagramFrame height={height}>
-		<LikeC4ProjectView viewId={viewId} projectId={projectId} labels={labels} client:only="react">
-			{
-				/* `slot="fallback"` is required: default-slot children of a `client:only`
-			    island are parked in an inert <template> and never painted. */
-			}
-			<LoadingPlaceholder slot="fallback" label={labels.loading} />
-		</LikeC4ProjectView>
+		{
+			inlineModel !== undefined ? (
+				<LikeC4InlineView model={inlineModel} viewId={viewId} labels={labels} client:only="react">
+					<LoadingPlaceholder slot="fallback" label={labels.loading} />
+				</LikeC4InlineView>
+			) : (
+				<LikeC4ProjectView viewId={viewId} projectId={likec4Id} labels={labels} client:only="react">
+					{/* Without `slot="fallback"`, Astro parks it in an inert <template>. */}
+					<LoadingPlaceholder slot="fallback" label={labels.loading} />
+				</LikeC4ProjectView>
+			)
+		}
 	</DiagramFrame>
 </DiagramShell>
 
 <style>
-	/* Same token contract as DiagramShell (see the note there). */
+	/* See DiagramShell for the token contract. */
 	.likec4-badge {
-		--likec4-border: var(--sl-color-gray-5, rgba(128, 128, 128, 0.35));
-		--likec4-surface: var(--sl-color-bg, transparent);
-		--likec4-text-muted: var(--sl-color-gray-2, rgba(128, 128, 128, 0.95));
+		--_likec4-border: var(--likec4-border, var(--sl-color-gray-5, rgba(128, 128, 128, 0.35)));
+		--_likec4-surface: var(--likec4-surface, var(--sl-color-bg, transparent));
+		--_likec4-text-muted: var(--likec4-text-muted, var(--sl-color-gray-2, rgba(128, 128, 128, 0.95)));
 
 		display: inline-flex;
 		align-items: center;
 		gap: 0.5rem;
 		margin-bottom: 0.75rem;
-		border: 1px solid var(--likec4-border);
+		border: 1px solid var(--_likec4-border);
 		border-radius: 9999px;
-		background: var(--likec4-surface);
+		background: var(--_likec4-surface);
 		padding: 0.25rem 0.75rem;
 		font-size: 0.75rem;
 		line-height: 1rem;
-		color: var(--likec4-text-muted);
+		color: var(--_likec4-text-muted);
 	}
 </style>

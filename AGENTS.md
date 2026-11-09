@@ -6,8 +6,8 @@ sites. `playground/` is a small Starlight site that consumes it, and
 import the package by name and resolve it through Node's self-reference. The
 wiki in `docs/wiki/` is the published documentation — keep it in step with the
 code. It is grouped into `guide/` (using the plugin) and `contributing/`
-(changing it), each with a `README.md` index, plus `Troubleshooting.md` and
-`Roadmap.md` at the root; new pages belong in one of those two folders.
+(changing it), each with a `README.md` index, plus `Troubleshooting.md` at the
+root; new pages belong in one of those two folders.
 
 ```
 bun run build:lib      # bundle src/ -> dist/ (+ .d.ts, grammar data)
@@ -26,11 +26,11 @@ bun run grammar:check  # the committed grammar snapshot matches its derivation
 ```
 
 `dev`, `build`, `check` and `test:site` all run `build:lib` first, because both
-host sites import the plugin from `dist/` — the artifact a site installs.
-Importing `../src/index.ts` there instead puts the plugin inside the Vite module
-runner that loads `astro.config.mjs`, and its dynamic `import()` of
+host sites import the plugin by package name, which resolves to `dist/` — the
+artifact a site installs. Importing `../src/index.ts` there instead puts the
+plugin inside the Vite module runner that loads `astro.config.ts`, and its dynamic `import()` of
 `@astrojs/markdown-satteri` then dies with "module runner has been closed".
-`examples/astro/astro.config.mjs` imports `@purview-dev/astroc4/integration` and
+`examples/astro/astro.config.ts` imports `@purview-dev/astroc4/integration` and
 its page imports `@purview-dev/astroc4/components/LikeC4View.astro`; inside this
 repository those resolve the way an installed site resolves them, through
 `package.json` `exports`.
@@ -66,20 +66,21 @@ running: `bun scripts/smoke.ts http://localhost:4321`. The static build passes
 even when islands fail to hydrate — only the smoke test proves they draw nodes.
 For highlighting, the smoke test's "distinct colours per block" check is the
 proof that the grammar reached Expressive Code: the playground has no
-`ec.config.mjs` on purpose.
+Expressive Code config on purpose.
 
 The plain-Astro path has its own two proofs: `bun run check` runs `astro check`
 over `examples/astro` (where `App.Locals` has no `t`, so a Starlight-ism in the
 components fails there first), and `bun run dev:astro` plus
 `bun scripts/hydration.ts http://localhost:4322` shows the island drawing with
-the fallback palette. `bun run test:site` covers both host sites from the tarball,
+the fallback palette (`test:site` also asserts the example's `--likec4-accent`
+override reaches the shell). `bun run test:site` covers both host sites from the tarball,
 and runs the **full smoke suite** against the packed copy of the playground — the
 same assertions the local loop uses, but on the installed package rather than
 `dist/` next to the repo.
 
 Hydration has its own dev-only failure mode: Vite served React's CommonJS
 `react/compiler-runtime` raw, and every island threw "does not provide an export
-named 'c'" while `astro build` stayed green. `src/index.ts` now adds it to
+named 'c'" while `astro build` stayed green. `src/integration.ts` adds it to
 `vite.optimizeDeps.include`; `bun run test:site` (Chromium) and
 `bun scripts/hydration.ts <url>` are what catch a regression, not the build.
 
@@ -107,8 +108,8 @@ reports node/edge counts per view in ~2s; a view that lays out to 0 nodes
   `withLikeC4Language` does.
 - **Integration-time output goes through Astro's logger**, never `console`: the
   logger honours the CLI log level and prefixes the message with the
-  integration's name. `registerFences` forks it to `likec4-fences` so the label
-  matches what `Troubleshooting.md` quotes. `console` belongs to browser code
+  integration's name (`[@purview-dev/astroc4]` from the Starlight plugin, which
+  is the label `Troubleshooting.md` quotes). `console` belongs to browser code
   (`render-icon.tsx`, `ErrorBoundary.tsx`) and to `scripts/`.
 - **`keywords` is release metadata, not decoration.** Astro's integrations
   library indexes npm by keyword: `astro-integration` (and `withastro`) put the
@@ -123,12 +124,21 @@ reports node/edge counts per view in ~2s; a view that lays out to 0 nodes
   Related: ordering between `astroc4()` and `astroExpressiveCode()` does not
   matter (Astro applies both mdast plugins and `markdown.rehypePlugins`);
   `examples/astro` lists Expressive Code first so that stays true.
-- **No Tailwind, no host aliases.** Components are styled with plain CSS over a
-  `--likec4-*` layer that defaults to Starlight's `--sl-color-*` tokens, with
-  scheme-neutral fallbacks for plain Astro (an undefined `var()` with no fallback
-  is invalid at computed-value time, so every token needs one). A host's Tailwind
-  doesn't scan this package, so utility classes would silently be unstyled.
-  `--sl-color-white` is semantic (highest-contrast text), not literal white.
+- **No Tailwind, no host aliases.** Components are styled with plain CSS. A
+  host's Tailwind doesn't scan this package, so utility classes would silently
+  be unstyled.
+- **`--likec4-*` tokens are read, never declared, by components.** Each reads
+  them into a private `--_likec4-*` with the fallback chain
+  (`var(--likec4-border, var(--sl-color-gray-5, rgba(…)))`), so a site's value on
+  any ancestor inherits through instead of losing to the scoped selector.
+  Every chain ends in a scheme-neutral value (an undefined `var()` with no
+  fallback is invalid). `tokens.test.ts` enforces it; `.md` fence placeholders in
+  `src/fences.ts` use the same chains inline. `--sl-color-white` is semantic
+  (highest-contrast text), not literal white.
+- **Project configs are read like LikeC4 reads them** (`src/projects.ts`): every
+  name in LikeC4's `ConfigFilenames` (a `satisfies` check fails the type-check if
+  LikeC4 changes the list), JSON names via JSON5, JS/TS via `bundle-require` with
+  `likec4/config` stubbed, and `name` defaulting to the folder name.
 - **Two entry points, one implementation.** `src/index.ts` is the Starlight
   plugin and `src/integration.ts` is the `AstroIntegration`; the plugin calls the
   integration. Anything both hosts need belongs in `integration.ts`, never in the
@@ -142,7 +152,7 @@ reports node/edge counts per view in ~2s; a view that lays out to 0 nodes
   (`IslandLabels`) — `t()` doesn't exist in the browser. Placeholders are
   `{name}`, filled by `format()`, never i18next's `{{name}}`.
 - **The fence plugin is Sätteri mdast, not remark**, appended to the site's
-  existing processor in `src/index.ts` so Starlight's and other
+  existing processor in `src/integration.ts` so Starlight's and other
   integrations' plugins survive.
 - **Don't import `likec4` (the Node API) at module scope** in anything
   `src/index.ts` loads — see the comments in `src/fences.ts`.
@@ -151,11 +161,17 @@ reports node/edge counts per view in ~2s; a view that lays out to 0 nodes
 - **`client:only` fallbacks need `slot="fallback"`**, or they're never painted.
 - Imports the fence writes into pages use the package name
   (`@purview-dev/astroc4/components/…`), because they resolve from the site, not from here.
-- **Everything is TypeScript; `dist/` is built, never committed.** `bun run
-  build:lib` bundles the Node entry points with Bun (`.d.ts` from `tsc`) and
+- **Everything is TypeScript, configs included (`astro.config.ts`); `dist/` is
+  built, never committed.** Relative imports use `.ts` specifiers. `bun run
+  build:lib` bundles the Node entry points with Bun (`.d.ts` from `tsc`, with
+  `.ts` specifiers rewritten to `.js`) and
   copies the two grammar data files next to the bundle, where
   `import.meta.url` finds them. `exports` points the two entry points and the
   grammar JSON at `dist/`, and the components at `src/components/`: `.astro`
   and `.tsx` are compiled by the consuming site, which is also why
-  `src/index.ts` sets `ssr.noExternal`. There are no hand-written `.d.ts` files
-  — the old ones shadowed the implementation's own types.
+  `src/integration.ts` sets `ssr.noExternal`. There are no hand-written `.d.ts`
+  files — the old ones shadowed the implementation's own types. Expressive Code
+  only reads a config named `ec.config.mjs`, so `examples/astro` passes its
+  options inline instead.
+- **Comments only where required**: a non-obvious why (a workaround, a
+  load-bearing order, a platform quirk). No file/path headers, no narration.

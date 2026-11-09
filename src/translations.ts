@@ -1,13 +1,5 @@
-// translations.mjs
-// path: src/translations.mjs
-// UI strings for the diagram components, injected into Starlight's i18n system
-// by the plugin's `i18n:setup` hook. A site overrides or adds a language the
-// same way it does for Starlight's own strings — a `src/content/i18n/<lang>.json`
-// containing any of these keys.
-//
-// Placeholders are `{name}`, not i18next's `{{name}}`: some values (the list of
-// available projects, say) are only known in the browser, so the template has
-// to reach the island unformatted. See `format()` in src/components/labels.ts.
+// Placeholders are `{name}`, not i18next's `{{name}}`: some values are only
+// known in the browser, so the template has to reach the island unformatted.
 
 export const translations = {
 	en: {
@@ -25,6 +17,7 @@ export const translations = {
 		'likec4.error.viewIdRequired': 'A LikeC4 viewId is required to render the diagram.',
 		'likec4.error.noProjects': 'No LikeC4 projects are available in this workspace.',
 		'likec4.error.unknownProject': 'Unknown LikeC4 projectId "{projectId}". Available projects: {available}.',
+		'likec4.error.projectRequired': 'Several LikeC4 projects exist ({available}); pass project="…".',
 		'likec4.error.unresolvedProject': 'Unable to resolve a LikeC4 project.',
 		'likec4.error.loadFailed': 'Unable to load LikeC4 project "{projectId}".',
 	},

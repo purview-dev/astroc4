@@ -1,0 +1,8 @@
+{
+  "$schema": "../node_modules/likec4/config/schema.json",
+  "name": "external",
+  "title": "astroc4 external project",
+  "imageAliases": {
+    "@": "./images"
+  }
+}

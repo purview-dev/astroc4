@@ -1,20 +1,10 @@
-// icon-source.ts
-// path: src/components/icon-source.ts
-// Works out how an element's `icon` value should be rendered.
-//
-// LikeC4 resolves a *relative* icon path against the .c4 file and stores an
-// absolute `file://` URL in the compiled model. That path is baked into the
-// client bundle, so the icon 404s for every visitor and the author's local
-// directory structure ships with the site.
-//
-// Files under `public/` are the exception worth supporting: Astro serves them
-// verbatim at the site root, so the absolute path can be rewritten back to the
-// URL it will actually be served from.
+// Local icons are normally rewritten to `/_astroc4/…` URLs at build time by
+// src/icon-plugin.ts; a `file://` value reaching here is one the build could
+// not attribute to a project.
 
 /** Everything after a `/public/` segment, which Astro serves at the site root. */
 const PUBLIC_SEGMENT = /\/public\/(.+)$/;
 
-/** A path the compiler resolved on the build machine, rather than a pack id. */
 const LOCAL_PATH = /^(file:\/\/|virtual:\/)/;
 
 export type IconSource =
@@ -23,14 +13,8 @@ export type IconSource =
 	| { kind: 'unresolvable'; path: string };
 
 /**
- * Classify an icon value from the compiled model.
- *
- * - `pack`          — a bundled icon id (`tech:nginx`, `aws:…`, …)
- *                     or anything else the LikeC4 renderer handles itself.
- * - `url`           — render directly as an `<img src>`.
- * - `unresolvable`  — a build-machine path with no web equivalent. Rendering
- *                     nothing is better than a broken image, and the caller
- *                     warns so it is not silently wrong.
+ * `pack` is anything the LikeC4 renderer handles itself; `unresolvable` is a
+ * build-machine path with no web equivalent, which renders nothing (and warns).
  */
 export function classifyIcon(icon: string | null | undefined): IconSource {
 	const value = icon?.trim();
@@ -39,7 +23,6 @@ export function classifyIcon(icon: string | null | undefined): IconSource {
 		return { kind: 'pack' };
 	}
 
-	// Absolute URLs (and protocol-relative ones) are already web-addressable.
 	if (/^(https?:)?\/\//i.test(value)) {
 		return { kind: 'url', src: value };
 	}

@@ -43,8 +43,8 @@ runtime at all.
 On a release before the fix, or to check the diagnosis by hand, add the entry
 yourself:
 
-```js
-// astro.config.mjs
+```ts
+// astro.config.ts
 export default defineConfig({
   vite: {
     optimizeDeps: { include: ['react/compiler-runtime'] },
@@ -74,9 +74,10 @@ bun run test:site                                     # the packed consumer site
 `hydration.ts` waits for a `[data-likec4-node], .react-flow__node` element
 (LikeC4 renders into a shadow root, which Playwright locators pierce), fails if
 the `.likec4-loading` placeholder is still visible, and fails on any console
-error. `bun run test:site` runs exactly that against a throwaway Starlight site
-built from the tarball, on that site's own dev server, which is the regression
-test for this bug.
+error. `bun run test:site` runs exactly that against a throwaway plain-Astro site
+built from the tarball, on that site's own **dev** server, which is the
+regression test for this bug. (Its Starlight copy runs the smoke suite on a
+preview server, which serves the bundled build and so cannot see it.)
 
 ## The build fails and the log mentions the grammar
 
@@ -104,8 +105,8 @@ because it will fail the same way on every build. Check the tag (`v1.60.0`, not
 
 1. Is `expressiveCode: false` in the Starlight config? The plugin logs a warning
    and skips highlighting, because there are no code blocks to highlight.
-2. Is the fence ` ```c4 ` or ` ```likec4 `? A ` ```likec4 ` fence in **`.mdx`**
-   becomes a diagram, not code; use `c4` to show source, or ``<Code lang="likec4">``.
+2. Is the fence ` ```c4 ` or ` ```likec4 `? A ` ```likec4 ` fence (in `.md` or
+   `.mdx`) becomes a diagram, not code; use `c4` to show source, or ``<Code lang="likec4">``.
 3. Look at the HTML, not the exit code: `<pre data-language="c4">` should contain
    several `--0:#…` colour variables. One colour means the grammar never reached
    Shiki.
@@ -119,24 +120,46 @@ You cannot have both: with Expressive Code disabled Starlight renders code with
 Astro's own `<Code>`, which reads `markdown.shikiConfig`, not the Expressive Code
 options this plugin sets.
 
-## A fence stayed a code block
+## A fence in a `.md` page shows "Loading diagram…" forever
 
-The page is `.md`. Astro only supports components in `.mdx`, so the transform
-leaves the fence alone and logs:
+Since `1.0.0-prerelease.6` a fence in a `.md` page is a placeholder that a script
+astroc4 injects into every page mounts in the browser (a `.md` page cannot hold a
+component). If it never mounts:
+
+1. Check the browser console for a failed `import()` of
+   `@purview-dev/astroc4/components/md-fences`.
+2. Check the integration ran: the page's HTML has a `data-astroc4-fence` element
+   and a page script containing `[data-astroc4-fence]`.
+3. A page rendered outside Astro's pipeline (raw HTML, a custom renderer) does not
+   get the injected script.
+
+
+## Build fails: `Several LikeC4 projects exist (…); pass project="…"`
+
+The site has more than one LikeC4 project — discovered under the site root or
+named in `projects` — and a `<LikeC4View>` or empty fence names none. Since
+`1.0.0-prerelease.6` there is no "first project found" default, so a vendored
+model can no longer silently replace yours. Add `project="<name>"`; the message
+lists the names. An unknown name fails the same way.
+
+## Build fails: `…likec4.config… could not be read`
 
 ```
-[likec4-fences] /path/page.md has a ```likec4 fence, but fences only render as diagrams in .mdx files.
+[astroc4] …/likec4.config.ts could not be read: …
 ```
 
-Rename the page, or use `<LikeC4View>` from an `.astro` layout.
+Astroc4 reads every LikeC4 config file it discovers, to learn the project's name
+and `imageAliases`: JSON names as JSON5, JS/TS names by bundling them with
+esbuild. The message after the path is the parser's or esbuild's. A TS config
+may import `likec4/config` (it is replaced with a stand-in), but anything else it
+imports has to resolve from the config's folder.
 
-## `LikeC4View` shows "Unknown LikeC4 projectId"
+## A diagram shows "Unknown LikeC4 projectId"
 
-The plugin compiles **every** `.c4` project under the site root, and the first one
-found is the default. A vendored example model (a `node_modules` copy, a docs
-sample) can silently become the default. Keep only the projects you mean to
-render, or pass `projectId` explicitly, or point `vitePlugin.workspace` at one
-directory.
+Only on a site that sets `vitePlugin.workspace` (or `languageServices`) itself:
+astroc4 then does not know the projects at build time, and the browser island
+reports the unknown name. Pass a `project` that workspace contains. Everywhere
+else an unknown project fails the build.
 
 ## `Invalid … Could not resolve reference to ElementKind named 'person'`
 
@@ -157,9 +180,9 @@ build, which is the point.
 ## The build crashed on Windows with "Vite module runner has been closed"
 
 That is the race `preloadLikeC4()` and the `require()`-instead-of-`import()`
-comment in `src/fences.mjs` exist to prevent. If it comes back, the preload is no
+comment in `src/fences.ts` exist to prevent. If it comes back, the preload is no
 longer running before the first page render (look at `command === 'build'` in
-`src/index.mjs`).
+`src/integration.ts`).
 
 ## Highlighting changed without a code change
 
@@ -167,10 +190,11 @@ The default ref is `main`, which moves. Pin a tag or a SHA, or set `ASTROC4_REF`
 in CI. The build log always names what it used:
 
 ```
-[astroc4] LikeC4 grammar likec4/likec4@main (da5af77245f9) — highlighting ```c4 and ```likec4 fences
+[@purview-dev/astroc4] LikeC4 grammar likec4/likec4@main (da5af77245f9) — highlighting ```c4 and ```likec4 fences
 ```
 
-`from cache` / `from bundled` in that line tells you which path was taken.
+`from cache` / `from bundled` after the SHA tells you which path was taken;
+nothing there means it was fetched.
 
 ## My theme does not colour LikeC4 source
 

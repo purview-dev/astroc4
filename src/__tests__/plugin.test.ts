@@ -6,24 +6,18 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { AstroIntegration } from 'astro';
 import { describe, expect, it, vi } from 'vitest';
 
-import starlightLikeC4, { missingOptimizedDependencies, withLikeC4Language } from '../index.js';
-import { translations } from '../translations.js';
+import starlightLikeC4, { missingOptimizedDependencies, withLikeC4Language } from '../index.ts';
+import { translations } from '../translations.ts';
 
-/** A registration as the plugin builds it. */
 const registration = { name: 'likec4', scopeName: 'source.likec4', aliases: ['c4'] };
 
-/** The slice of `AstroIntegrationLogger` the plugin uses, with spies. */
 interface StubLogger {
 	info: ReturnType<typeof vi.fn>;
 	warn: ReturnType<typeof vi.fn>;
 	fork: ReturnType<typeof vi.fn>;
 }
 
-/**
- * `fork(label)` keeps Astro's label-swapping behaviour without losing the
- * spies: every fork returns the same stub, so an assertion on `warn` sees
- * messages logged through a fork too.
- */
+/** Every fork returns the same stub, so assertions see messages logged through a fork. */
 function stubLogger(): StubLogger {
 	const logger: StubLogger = { info: vi.fn(), warn: vi.fn(), fork: vi.fn() };
 
@@ -32,7 +26,6 @@ function stubLogger(): StubLogger {
 	return logger;
 }
 
-/** Run the plugin's `config:setup` hook against a stubbed Starlight context. */
 async function setup(options: Parameters<typeof starlightLikeC4>[0] = {}) {
 	const root = pathToFileURL(await mkdtemp(join(tmpdir(), 'astroc4-plugin-')));
 	const plugin = starlightLikeC4({ highlighting: { offline: true }, ...options });
@@ -55,11 +48,7 @@ async function setup(options: Parameters<typeof starlightLikeC4>[0] = {}) {
 	return { addIntegration, logger, updateConfig };
 }
 
-/**
- * Run the integration's `astro:config:setup` hook — the one that owns the Vite
- * config — against a stubbed Astro context, with fences off so nothing else
- * touches the Markdown processor.
- */
+/** Fences are off so nothing else touches the Markdown processor. */
 async function setupVite(root: URL, vite: Record<string, unknown> = {}) {
 	const { addIntegration } = await setup({ fences: false });
 	const integration = addIntegration.mock.calls[0]?.[0] as AstroIntegration;
@@ -75,7 +64,6 @@ async function setupVite(root: URL, vite: Record<string, unknown> = {}) {
 	return updateConfig;
 }
 
-/** The `vite` option the integration handed to Astro. */
 function viteOf(updateConfig: ReturnType<typeof vi.fn>): Record<string, any> {
 	return (updateConfig.mock.calls[0]?.[0] as { vite: Record<string, any> }).vite;
 }
@@ -176,6 +164,7 @@ describe('astro add', () => {
 			command: 'dev',
 			config: { root: pathToFileURL(process.cwd()), vite: {}, integrations: [] },
 			updateConfig,
+			injectScript: vi.fn(),
 			logger: stubLogger(),
 		} as never);
 
@@ -197,6 +186,7 @@ describe('astro add', () => {
 				integrations: [{ name: '@astrojs/starlight' }],
 			},
 			updateConfig: vi.fn(),
+			injectScript: vi.fn(),
 			logger,
 		} as never);
 
@@ -211,6 +201,7 @@ describe('astro add', () => {
 			command: 'dev',
 			config: { root: pathToFileURL(process.cwd()), vite: {}, integrations: [{ name: '@astrojs/mdx' }] },
 			updateConfig: vi.fn(),
+			injectScript: vi.fn(),
 			logger,
 		} as never);
 
@@ -218,23 +209,23 @@ describe('astro add', () => {
 	});
 });
 
-describe('logging', () => {
-	it('warns about a fence in a .md page through the Astro logger, not the console', async () => {
-		// Astro's logger honours the CLI log level and labels the message with the
-		// integration's name; `fork` keeps "likec4-fences" as the label, which is
-		// the string the Troubleshooting page quotes.
+describe('.md fences', () => {
+	it('the Starlight plugin injects the script that mounts them', async () => {
+		// A fence in a .md page renders, rather than warning; the injected page
+		// script mounts its placeholder (see fences.test.ts and md-fences.tsx).
 		const { addIntegration } = await setup();
 		const integration = addIntegration.mock.calls[0]?.[0] as AstroIntegration;
-		const logger = stubLogger();
+		const injectScript = vi.fn();
 
 		await integration.hooks['astro:config:setup']!({
 			command: 'dev',
 			config: { root: pathToFileURL(process.cwd()), vite: {}, integrations: [] },
 			updateConfig: vi.fn(),
-			logger,
+			injectScript,
+			logger: stubLogger(),
 		} as never);
 
-		expect(logger.fork).toHaveBeenCalledWith('likec4-fences');
+		expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining('[data-astroc4-fence]'));
 	});
 });
 

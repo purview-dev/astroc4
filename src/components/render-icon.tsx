@@ -1,16 +1,7 @@
-// render-icon.tsx
-// path: src/components/render-icon.tsx
-// Shared icon renderer for both the project-model and inline-fence islands.
-
 import type { ElementIconRenderer } from 'likec4:icons';
 
 import { classifyIcon } from './icon-source';
 
-/**
- * Wrap the bundled-icon renderer so elements can also use an image URL, or a
- * local file kept under `public/`. Anything else local has no web equivalent —
- * warn rather than render a broken image.
- */
 export function withImageIcons(packRenderer: ElementIconRenderer): ElementIconRenderer {
 	return function IconRenderer(props) {
 		const source = classifyIcon(props.node.icon);

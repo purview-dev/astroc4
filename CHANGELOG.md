@@ -4,6 +4,87 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-prerelease.6] - 2026-11-09
+
+### Added
+
+- **Fences work in plain `.md`.** A ` ```likec4 ` fence in a `.md` page — which
+  cannot hold a component — is compiled and laid out at build time like one in
+  `.mdx`, written as a placeholder carrying the model, and mounted in the browser
+  by a page script the integration injects. The script loads the diagram code
+  only on a page that has a placeholder. Replaces the "fences only render as
+  diagrams in .mdx files" warning; `FenceOptions.reporter` and `mdx` are
+  deprecated and unused.
+- **`imageAliases` just work.** A project's own `likec4.config.json` can declare
+  `"@": "../../.assets/images"` and its model can say `icon @/azure/entra.svg`
+  with no change for astroc4. Every icon LikeC4 compiles to a local file —
+  through an alias or a path relative to the `.c4` file — is mapped to
+  `/_astroc4/<project>/<path>` (`@brand/…` adds a `brand/` segment, `..` becomes
+  `__up`), served from the original file in `astro dev`, copied into the build
+  output, and rendered (SVGs inline, by LikeC4). Files under `public/` keep their
+  public URL. No build-machine `file://` path reaches the client bundle any more,
+  for any icon, and nothing is written into the site's source tree.
+- **Named projects.** `projects: { architecture: '../../docs/architecture/likec4' }`
+  compiles LikeC4 projects from anywhere — a sibling folder, another checkout, an
+  absolute path — alongside the ones discovered under the site root. They are
+  linked into `.astro/astroc4/workspace` (LikeC4 ignores anything under
+  `node_modules`), and edits reload in `astro dev`.
+- **`<LikeC4View project="…">`** names a configured or discovered project, and
+  **`<LikeC4View file="diagrams/flow.c4">`** renders one `.c4` file from `src/`,
+  compiled at build time. Fences take `project="…"` and `file="…"` (relative to
+  the page) too.
+- A missing icon, a missing or config-less project folder, two projects with the
+  same name, and two icons served at the same URL each fail the build, naming
+  the files involved.
+- **Every LikeC4 config file name.** Projects are found by `.likec4rc`,
+  `.likec4.config.json` and `likec4.config.json` (read as JSON5) and by
+  `likec4.config.{ts,mts,cts,js,mjs,cjs}` (bundled with esbuild, with
+  `likec4/config` stubbed so an external project need not resolve it), as LikeC4
+  reads them. A config without `name` is named after its folder, as in LikeC4.
+  Adds `bundle-require`, `esbuild` and `json5` as dependencies; LikeC4 already
+  depends on all three.
+- **Empty fences check `project` at build time**, in `.md` as well as `.mdx`: an
+  unknown name, or none on a site with several projects, fails the build instead
+  of showing an error box in the browser.
+- **`.md` fences get the shell options**: `title` defaults to "Diagram", and
+  `collapsible`/`defaultOpen` work as in `.mdx`.
+
+### Fixed
+
+- **`--likec4-*` colour overrides work.** Components declared the tokens on
+  their own elements in scoped styles, so a site's `.likec4-shell { --likec4-… }`
+  lost on specificity and a value on an ancestor never reached the frame, badge
+  or placeholder. They now only read the public tokens (through private
+  `--_likec4-*` properties carrying the fallbacks), so a value set on `:root` or
+  any ancestor applies everywhere, `.md` fences included.
+- **A site running under Bun without React no longer breaks Vite's optimizer.**
+  The `react/compiler-runtime` check used `createRequire`, which under Bun also
+  finds packages in Bun's global cache, so the entry was added for a package
+  Vite could not find. It now looks in `node_modules`, as Vite does.
+- `bun run test:site` passes on Windows when `TEMP` is an 8.3 short path: the
+  plain-Astro dev server 404'd its own `before-hydration.js` because Vite
+  resolved the site to its long path.
+
+### Changed
+
+- TypeScript throughout: `astro.config.ts` in the playground and the example,
+  `.ts` relative import specifiers (rewritten to `.js` in the published
+  declarations), and `examples/astro` passes `likec4Language` to
+  `expressiveCode()` instead of an `ec.config.mjs`. Code comments trimmed to the
+  ones that explain a non-obvious reason.
+
+- **Breaking: no implicit "first project".** With more than one project,
+  `<LikeC4View>` and empty fences need `project`; leaving it out, or naming an
+  unknown project, now fails the build listing the names, instead of rendering
+  whichever project was found first (or an error box in the browser).
+  `projectId` still works as a deprecated alias of `project`. A site that sets
+  `vitePlugin.workspace` or `languageServices` keeps the old in-browser
+  resolution, and `projects` is ignored there with a warning.
+- New translation key `likec4.error.projectRequired`.
+- **A fence without `view="…"` shows the first view its source declares.** It
+  showed LikeC4's automatic `index` landscape instead, which LikeC4 always lists
+  first — so a snippet's own `view x of system { … }` never appeared.
+
 ## [1.0.0-prerelease.5] - 2026-11-05
 
 ### Added

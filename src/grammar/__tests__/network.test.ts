@@ -1,17 +1,11 @@
-// network.test.ts
-// path: src/grammar/__tests__/network.test.ts
-// Opt-in: the unit suite must stay hermetic, so this only runs when asked.
+// Opt-in, so the unit suite stays hermetic:
 //
 //   bun run test:network          (or: ASTROC4_NETWORK=1 bun run test)
-//
-// It is the check that the *live* repository still has the grammar where
-// `source.mjs` looks for it, and that version selection really does change the
-// vocabulary (`agent` joined `ElementShape` after v1.59.4).
 
 import { describe, expect, it } from 'vitest';
 
-import { parseLangium } from '../langium.js';
-import { fetchLangiumSource } from '../source.js';
+import { parseLangium } from '../langium.ts';
+import { fetchLangiumSource } from '../source.ts';
 
 const enabled = process.env.ASTROC4_NETWORK === '1';
 
@@ -24,7 +18,7 @@ const read = async (ref: string) => {
 };
 
 describe.skipIf(!enabled)('the live Langium grammar', () => {
-	it('is where source.mjs looks for it, on main', async () => {
+	it('is where source.ts looks for it, on main', async () => {
 		const vocabulary = await read('main');
 
 		expect(vocabulary.ruleCount).toBeGreaterThan(100);

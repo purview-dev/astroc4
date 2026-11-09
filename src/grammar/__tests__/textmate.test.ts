@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { parseLangium } from '../langium.js';
-import { buildTmLanguage, LANGUAGE_ALIASES, LANGUAGE_NAME, SCOPE_NAME } from '../textmate.js';
+import { parseLangium } from '../langium.ts';
+import { buildTmLanguage, LANGUAGE_ALIASES, LANGUAGE_NAME, SCOPE_NAME } from '../textmate.ts';
 
 const fixture = (name: string) => readFileSync(new URL(`../__fixtures__/${name}`, import.meta.url), 'utf8');
 
@@ -99,7 +99,7 @@ describe('buildTmLanguage', () => {
 
 	it('takes the word lists from the grammar it was given', () => {
 		// Shapes, colours and line options are all closed value domains, so they
-		// share the `constant.language` pattern â€” and `agent` only appears in v2.
+		// share the `constant.language` pattern; `agent` only appears in v2.
 		expect(keywordPattern(grammarOf(v1), 'constant.language.likec4')).toBe(
 			'\\b(?:blue|cylinder|dashed|none|rectangle|red|solid)\\b',
 		);

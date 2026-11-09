@@ -1,28 +1,16 @@
-// source.mjs
-// path: src/grammar/source.mjs
-// Resolves the LikeC4 grammar the site asked for: the Langium grammar from
-// likec4/likec4 at a branch, tag or commit, cached on disk, reduced to a
-// TextMate grammar by ./textmate.mjs.
-//
-// This runs from the site's `astro:config:setup`, so `astro dev`, `astro
-// build`, `astro check` and `astro sync` all go through it — a bad ref or an
-// unreadable grammar fails the command instead of quietly shipping
-// unhighlighted code.
-//
-// Network policy: strict by default (`onError: 'fail'`). A *bad ref* is user
-// error and always fails. A *network failure* may fall back to the cache from
-// the last successful fetch, and then to the bundled snapshot, but only when
-// `onError` says so.
+// Runs from `astro:config:setup`, so a bad ref fails dev, build, check and sync
+// rather than shipping unhighlighted code. A bad ref always fails; a network
+// failure falls back to the cache, then the bundled snapshot, only when
+// `onError` allows it.
 
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { parseLangium } from './langium.js';
-import { buildTmLanguage, type TmGrammar } from './textmate.js';
+import { parseLangium } from './langium.ts';
+import { buildTmLanguage, type TmGrammar } from './textmate.ts';
 
-/** Upstream repository and the paths the grammar is read from. */
 export const DEFAULT_REPO = 'likec4/likec4';
 export const DEFAULT_REF = 'main';
 export const LANGIUM_PATH = 'packages/language-server/src/like-c4.langium';
@@ -39,7 +27,6 @@ const REF_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
 
 export type OnError = 'fail' | 'warn' | 'silent';
 
-/** Everything the resolver accepts. The site only ever sets a few of these. */
 export interface GrammarSourceOptions {
 	/** Repository to read from. Defaults to likec4/likec4. */
 	repo?: string;
@@ -59,11 +46,9 @@ export interface GrammarSourceOptions {
 	timeout?: number;
 	/** Site root, for the default cache directory. */
 	root?: string;
-	/** Where to cache, overriding the default. */
 	cacheDir?: string;
 	/** Environment, for `ASTROC4_*` overrides. */
 	env?: NodeJS.ProcessEnv;
-	/** Astro's logger. */
 	logger?: { info?: (message: string) => void; warn?: (message: string) => void };
 	/** Injected in tests. */
 	fetchImpl?: typeof fetch;
@@ -71,11 +56,9 @@ export interface GrammarSourceOptions {
 	bundledLangiumPath?: string;
 }
 
-/** Where a grammar came from, for logs and tests. */
 export interface GrammarMeta {
 	repo: string;
 	ref: string;
-	/** Where it came from. */
 	source: 'network' | 'cache' | 'bundled';
 	fetchedAt: number;
 	etag?: string | undefined;
@@ -86,15 +69,11 @@ export interface GrammarMeta {
 }
 
 export interface GrammarSource {
-	/** The TextMate grammar for Shiki. */
 	grammar: TmGrammar;
-	/** The Langium source it was derived from. */
 	langium: string;
-	/** Where it came from, for logs and tests. */
 	meta: GrammarMeta;
 }
 
-/** A repo and ref, which is all a cache entry is keyed on. */
 interface GrammarIdentity {
 	repo: string;
 	ref: string;
@@ -179,7 +158,6 @@ export async function resolveLikeC4Grammar(options: GrammarSourceOptions = {}): 
 	return result;
 }
 
-/** Where a derivation came from, before it becomes `GrammarMeta`. */
 interface DeriveInfo {
 	repo: string;
 	ref: string;
@@ -217,11 +195,8 @@ function derive(langium: string, info: DeriveInfo): GrammarSource {
 }
 
 /**
- * The snapshot shipped with this package, for `offline: true` and for falling
- * back when the network is down and `onError` allows it. It is derived from
- * the committed `like-c4.langium`, so it matches `likec4.tmLanguage.json` (the
- * snapshot test asserts exactly that). Its provenance is the snapshot's own,
- * not the ref that was asked for.
+ * Derived from the committed `like-c4.langium`; its provenance is the
+ * snapshot's own, not the ref that was asked for.
  * @param reason Why it is being used, surfaced in logs.
  */
 async function bundled(reason: string, options: GrammarSourceOptions): Promise<GrammarSource> {
@@ -257,9 +232,6 @@ export function grammarSha(source: string): string {
 
 // region refs
 
-/**
- * Rejects anything that cannot name a ref, before it reaches the network.
- */
 export function validateRef(ref: string): string {
 	if (typeof ref !== 'string' || ref.length === 0) {
 		throw new GrammarRefError('the LikeC4 grammar `ref` must be a branch, tag or commit SHA');
@@ -348,9 +320,7 @@ function cachePath(options: GrammarSourceOptions, identity: GrammarIdentity): st
 	return join(dir, `grammar-${key}.json`);
 }
 
-/** What a cache file holds. */
 type CacheWriteEntry = { langium: string; etag?: string | undefined };
-/** A cache entry, plus whether it is still inside its TTL. */
 interface CacheEntry extends CacheWriteEntry {
 	fetchedAt: number;
 }
@@ -380,8 +350,7 @@ async function readCache(
 			typeof entry.langium !== 'string' ||
 			typeof entry.fetchedAt !== 'number'
 		) {
-			// A cache written by a different version of this package, or a
-			// truncated file. Refetching is cheaper than debugging it.
+			// Another package version's cache, or a truncated file: refetch.
 			return undefined;
 		}
 

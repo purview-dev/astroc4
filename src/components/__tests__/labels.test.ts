@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { translations } from '../../translations.js';
+import { translations } from '../../translations.ts';
 import { format, getIslandLabels, getTranslator } from '../labels';
 import { resolveProjectId } from '../utils';
 
@@ -41,6 +41,17 @@ describe('format', () => {
 		};
 
 		expect(resolveProjectId('x', ['a', 'b'], labels).error).toBe('Projet inconnu « x » (a, b)');
+	});
+});
+
+describe('projectRequired', () => {
+	it('has an English default and a translation key', () => {
+		expect(translations.en['likec4.error.projectRequired']).toBe(
+			'Several LikeC4 projects exist ({available}); pass project="…".',
+		);
+		expect(getIslandLabels(getTranslator(undefined), 'likec4.view.loading').projectRequired).toBe(
+			translations.en['likec4.error.projectRequired'],
+		);
 	});
 });
 

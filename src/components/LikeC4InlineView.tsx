@@ -1,18 +1,10 @@
-// LikeC4InlineView.tsx
-// path: src/components/LikeC4InlineView.tsx
-// Renders a LikeC4 model that was compiled at build time from a ```likec4
-// fence, rather than loaded from the workspace project.
-//
-// The DSL is parsed and laid out by the fence plugin during the build (layout
-// needs a WASM graph engine, so it cannot happen in the browser); this island
-// only rehydrates the resulting plain-JSON model.
+// Layout needs a WASM graph engine, so fences are laid out at build time and
+// this island only rehydrates the plain-JSON model.
 
 import { getProjectIcons } from 'likec4:icons';
 import { projects } from 'likec4:projects';
-// `@likec4/core/model`, not `likec4/model`: the latter is the Node entry point
-// and pulls `node:module`'s createRequire into the browser bundle, which fails
-// at hydration with "createRequire is not a function". This is the same module
-// `likec4/react` itself imports.
+// Not `likec4/model`: it pulls `createRequire` into the browser bundle, which
+// fails at hydration with "createRequire is not a function".
 import { LikeC4Model } from '@likec4/core/model';
 import type { aux, UnknownLayouted } from 'likec4/model';
 import { LikeC4View as GenericLikeC4View, LikeC4ModelProvider } from 'likec4/react';
@@ -26,7 +18,6 @@ type Props = {
 	/** Layouted model dump produced at build time. */
 	model: unknown;
 	viewId: string;
-	/** Translated on the server; defaults to English. */
 	labels?: IslandLabels;
 };
 
@@ -34,9 +25,8 @@ function LikeC4InlineViewContent({ model, viewId }: Props) {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dump is plain JSON
 	const likec4model = useMemo(() => LikeC4Model.create(model as any), [model]);
 
-	// Inline models are not workspace projects, so they have no icon bundle of
-	// their own. The icon ids (`tech:…`, `aws:…`) are global, so borrow the
-	// renderer from the first project rather than shipping a second copy.
+	// Inline models have no icon bundle of their own; pack ids are global, so
+	// borrow the first project's renderer rather than shipping a second copy.
 	const iconRenderer = useMemo(() => {
 		const first = projects[0];
 
