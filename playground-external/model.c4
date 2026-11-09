@@ -1,0 +1,15 @@
+specification {
+  element system
+}
+
+model {
+  brand = system 'Brand' {
+    icon @/brand/logo.svg
+  }
+}
+
+views {
+  view index {
+    include *
+  }
+}
