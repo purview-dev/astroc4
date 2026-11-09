@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-prerelease.7] - 2026-11-09
+
+### Fixed
+
+- **`.md` fences render in `astro dev`.** On a `.md` page with no React island,
+  the fence script failed with `@vitejs/plugin-react can't detect preamble`,
+  because @astrojs/react installs React's fast-refresh preamble only on pages
+  with an island. The script now imports `@vitejs/plugin-react/preamble` before
+  the diagram code when no preamble is installed. Builds were unaffected; the
+  module is empty outside dev.
+
 ## [1.0.0-prerelease.6] - 2026-11-09
 
 ### Added

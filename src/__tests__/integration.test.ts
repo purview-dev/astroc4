@@ -89,6 +89,26 @@ describe('likec4Integration', () => {
 		expect(injectScript).toHaveBeenCalledWith('page', expect.stringContaining(`import('${PACKAGE_NAME}/components/md-fences')`));
 	});
 
+	// In dev, @astrojs/react installs the fast-refresh preamble only on pages with an
+	// island, and a .md page has none: React components then throw "can't detect preamble".
+	it('installs the React preamble before it loads the .md fence components', async () => {
+		const injectScript = vi.fn();
+
+		await likec4Integration().hooks['astro:config:setup']!({
+			command: 'dev',
+			config: { root: pathToFileURL(process.cwd()), vite: {}, integrations: [] },
+			updateConfig: vi.fn(),
+			injectScript,
+			logger: stubLogger(),
+		} as never);
+
+		const script: string = injectScript.mock.calls.find(([stage]) => stage === 'page')![1];
+		const preamble = script.indexOf(`import('@vitejs/plugin-react/preamble')`);
+
+		expect(preamble).toBeGreaterThan(-1);
+		expect(preamble).toBeLessThan(script.indexOf(`import('${PACKAGE_NAME}/components/md-fences')`));
+	});
+
 	it('registers the fence transform with the site Markdown processor', async () => {
 		const { updateConfig } = await setup();
 
