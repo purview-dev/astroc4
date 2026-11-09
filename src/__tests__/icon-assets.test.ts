@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import { buildIconManifest, ICON_ROUTE, iconAssetFor } from '../icon-assets';
+import { buildIconManifest, ICON_ROUTE, iconAssetFor, unstage } from '../icon-assets';
 import { Astroc4ConfigError, type ResolvedProject } from '../projects';
 
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg"/>';
@@ -95,11 +95,11 @@ describe('iconAssetFor', () => {
 		);
 	});
 
-	it('leaves a public/ icon to classifyIcon', async () => {
+	it('rewrites a public/ icon to the URL Astro serves it at, marked so it is not copied', async () => {
 		const { site, project } = await fixture();
 		const icon = await file(join(site, 'public', 'icons', 'p.svg'));
 
-		expect(iconAssetFor(project, url(icon), '/', site)).toBeNull();
+		expect(iconAssetFor(project, url(icon), '/docs/', site)).toMatchObject({ url: '/docs/icons/p.svg', public: true });
 	});
 
 	it('fails for a missing file, naming the icon', async () => {
@@ -152,10 +152,47 @@ describe('buildIconManifest', () => {
 		).toThrow(/brand\/logo\.svg[\s\S]*images[\s\S]*repo[\\/]brand|repo[\\/]brand[\s\S]*images/);
 	});
 
-	it('skips public/ icons', async () => {
+	it('keeps public/ icons, marked public', async () => {
 		const { site, project } = await fixture();
 		const icon = await file(join(site, 'public', 'p.svg'));
 
-		expect(buildIconManifest([{ project, fileUrl: url(icon), source: 'a.c4' }], '/', site).size).toBe(0);
+		expect(buildIconManifest([{ project, fileUrl: url(icon), source: 'a.c4' }], '/', site).get(url(icon))).toMatchObject({
+			url: '/p.svg',
+			public: true,
+		});
+	});
+});
+
+describe('unstage', () => {
+	it('maps a path LikeC4 resolved lexically through the staging link back to the project', async () => {
+		const { root, site, folder, project } = await fixture();
+		const brand = await file(join(root, 'repo', 'brand', 'logo.svg'));
+		const link = join(site, '.astro', 'astroc4', 'workspace', 'architecture');
+		// LikeC4 resolved `@brand` → `../brand` against the link, not the real folder.
+		const lexical = url(join(link, '..', 'brand', 'logo.svg'));
+
+		expect(unstage(lexical, project, join(site, '.astro', 'astroc4', 'workspace'))).toBe(url(brand));
+		expect(iconAssetFor(project, unstage(lexical, project, join(site, '.astro', 'astroc4', 'workspace')), '/', site)?.url).toBe(
+			'/_astroc4/architecture/brand/logo.svg',
+		);
+		expect(folder).toBeDefined();
+	});
+
+	it('leaves a URL alone when there is no staging folder', async () => {
+		const { folder, project } = await fixture();
+		const icon = url(join(folder, 'images', 'x.svg'));
+
+		expect(unstage(icon, project, undefined)).toBe(icon);
+	});
+
+	it('reads LikeC4\'s lower-case %3A drive form', async () => {
+		const { site, folder, project } = await fixture();
+		const staging = join(site, '.astro', 'astroc4', 'workspace');
+		const lexical = url(join(staging, 'architecture', 'images', 'x.svg')).replace(
+			/^file:\/\/\/([A-Za-z]):/,
+			(_, d: string) => `file:///${d.toLowerCase()}%3A`,
+		);
+
+		expect(unstage(lexical, project, staging).toLowerCase()).toBe(url(join(folder, 'images', 'x.svg')).toLowerCase());
 	});
 });

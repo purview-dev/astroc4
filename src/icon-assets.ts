@@ -13,12 +13,13 @@
 //   @brand -> ../brand          icon @brand/logo.svg      -> /_astroc4/<project>/brand/logo.svg
 //   (no alias)                  icon ../shared/a.svg      -> /_astroc4/<project>/__up/shared/a.svg
 //
-// Files already under the site's `public/` are Astro's to serve, and
-// `classifyIcon` keeps handling them.
+// Files already under the site's `public/` are Astro's to serve: they are
+// rewritten to that URL too, so no `file://` path reaches the bundle, but they
+// are neither served nor copied by astroc4.
 
 import { realpathSync } from 'node:fs';
-import { isAbsolute, join, relative, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { Astroc4ConfigError, type ResolvedProject } from './projects.js';
 
@@ -34,11 +35,13 @@ export interface IconAsset {
 	/** The served path, including Astro's `base`. */
 	url: string;
 	projectName: string;
+	/** Under the site's `public/`: Astro serves and copies it, so astroc4 does neither. */
+	public?: boolean;
 }
 
 /**
- * The served asset for one compiled icon URL, or `null` for a file the site's
- * `public/` folder already serves.
+ * The served asset for one compiled icon URL. A file under the site's
+ * `public/` keeps the URL Astro already serves it at.
  */
 export function iconAssetFor(
 	project: ResolvedProject,
@@ -47,15 +50,45 @@ export function iconAssetFor(
 	siteRoot: string,
 ): IconAsset | null {
 	const file = realFile(fileUrl);
+	const prefix = base.replace(/\/+$/, '');
+	const publicFolder = tryRealpath(join(siteRoot, 'public'));
 
-	if (isInside(file, tryRealpath(join(siteRoot, 'public')))) {
-		return null;
+	if (isInside(file, publicFolder)) {
+		const path = split(relative(publicFolder, file)).map(encodeURIComponent).join('/');
+
+		return { file, url: `${prefix}/${path}`, projectName: project.name, public: true };
 	}
 
 	const segments = aliasSegments(project, file) ?? relativeSegments(tryRealpath(project.folder), file);
 	const path = [project.name, ...segments].map(encodeURIComponent).join('/');
 
-	return { file, url: `${base.replace(/\/+$/, '')}${ICON_ROUTE}${path}`, projectName: project.name };
+	return { file, url: `${prefix}${ICON_ROUTE}${path}`, projectName: project.name };
+}
+
+/**
+ * The file a compiled icon URL really names, when the project was compiled
+ * through its link in the staging workspace.
+ *
+ * LikeC4 resolves relative icon paths and `imageAliases` *lexically* against
+ * the folder it opened — the link — so `../brand` from
+ * `.astro/astroc4/workspace/architecture` lands next to the link, not next to
+ * the project. Whatever LikeC4 computed as `resolve(link, x)` is really
+ * `resolve(project.folder, x)`.
+ */
+export function unstage(fileUrl: string, project: ResolvedProject, stagingDir: string | undefined): string {
+	if (stagingDir === undefined) return fileUrl;
+
+	let path: string;
+
+	try {
+		path = fileURLToPath(decodeDrive(fileUrl));
+	} catch {
+		return fileUrl;
+	}
+
+	const fromLink = relative(join(stagingDir, project.name), path);
+
+	return pathToFileURL(resolve(project.folder, fromLink)).href;
 }
 
 /**

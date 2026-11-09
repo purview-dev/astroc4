@@ -11,11 +11,11 @@
 
 import { readFile, copyFile, mkdir } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import type { Plugin as VitePlugin } from 'vite';
 
-import { buildIconManifest, ICON_ROUTE, type IconAsset } from './icon-assets.js';
+import { buildIconManifest, ICON_ROUTE, type IconAsset, unstage } from './icon-assets.js';
 import type { ResolvedProject } from './projects.js';
 
 /** The ids LikeC4's Vite plugin resolves its per-project modules to. */
@@ -40,6 +40,8 @@ export interface IconPluginState {
 	base: string;
 	/** The site root; files under its `public/` are left to Astro. */
 	siteRoot: string;
+	/** The staging workspace the projects were compiled through, if any. */
+	stagingDir?: string;
 }
 
 export type Astroc4IconPlugin = VitePlugin & {
@@ -73,7 +75,9 @@ export function astroc4IconPlugin(state: IconPluginState): Astroc4IconPlugin {
 		if (!asset) return undefined;
 
 		manifest.set(fileUrl, asset);
-		byUrl.set(asset.url, asset);
+
+		// Astro serves and copies `public/` itself.
+		if (!asset.public) byUrl.set(asset.url, asset);
 
 		return asset;
 	}
@@ -90,7 +94,17 @@ export function astroc4IconPlugin(state: IconPluginState): Astroc4IconPlugin {
 
 			const rewritten = code.replace(FILE_URL, (found) => {
 				const escapedForm = found.includes('\\u002F');
-				const asset = gather(project, found.replaceAll('\\u002F', '/'));
+				const [fileUrl, query] = found.replaceAll('\\u002F', '/').split('?', 2) as [string, string | undefined];
+				const real = unstage(fileUrl, project, state.stagingDir);
+
+				// LikeC4's icons module imports each local icon (`?raw`, `?inline`).
+				// Point the import at the real file so Vite can load it; only the
+				// lookup keys and model values become served URLs.
+				if (query !== undefined) {
+					return `${fileURLToPath(real).replaceAll('\\', '/')}?${query}`;
+				}
+
+				const asset = gather(project, real);
 
 				if (!asset) return found;
 

@@ -130,9 +130,9 @@ export function likec4Integration({
 			'astro:config:setup': async ({ command, config, updateConfig, logger }) => {
 				const root = fileURLToPath(config.root);
 				const optimizeDeps = missingOptimizedDependencies(config.vite?.optimizeDeps?.include, root);
-				const { pluginOptions, resolved } = await workspaceFor(root, vitePlugin, projects, logger);
+				const { pluginOptions, resolved, stagingDir } = await workspaceFor(root, vitePlugin, projects, logger);
 
-				icons = astroc4IconPlugin({ projects: resolved, base: config.base ?? '/', siteRoot: root });
+				icons = astroc4IconPlugin({ projects: resolved, base: config.base ?? '/', siteRoot: root, stagingDir });
 
 				updateConfig({
 					vite: {
@@ -180,7 +180,11 @@ async function workspaceFor(
 	vitePlugin: NonNullable<LikeC4IntegrationOptions['vitePlugin']>,
 	configured: Record<string, string> | undefined,
 	logger: AstroIntegrationLogger,
-): Promise<{ pluginOptions: NonNullable<LikeC4IntegrationOptions['vitePlugin']>; resolved: ResolvedProject[] }> {
+): Promise<{
+	pluginOptions: NonNullable<LikeC4IntegrationOptions['vitePlugin']>;
+	resolved: ResolvedProject[];
+	stagingDir?: string;
+}> {
 	const hasConfigured = configured !== undefined && Object.keys(configured).length > 0;
 
 	// A site handing over its own language services, or its own workspace, has
@@ -205,7 +209,7 @@ async function workspaceFor(
 	const workspace = await prepareWorkspace(resolved, join(root, '.astro', 'astroc4'));
 
 	// Narrowed above: this branch never carries `languageServices`.
-	return { pluginOptions: { ...(vitePlugin as { workspace?: string }), workspace }, resolved };
+	return { pluginOptions: { ...(vitePlugin as { workspace?: string }), workspace }, resolved, stagingDir: workspace };
 }
 
 /** Serves `virtual:astroc4/projects`: the names components may pass as `project`. */

@@ -54,6 +54,68 @@ describe('astroc4IconPlugin', () => {
 		expect(output).not.toContain('file:');
 	});
 
+	it('rewrites a public/ icon to its public URL and never serves it under /_astroc4/', async () => {
+		const { site, plugin } = await fixture();
+		const icon = join(site, 'public', 'icons', 'p.svg');
+		await mkdir(dirname(icon), { recursive: true });
+		await writeFile(icon, SVG);
+
+		const output = transform(plugin, `"${escaped(pathToFileURL(icon).href)}"`, 'likec4:plugin/minder-architecture/model.js');
+
+		expect(output).toBe(`"${escaped('/icons/p.svg')}"`);
+		const res = response();
+		await devMiddleware(plugin)({ url: '/_astroc4/architecture/icons/p.svg' }, res, vi.fn());
+		expect(res.statusCode).toBe(404);
+	});
+
+	it('maps icons LikeC4 resolved through the staging link back to the project', async () => {
+		const { root, site, icon } = await fixture();
+		const folder = join(root, 'repo', 'architecture');
+		const staging = join(site, '.astro', 'astroc4', 'workspace');
+		const project: ResolvedProject = {
+			name: 'architecture',
+			folder,
+			likec4Id: 'minder-architecture',
+			source: 'configured',
+			imageAliases: { '@': join(folder, 'images') },
+		};
+		const plugin = astroc4IconPlugin({ projects: [project], base: '/', siteRoot: site, stagingDir: staging });
+		const lexical = pathToFileURL(join(staging, 'architecture', 'images', 'azure', 'x.svg')).href;
+
+		expect(transform(plugin, `"${lexical}"`, 'likec4:plugin/minder-architecture/model.js')).toBe(
+			'"/_astroc4/architecture/azure/x.svg"',
+		);
+		expect(icon).toBeDefined();
+	});
+
+	it('points an icons module import at the real file, and its key at the served URL', async () => {
+		const { root, site, icon } = await fixture();
+		const folder = join(root, 'repo', 'architecture');
+		const staging = join(site, '.astro', 'astroc4', 'workspace');
+		const project: ResolvedProject = {
+			name: 'architecture',
+			folder,
+			likec4Id: 'minder-architecture',
+			source: 'configured',
+			imageAliases: { '@': join(folder, 'images') },
+		};
+		const plugin = astroc4IconPlugin({ projects: [project], base: '/', siteRoot: site, stagingDir: staging });
+		const lexical = pathToFileURL(join(staging, 'architecture', 'images', 'azure', 'x.svg')).href;
+		const code = [
+			`import Icon00Raw from "${lexical}?raw"`,
+			`import Icon00 from "${lexical}?inline"`,
+			`export const Icons = { "${lexical}": props => jsx(LocalSvgIcon, { ...props, src: Icon00, raw: Icon00Raw }) };`,
+		].join('\n');
+
+		const output = transform(plugin, code, 'likec4:plugin/minder-architecture/icons.jsx');
+
+		const real = icon.replaceAll('\\', '/');
+		expect(output).toContain(`from "${real}?raw"`);
+		expect(output).toContain(`from "${real}?inline"`);
+		expect(output).toContain('"/_astroc4/architecture/azure/x.svg": props =>');
+		expect(output).not.toContain('file:');
+	});
+
 	it('leaves non-likec4 modules untouched', async () => {
 		const { icon, plugin } = await fixture();
 
