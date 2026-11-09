@@ -105,6 +105,19 @@ describe('the ```likec4 fence transform', () => {
 		expect(Object.keys(model.views)).toContain('flow');
 	});
 
+	it('without view=, renders the first view the snippet declares, not LikeC4\'s automatic index', async () => {
+		const snippet = [
+			"specification { element system\n element container }",
+			"model { s = system 'S' { c = container 'C' } }",
+			'views { view inside of s { include * } }',
+		].join('\n');
+		const { ctx, plugin, replaced } = pluginFor('```likec4\n' + snippet + '\n```', 'md');
+
+		await plugin.code?.(fence('', snippet), ctx);
+
+		expect((replaced[0]?.next as { raw: string }).raw).toContain('data-view-id="inside"');
+	});
+
 	it('renders an empty .md fence as a project-view placeholder', async () => {
 		const { ctx, plugin, replaced } = pluginFor('```likec4 view="index" project="architecture"\n```', 'md');
 

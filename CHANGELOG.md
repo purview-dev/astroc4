@@ -47,6 +47,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `vitePlugin.workspace` or `languageServices` keeps the old in-browser
   resolution, and `projects` is ignored there with a warning.
 - New translation key `likec4.error.projectRequired`.
+- **A fence without `view="…"` shows the first view its source declares.** It
+  showed LikeC4's automatic `index` landscape instead, which LikeC4 always lists
+  first — so a snippet's own `view x of system { … }` never appeared.
 
 ### Known
 

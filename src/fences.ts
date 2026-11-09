@@ -314,7 +314,7 @@ export function likec4Fences({ root }: FenceOptions = {}): MdastPluginEntry {
 					);
 				}
 
-				const viewId = options.view ?? layout.viewIds[0];
+				const viewId = options.view ?? defaultView(source, layout.viewIds);
 
 				if (!viewId || !layout.viewIds.includes(viewId)) {
 					throw new Error(
@@ -355,6 +355,22 @@ export function likec4Fences({ root }: FenceOptions = {}): MdastPluginEntry {
 	};
 }
 // endregion
+
+/**
+ * The view a fence without `view="…"` shows: the first one its source declares.
+ * LikeC4 always adds an automatic `index` view and lists it first, so taking
+ * the first laid-out view would show that overview instead of the author's.
+ */
+function defaultView(source: string, viewIds: string[]): string | undefined {
+	// Every `view <id>` in source order; a match inside a title ("a view of …")
+	// is not a laid-out view, so it is skipped. The automatic `index` never
+	// appears in the source, so an author's own `view index` still counts.
+	for (const match of source.matchAll(/(?<![\w-])view\s+([\w-]+)/g)) {
+		if (viewIds.includes(match[1]!)) return match[1];
+	}
+
+	return viewIds[0];
+}
 
 /** What a .md page's placeholder carries for the page script to mount. */
 export interface FencePlaceholder {
