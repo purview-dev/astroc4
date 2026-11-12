@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import type { MdastPluginEntry, PluginFactoryContext } from 'satteri';
 
 import { translations } from './translations.ts';
+import { validationModeFor, type ValidationOptions } from './validation.ts';
 
 const require = createRequire(import.meta.url);
 
@@ -58,6 +59,9 @@ const IMPORTS = {
 type ComponentName = keyof typeof IMPORTS;
 
 const STRINGS = translations.en;
+
+/** Appended to every reason `relaxed` validation turns into a warning instead of an error. */
+const RELAXED_NOTE = 'Left as a highlighted code block because this page is validated in `relaxed` mode.';
 
 interface Layout {
 	dump: any;
@@ -174,6 +178,31 @@ function describe(fileURL: URL | undefined): string {
 	}
 }
 
+/** The page's path from the site root, so validation can be scoped by page. */
+function pagePath(fileURL: URL | undefined, root: string | undefined): string | undefined {
+	if (!fileURL || !root) return undefined;
+
+	try {
+		return relative(resolve(root), fileURLToPath(fileURL));
+	} catch {
+		return undefined;
+	}
+}
+
+/**
+ * The content collection a page belongs to: its first folder under the content
+ * directory, which is how Astro's `glob` loader maps a collection to a folder.
+ */
+function collectionOf(fileURL: URL | undefined, contentDir: string | undefined): string | undefined {
+	const within = pagePath(fileURL, contentDir);
+
+	if (!within || within.startsWith('..')) return undefined;
+
+	const [first, ...rest] = within.split(/[\\/]/);
+
+	return rest.length > 0 ? first : undefined;
+}
+
 export interface FenceReporter {
 	warn: (message: string) => void;
 }
@@ -190,10 +219,21 @@ export interface FenceOptions {
 	 * `project` is checked at build time; without it, only the browser can.
 	 */
 	projects?: string[];
+	/**
+	 * How a fence that cannot be turned into a diagram is treated. `strict` (the
+	 * default) fails the build and `astro check`; `relaxed` logs a warning and
+	 * leaves the fence as a highlighted code block. Relaxing can be scoped by
+	 * page path glob or content collection. See `./validation.ts`.
+	 */
+	validation?: ValidationOptions;
+	/** The site's content directory, so a page's collection can be resolved. */
+	contentDir?: string;
+	/** Called with the reason for each fence `relaxed` validation leaves as a code block. */
+	onInvalid?: (message: string) => void;
 }
 
 // region plugin
-export function likec4Fences({ root, projects }: FenceOptions = {}): MdastPluginEntry {
+export function likec4Fences({ root, projects, validation, contentDir, onInvalid }: FenceOptions = {}): MdastPluginEntry {
 	// A factory runs once per document, so `used` is per page.
 	return (factory: PluginFactoryContext) => {
 		if (!factory.source.includes('```' + FENCE_LANG)) return null;
@@ -209,11 +249,25 @@ export function likec4Fences({ root, projects }: FenceOptions = {}): MdastPlugin
 			async code(node, ctx) {
 				if (node.lang !== FENCE_LANG) return;
 
+				const mode = validationModeFor(validation, pagePath(ctx.fileURL, root), collectionOf(ctx.fileURL, contentDir));
+				const fail = (reason: string): void => {
+					if (mode === 'strict') throw new Error(reason);
+
+					onInvalid?.(`${reason} ${RELAXED_NOTE}`);
+				};
 				const where = `${describe(ctx.fileURL)}: \`\`\`${FENCE_LANG} fence`;
 				const options = parseFenceMeta(node.meta);
-				const source = options.file
-					? await readFenceFile(options.file, ctx.fileURL, root, where)
-					: (node.value ?? '').trim();
+				let source;
+
+				try {
+					source = options.file
+						? await readFenceFile(options.file, ctx.fileURL, root, where)
+						: (node.value ?? '').trim();
+				} catch (error) {
+					fail(error instanceof Error ? error.message : String(error));
+
+					return;
+				}
 
 				const common = {
 					title: options.title,
@@ -225,10 +279,18 @@ export function likec4Fences({ root, projects }: FenceOptions = {}): MdastPlugin
 
 				if (source.length === 0) {
 					if (!options.view) {
-						throw new Error(`${where} is empty, so it needs \`view="<id>"\` to name a view in the project model.`);
+						fail(`${where} is empty, so it needs \`view="<id>"\` to name a view in the project model.`);
+
+						return;
 					}
 
-					checkProject(options.project, projects, where);
+					const projectFailure = projectError(options.project, projects, where);
+
+					if (projectFailure !== undefined) {
+						fail(projectFailure);
+
+						return;
+					}
 
 					if (markdown) {
 						ctx.replaceNode(node, {
@@ -256,17 +318,17 @@ export function likec4Fences({ root, projects }: FenceOptions = {}): MdastPlugin
 				try {
 					layout = await layoutSource(source);
 				} catch (error) {
-					throw new Error(
-						`${where} is not valid LikeC4 — ${error instanceof Error ? error.message : String(error)}`,
-					);
+					fail(`${where} is not valid LikeC4 — ${error instanceof Error ? error.message : String(error)}`);
+
+					return;
 				}
 
 				const viewId = options.view ?? defaultView(source, layout.viewIds);
 
 				if (!viewId || !layout.viewIds.includes(viewId)) {
-					throw new Error(
-						`${where} has no view "${viewId ?? '(none)'}". Declared: ${layout.viewIds.join(', ') || '(none)'}.`,
-					);
+					fail(`${where} has no view "${viewId ?? '(none)'}". Declared: ${layout.viewIds.join(', ') || '(none)'}.`);
+
+					return;
 				}
 
 				if (markdown) {
@@ -303,27 +365,25 @@ export function likec4Fences({ root, projects }: FenceOptions = {}): MdastPlugin
 // endregion
 
 /** The same rule `<LikeC4View>` applies: required with several projects, and must exist. */
-function checkProject(project: string | undefined, projects: string[] | undefined, where: string): void {
-	if (projects === undefined) return;
+function projectError(project: string | undefined, projects: string[] | undefined, where: string): string | undefined {
+	if (projects === undefined) return undefined;
 
 	const requested = project?.trim();
 	const available = projects.join(', ');
 
 	if (!requested) {
-		if (projects.length > 1) {
-			throw new Error(`${where}: ${STRINGS['likec4.error.projectRequired'].replace('{available}', available)}`);
-		}
-
-		return;
+		return projects.length > 1
+			? `${where}: ${STRINGS['likec4.error.projectRequired'].replace('{available}', available)}`
+			: undefined;
 	}
 
 	if (!projects.includes(requested)) {
-		throw new Error(
-			`${where}: ${STRINGS['likec4.error.unknownProject']
-				.replace('{projectId}', requested)
-				.replace('{available}', available || '(none)')}`,
-		);
+		return `${where}: ${STRINGS['likec4.error.unknownProject']
+			.replace('{projectId}', requested)
+			.replace('{available}', available || '(none)')}`;
 	}
+
+	return undefined;
 }
 
 /**

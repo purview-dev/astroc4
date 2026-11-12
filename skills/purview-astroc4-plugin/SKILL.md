@@ -91,6 +91,12 @@ Inline DSL and `file=` are compiled and laid out at build time, so a typo fails
 the build with the file name and the parser's message. Without `view=`, a fence
 shows the first `view` its source declares.
 
+A tutorial or example page that intentionally shows partial DSL can relax this:
+`astroc4({ validation: 'relaxed' })` logs a warning and leaves an undrawable
+fence as a highlighted code block instead of failing. Scope it with
+`{ default: 'strict', collections: ['tutorials'], relaxed: ['docs/examples/**'] }`
+— collections are named, pages are globbed.
+
 In `.mdx` a fence becomes a component. In `.md` it becomes a placeholder that an
 injected page script mounts. It takes the same options (`title` defaults to
 "Diagram", `collapsible`, `defaultOpen`), but has no hint or badge and its
@@ -155,7 +161,7 @@ coloured, why a diagram did not draw.
 | --- | --- |
 | No colours anywhere | `expressiveCode: false`? astroc4 in `integrations` instead of `plugins`? plain Astro without `likec4Language` passed to `expressiveCode()`? which fence language? does `<pre data-language="c4">` contain several `--0:#…` values? |
 | Diagrams blank but the build passes | a static build passes even when islands fail to hydrate; use the browser smoke test (`bun scripts/hydration.ts <url>` on a **dev** server), not the exit code |
-| A ` ```likec4 ` fence stayed a code block | `fences: false`, or the site's Markdown processor is not Sätteri (the log warns) |
+| A ` ```likec4 ` fence stayed a code block | `fences: false`; the site's Markdown processor is not Sätteri; or the fence could not be drawn and `validation: 'relaxed'` left it as code. The last two log a warning |
 | `.md` fence stuck on "Loading diagram…" | browser console: did the `import()` of `@purview-dev/astroc4/components/md-fences` fail? is there a `data-astroc4-fence` element and the injected page script? |
 | Build fails `…likec4.config… could not be read` | the JSON5 parse or esbuild error follows the path; a JS/TS config's imports (other than `likec4/config`) must resolve from its folder |
 | Build fails "Several LikeC4 projects exist" | more than one project (discovered or named in `projects`); pass `project="<name>"` |

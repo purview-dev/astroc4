@@ -145,6 +145,7 @@ reload in `astro dev` like any other.
 | `projects` | `{}` | Named LikeC4 project folders, relative to the site root or absolute. See above. |
 | `vitePlugin` | `{}` | Passed to `LikeC4VitePlugin`. Setting `workspace` or `languageServices` takes discovery over: `projects` is then ignored (with a warning). |
 | `fences` | `true` | Turn ` ```likec4 ` fences into diagrams. |
+| `validation` | `'strict'` | Whether a fence that cannot be drawn (bad DSL, missing view, bad `project`, unresolved `file=`) fails the build or only warns. `'relaxed'` warns and leaves it as a highlighted code block; `{ default, collections, relaxed: [globs] }` scopes it by collection or path. See [Fences](docs/wiki/guide/Fences.md#partial-and-invalid-examples). |
 | `highlighting` | `true` | Highlight LikeC4 source. Starlight only — a plain Astro site passes `likec4Language` to Expressive Code. See below. |
 
 ### Syntax highlighting

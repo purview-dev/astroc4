@@ -11,9 +11,12 @@ import { fileLayoutPlugin } from './file-layout.ts';
 import { astroc4IconPlugin, type Astroc4IconPlugin } from './icon-plugin.ts';
 import { discoverProjects, resolveProjects, type ResolvedProject } from './projects.ts';
 import { prepareWorkspace, PROJECTS_MODULE_ID, projectsModule } from './workspace.ts';
+import type { ValidationOptions } from './validation.ts';
 
 /** Scoped because npm refuses the unscoped `astroc4` as too similar to `astro`. */
 export const PACKAGE_NAME = '@purview-dev/astroc4';
+
+export type { ValidationMode, ValidationOptions, ValidationScope } from './validation.ts';
 
 export interface LikeC4IntegrationOptions {
 	/**
@@ -29,6 +32,14 @@ export interface LikeC4IntegrationOptions {
 	projects?: Record<string, string>;
 	/** Render ```likec4 fences in .md and .mdx pages as diagrams. Defaults to `true`. */
 	fences?: boolean;
+	/**
+	 * How a fence that cannot be turned into a diagram is treated. `strict` (the
+	 * default) fails the build and `astro check`; `relaxed` logs a warning and
+	 * leaves the fence as a highlighted code block. Relaxing can be scoped by
+	 * page path glob or content collection, so a tutorial section or collection
+	 * need not take the whole site's strictness with it.
+	 */
+	validation?: ValidationOptions;
 }
 
 /**
@@ -88,6 +99,7 @@ export function likec4Integration({
 	vitePlugin = {},
 	projects,
 	fences = true,
+	validation,
 }: LikeC4IntegrationOptions = {}): AstroIntegration {
 	let icons: Astroc4IconPlugin | undefined;
 
@@ -111,7 +123,7 @@ export function likec4Integration({
 				});
 
 				if (fences) {
-					await registerFences(config, updateConfig, logger, resolved);
+					await registerFences(config, updateConfig, logger, resolved, validation);
 					injectScript('page', MD_FENCES_SCRIPT);
 				}
 
@@ -211,14 +223,20 @@ async function registerFences(
 	updateConfig: (config: Record<string, unknown>) => void,
 	logger: AstroIntegrationLogger,
 	projects: ResolvedProject[],
+	validation: ValidationOptions | undefined,
 ): Promise<void> {
 	const { satteri, isSatteriProcessor } = await import('@astrojs/markdown-satteri');
 	const existing = config.markdown?.processor;
 	const fences = () =>
 		likec4Fences({
 			root: fileURLToPath(config.root),
+			// `validation` can scope by page path and by content collection, and only
+			// the content directory says where a collection's folder starts.
+			contentDir: config.srcDir ? fileURLToPath(new URL('content/', config.srcDir)) : undefined,
 			// Empty when the site took discovery over: then only the browser knows.
 			projects: projects.length > 0 ? projects.map((project) => project.name) : undefined,
+			validation,
+			onInvalid: (message) => logger.warn(message),
 		});
 
 	// No processor configured means Astro's default, which is Sätteri.
