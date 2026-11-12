@@ -16,6 +16,7 @@ import { LANGUAGE_ALIASES, LANGUAGE_NAME } from './grammar/textmate.ts';
 import { translations } from './translations.ts';
 
 export { missingOptimizedDependencies };
+export type { ValidationMode, ValidationOptions, ValidationScope } from './validation.ts';
 
 export interface LikeC4HighlightingOptions {
 	/** Branch, tag or commit SHA of `likec4/likec4`. Defaults to `main`; also `ASTROC4_REF`. */
@@ -56,6 +57,7 @@ export default function starlightLikeC4(options: StarlightLikeC4Options = {}): L
 		vitePlugin: options.vitePlugin,
 		projects: options.projects,
 		fences: options.fences,
+		validation: options.validation,
 	});
 
 	return {

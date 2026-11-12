@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { describe, expect, it, vi } from 'vitest';
@@ -133,6 +133,137 @@ describe('the ```likec4 fence transform', () => {
 		const { ctx, plugin } = pluginFor('```likec4\nmodel { a = }\n```', 'md');
 
 		await expect(Promise.resolve(plugin.code?.(fence('', 'model { a = }'), ctx))).rejects.toThrow(/not valid LikeC4/);
+	});
+
+	it('leaves an invalid fence as a code block in relaxed mode, and reports the reason', async () => {
+		const onInvalid = vi.fn();
+		const build = likec4Fences({ validation: 'relaxed', onInvalid }) as unknown as typeof fencePlugin;
+		const { ctx, plugin, replaced } = pluginFor('```likec4\nmodel { a = }\n```', 'mdx', build);
+
+		await plugin.code?.(fence('', 'model { a = }'), ctx);
+
+		expect(replaced).toHaveLength(0);
+		expect(onInvalid).toHaveBeenCalledWith(expect.stringContaining('not valid LikeC4'));
+		expect(onInvalid).toHaveBeenCalledWith(expect.stringContaining('relaxed'));
+	});
+
+	it('still turns a valid fence into a diagram in relaxed mode', async () => {
+		const onInvalid = vi.fn();
+		const build = likec4Fences({ validation: 'relaxed', onInvalid }) as unknown as typeof fencePlugin;
+		const snippet = "specification { element box }\nmodel { a = box 'A' }\nviews { view flow { include * } }";
+		const { ctx, plugin, replaced } = pluginFor('```likec4 view="flow"\n' + snippet + '\n```', 'md', build);
+
+		await plugin.code?.(fence('view="flow"', snippet), ctx);
+
+		expect(replaced).toHaveLength(1);
+		expect(onInvalid).not.toHaveBeenCalled();
+	});
+
+	it('leaves a fence naming a view its own DSL does not declare as a code block in relaxed mode', async () => {
+		const onInvalid = vi.fn();
+		const build = likec4Fences({ validation: 'relaxed', onInvalid }) as unknown as typeof fencePlugin;
+		const snippet = "specification { element box }\nmodel { a = box 'A' }\nviews { view flow { include * } }";
+		const { ctx, plugin, replaced } = pluginFor('```likec4 view="missing"\n' + snippet + '\n```', 'mdx', build);
+
+		await plugin.code?.(fence('view="missing"', snippet), ctx);
+
+		expect(replaced).toHaveLength(0);
+		expect(onInvalid).toHaveBeenCalledWith(expect.stringContaining('has no view "missing"'));
+	});
+
+	it('relaxes only the pages a validation glob matches', async () => {
+		const root = resolve('/site');
+		const onInvalid = vi.fn();
+		const build = likec4Fences({
+			root,
+			validation: { default: 'strict', relaxed: ['tutorials/**'] },
+			onInvalid,
+		}) as unknown as typeof fencePlugin;
+		const invalid = '```likec4\nmodel { a = }\n```';
+
+		const tutorial = build({ source: invalid, sourceFormat: 'mdx' });
+		const replaced: unknown[] = [];
+
+		await tutorial.code?.(fence('', 'model { a = }'), {
+			fileURL: pathToFileURL(resolve(root, 'src/content/docs/tutorials/wip.mdx')),
+			replaceNode: (_node: unknown, next: unknown) => replaced.push(next),
+		});
+
+		expect(replaced).toHaveLength(0);
+		expect(onInvalid).toHaveBeenCalledTimes(1);
+
+		const reference = build({ source: invalid, sourceFormat: 'mdx' });
+
+		await expect(
+			Promise.resolve(
+				reference.code?.(fence('', 'model { a = }'), {
+					fileURL: pathToFileURL(resolve(root, 'src/content/docs/reference/api.mdx')),
+					replaceNode: () => {},
+				}),
+			),
+		).rejects.toThrow(/not valid LikeC4/);
+	});
+
+	it('relaxes every page of a listed content collection', async () => {
+		const root = resolve('/site');
+		const onInvalid = vi.fn();
+		const build = likec4Fences({
+			root,
+			contentDir: resolve(root, 'src/content'),
+			validation: { collections: ['tutorials'] },
+			onInvalid,
+		}) as unknown as typeof fencePlugin;
+		const invalid = '```likec4\nmodel { a = }\n```';
+
+		const tutorial = build({ source: invalid, sourceFormat: 'mdx' });
+
+		await tutorial.code?.(fence('', 'model { a = }'), {
+			fileURL: pathToFileURL(resolve(root, 'src/content/tutorials/wip.mdx')),
+			replaceNode: () => {},
+		});
+
+		expect(onInvalid).toHaveBeenCalledTimes(1);
+
+		const docs = build({ source: invalid, sourceFormat: 'mdx' });
+
+		await expect(
+			Promise.resolve(
+				docs.code?.(fence('', 'model { a = }'), {
+					fileURL: pathToFileURL(resolve(root, 'src/content/docs/api.mdx')),
+					replaceNode: () => {},
+				}),
+			),
+		).rejects.toThrow(/not valid LikeC4/);
+	});
+
+	it('swallows an empty fence a project check would reject, in relaxed mode', async () => {
+		const onInvalid = vi.fn();
+		const build = likec4Fences({ projects: ['docs', 'architecture'], validation: 'relaxed', onInvalid }) as unknown as typeof fencePlugin;
+		const { ctx, plugin, replaced } = pluginFor('```likec4 view="index"\n```', 'md', build);
+
+		await plugin.code?.(fence('view="index"'), ctx);
+
+		expect(replaced).toHaveLength(0);
+		expect(onInvalid).toHaveBeenCalledWith(expect.stringContaining('Several LikeC4 projects exist'));
+	});
+
+	it('swallows a file= that does not exist, in relaxed mode', async () => {
+		const site = await mkdtemp(join(tmpdir(), 'astroc4-fence-'));
+		const pageFile = join(site, 'src', 'content', 'docs', 'page.mdx');
+		const onInvalid = vi.fn();
+		const plugin = (likec4Fences({ root: site, validation: 'relaxed', onInvalid }) as any)({
+			source: '```likec4 file="./missing.c4"\n```',
+			sourceFormat: 'mdx',
+		});
+		const replaced: unknown[] = [];
+
+		await plugin.code(fence('file="./missing.c4"'), {
+			fileURL: pathToFileURL(pageFile),
+			replaceNode: (_node: unknown, next: unknown) => replaced.push(next),
+		});
+
+		expect(replaced).toHaveLength(0);
+		expect(onInvalid).toHaveBeenCalledWith(expect.stringContaining('does not exist'));
 	});
 
 	it('escapes everything it writes into the placeholder', () => {

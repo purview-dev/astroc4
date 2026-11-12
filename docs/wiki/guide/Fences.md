@@ -98,6 +98,52 @@ Layouted snippets are memoised by a hash of their source, so a snippet is
 compiled once per process, even though the dev server re-renders the page on
 every edit.
 
+## Partial and invalid examples
+
+A fence that cannot be turned into a diagram fails `astro build` — and `astro
+check` with it, because both run the same content transform. That covers more
+than a compile error: a view its own DSL does not declare, an empty fence with
+no `view`, a `project` that does not exist, a `file=` that does not resolve. A
+tutorial or example page, though, often shows deliberately incomplete DSL.
+`validation` picks what happens:
+
+- `'strict'` — the default. The build and `astro check` fail, naming the page,
+  the fence and the reason.
+- `'relaxed'` — the reason is logged as a warning instead, and the fence is left
+  in the page, where it highlights as a code block.
+
+A single mode covers the whole site:
+
+```ts
+starlight({
+	plugins: [astroc4({ validation: 'relaxed' })],
+});
+```
+
+Or relax only part of it — a content collection, a content area, a section, one
+page:
+
+```ts
+starlight({
+	plugins: [
+		astroc4({
+			validation: {
+				default: 'strict',
+				// Whole collections, by name.
+				collections: ['tutorials'],
+				// Or page paths, relative to the site root (`*` within a segment,
+				// `**` across them).
+				relaxed: ['src/content/docs/examples/**'],
+			},
+		}),
+	],
+});
+```
+
+A collection is the first folder under the content directory
+(`src/content/<name>/…`), which is how Astro's `glob` loader maps a collection to
+a folder. The plain-Astro integration takes the same option.
+
 ## Errors you will see
 
 | Message | Cause |

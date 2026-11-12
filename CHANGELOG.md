@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-prerelease.8] - 2026-11-12
+
+### Added
+
+- **A `validation` mode for fences: `strict` (the default) or `relaxed`.** A
+  fence that cannot be turned into a diagram — its DSL does not compile, it names
+  a view its own DSL does not declare, an empty fence names no `view`, a
+  `project` does not exist, a `file=` does not resolve — previously always failed
+  the build, and `astro check` with it, because both run the same content
+  transform. `validation: 'relaxed'` logs the reason as a warning and leaves the
+  fence as a highlighted code block instead. Relaxing can be scoped, by content
+  collection (`collections: ['tutorials']`, a collection being the first folder
+  under the content directory) or by page path glob
+  (`relaxed: ['src/content/docs/examples/**']`), with `default` for the rest — so
+  a section or a collection relaxes without the rest of the site. Available on
+  both the Starlight plugin and the plain-Astro integration.
+
 ## [1.0.0-prerelease.7] - 2026-11-09
 
 ### Fixed
