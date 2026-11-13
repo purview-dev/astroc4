@@ -121,12 +121,16 @@ if (packIconCount === 0) {
 const leaked = [...imageIconSrcs].filter((src) => src.startsWith('file://'));
 if (leaked.length > 0) failures.push(`Icons: build-machine path reached an <img src> — ${leaked[0]}`);
 
-/** LikeC4 inlines some local SVGs as `data:` URIs, so either form counts. */
+/**
+ * LikeC4 inlines some local SVGs as `data:` URIs, so either form counts. The
+ * encoder collapses whitespace and swaps quotes, so compare with both stripped.
+ */
 function rendered(url: string, file: URL): boolean {
-	const svg = readFileSync(file, 'utf8').trim();
+	const normalise = (svg: string) => svg.replace(/\s+|["']/g, '');
+	const svg = normalise(readFileSync(file, 'utf8')).slice(0, 120);
 
 	return [...imageIconSrcs].some(
-		(src) => src === url || (src.startsWith('data:image/svg+xml') && decodeURIComponent(src).includes(svg.slice(0, 60).replaceAll('"', "'"))),
+		(src) => src === url || (src.startsWith('data:image/svg+xml') && normalise(decodeURIComponent(src)).includes(svg)),
 	);
 }
 
