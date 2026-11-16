@@ -26,6 +26,8 @@ It works in **plain Astro** as well: `@purview-dev/astroc4/integration` is an
 Full documentation lives in [`docs/wiki`](docs/wiki/README.md), grouped into
 `guide/` and `contributing/`.
 
+**Documentation:** [AstroC4 documentation](https://purview.dev/docs/astroc4/)
+
 ## Install
 
 ```sh
