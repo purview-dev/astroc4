@@ -14,7 +14,7 @@ model {
 ```
 
 The packs come from LikeC4's `LIB_ICON` terminal — `aws`, `azure`, `bootstrap`,
-`gcp`, `md`, `tech` today — and astroc4 reads that list out of the grammar, so a
+`gcp`, `md`, `tech` today — and AstroC4 reads that list out of the grammar, so a
 pack upstream adds highlights and renders without a change here.
 
 The icon set is compiled by LikeC4's Vite plugin into the `likec4:icons` module,
@@ -34,9 +34,9 @@ icon ../../public/icons/demo.svg
 ```
 
 The path is relative to the `.c4` file. LikeC4 compiles it to a `file://` URL,
-and astroc4 rewrites that to the URL Astro already serves the file at
+AstroC4 rewrites that to the URL Astro already serves the file at
 (`/icons/demo.svg`, after `base`), so the browser never sees a build-machine
-path. Astroc4 checks this in the smoke test: a `file://` URL in an `<img src>` is
+path. AstroC4 checks this in the smoke test: a `file://` URL in an `<img src>` is
 a failure.
 
 ## 4. `imageAliases`, unchanged
@@ -50,7 +50,7 @@ a failure.
 icon @/azure/entra/entra-id-logo.svg
 ```
 
-Nothing changes in the project for astroc4. At build time astroc4 maps each
+Nothing changes in the project for AstroC4. At build time AstroC4 maps each
 icon LikeC4 compiled to a local file — through an alias or a relative path — to
 `/_astroc4/<project>/<path>`:
 

@@ -6,11 +6,11 @@ A diagram comes from one of three places:
 | --- | --- | --- |
 | A **discovered** project | every LikeC4 config file under the site root | LikeC4's Vite plugin |
 | A **named** project | `projects: { <name>: <folder> }` in the options | LikeC4's Vite plugin |
-| A **single file** | `<LikeC4View file="…">` or a fence's `file="…"` | astroc4, at build time, like an inline fence |
+| A **single file** | `<LikeC4View file="…">` or a fence's `file="…"` | AstroC4, at build time, like an inline fence |
 
 ## Config files
 
-A project is a folder holding one of LikeC4's config files. Astroc4 reads every
+A project is a folder holding one of LikeC4's config files. AstroC4 reads every
 name LikeC4 reads, the same way LikeC4 reads it:
 
 | File | Read as |
@@ -72,7 +72,7 @@ or whose configs declare the same `name`, fail the build and name both folders.
 ## Taking discovery over
 
 Setting `vitePlugin.workspace` (or `vitePlugin.languageServices`) hands discovery
-to LikeC4. Astroc4 then ignores `projects` (with a warning) and does not know
+to LikeC4. AstroC4 then ignores `projects` (with a warning) and does not know
 the project names at build time, so `project` is checked by the island in the
 browser rather than by the build.
 

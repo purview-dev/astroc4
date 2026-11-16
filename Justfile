@@ -1,6 +1,6 @@
 set quiet
 
-# Astroc4 is a Bun package. Every recipe delegates to a `bun run` script, so
+# AstroC4 is a Bun package. Every recipe delegates to a `bun run` script, so
 # package.json stays the single source of truth for what each command does and
 # CI cannot drift from the local workflow.
 

@@ -1,6 +1,6 @@
 # Plain Astro (no Starlight)
 
-Astroc4 ships two entry points that share one implementation:
+AstroC4 ships two entry points that share one implementation:
 
 | Import | Use it in | What it is |
 | --- | --- | --- |

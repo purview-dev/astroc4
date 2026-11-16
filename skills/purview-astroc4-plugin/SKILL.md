@@ -1,7 +1,7 @@
 ---
 name: purview-astroc4-plugin
 description: >-
-  Use when adding or changing LikeC4 diagrams in an Astro or Starlight site with astroc4 - wiring the
+  Use when adding or changing LikeC4 diagrams in an Astro or Starlight site with AstroC4 - wiring the
   Starlight plugin or the plain-Astro integration, choosing between a ```likec4 fence and
   <LikeC4View>, naming projects (discovered, named via `projects`, or a single file), understanding
   why highlighting needs no Expressive Code config under Starlight, diagnosing a diagram that renders but is
@@ -14,9 +14,9 @@ metadata:
   companion-skills: likec4.dev@likec4-dsl
 ---
 
-# astroc4: LikeC4 diagrams in an Astro or Starlight site
+# AstroC4: LikeC4 diagrams in an Astro or Starlight site
 
-Astroc4 has two entry points over one implementation. Under Starlight, one
+AstroC4 has two entry points over one implementation. Under Starlight, one
 plugin call wires LikeC4's Vite plugin, the fence transform, syntax highlighting
 and the UI strings. Without Starlight, an `AstroIntegration` does everything but
 the highlighting injection and the translations.
@@ -47,7 +47,7 @@ export default defineConfig({
 });
 ```
 
-- The diagrams are React islands; astroc4 adds `@astrojs/react` when the site
+- The diagrams are React islands; AstroC4 adds `@astrojs/react` when the site
   has not. Listing `react()` yourself is fine; it is not added twice.
 - Plain Astro only: `@astrojs/mdx` is needed for `<LikeC4View>` and for fences in
   `.mdx` (not for fences in `.md`). Highlighting needs `astro-expressive-code`
@@ -159,7 +159,7 @@ coloured, why a diagram did not draw.
 
 | Symptom | Check |
 | --- | --- |
-| No colours anywhere | `expressiveCode: false`? astroc4 in `integrations` instead of `plugins`? plain Astro without `likec4Language` passed to `expressiveCode()`? which fence language? does `<pre data-language="c4">` contain several `--0:#…` values? |
+| No colours anywhere | `expressiveCode: false`? AstroC4 in `integrations` instead of `plugins`? plain Astro without `likec4Language` passed to `expressiveCode()`? which fence language? does `<pre data-language="c4">` contain several `--0:#…` values? |
 | Diagrams blank but the build passes | a static build passes even when islands fail to hydrate; use the browser smoke test (`bun scripts/hydration.ts <url>` on a **dev** server), not the exit code |
 | A ` ```likec4 ` fence stayed a code block | `fences: false`; the site's Markdown processor is not Sätteri; or the fence could not be drawn and `validation: 'relaxed'` left it as code. The last two log a warning |
 | `.md` fence stuck on "Loading diagram…" | browser console: did the `import()` of `@purview-dev/astroc4/components/md-fences` fail? is there a `data-astroc4-fence` element and the injected page script? |

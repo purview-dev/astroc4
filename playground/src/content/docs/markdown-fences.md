@@ -4,7 +4,7 @@ description: "likec4 fences in a plain .md page — no .mdx needed."
 ---
 
 This page is plain Markdown. Its fences render as diagrams all the same: the
-fence is compiled and laid out at build time, and a script astroc4 adds mounts
+fence is compiled and laid out at build time, and a script AstroC4 adds mounts
 it in the browser.
 
 ## Inline

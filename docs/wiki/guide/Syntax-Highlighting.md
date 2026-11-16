@@ -1,6 +1,6 @@
 # Syntax Highlighting
 
-Shiki has no LikeC4 grammar. Astroc4 generates one at build time from the
+Shiki has no LikeC4 grammar. AstroC4 generates one at build time from the
 language definition itself, and registers it with Expressive Code — the site does
 not create an `ec.config.mjs`.
 
@@ -63,7 +63,7 @@ paints `agent` as a plain identifier while `main` paints it as a shape.
 | Writes | written to a temp file and renamed, so two builds cannot corrupt one entry |
 
 The TextMate grammar is **not** cached: it is re-derived from the cached Langium
-text on every run (single-digit milliseconds), so upgrading astroc4 never serves
+text on every run (single-digit milliseconds), so upgrading AstroC4 never serves
 a grammar produced by an older derivation.
 
 ## When it fails

@@ -1,4 +1,4 @@
-# astroc4
+# AstroC4
 
 Interactive [LikeC4](https://likec4.dev) architecture diagrams for
 [Astro](https://astro.build) and [Starlight](https://starlight.astro.build).

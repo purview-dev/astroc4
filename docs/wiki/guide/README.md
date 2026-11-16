@@ -1,4 +1,4 @@
-# Guide — using astroc4
+# Guide — using AstroC4
 
 Everything you need to put diagrams on a page, then to shape them.
 

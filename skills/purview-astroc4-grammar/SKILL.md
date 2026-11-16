@@ -1,7 +1,7 @@
 ---
 name: purview-astroc4-grammar
 description: >-
-  Use when working on astroc4's LikeC4 syntax highlighting or the committed grammar snapshot - the
+  Use when working on AstroC4's LikeC4 syntax highlighting or the committed grammar snapshot - the
   Langium to TextMate derivation, regenerating with grammar:sync, the snapshot parity test, choosing
   or pinning a grammar ref, the fetch and cache behaviour, and why the grammar is derived rather
   than hand-maintained. The official LikeC4 DSL skill explains the language this grammar tokenises.
@@ -12,9 +12,9 @@ metadata:
   companion-skills: likec4.dev@likec4-dsl
 ---
 
-# astroc4: the syntax-highlighting grammar
+# AstroC4: the syntax-highlighting grammar
 
-Shiki has no LikeC4 grammar. Astroc4 generates one from the language definition
+Shiki has no LikeC4 grammar. AstroC4 generates one from the language definition
 in `likec4/likec4` at build time, so it cannot drift from the language.
 
 ## The rule that matters
@@ -64,7 +64,7 @@ in its `astro.config.ts`.
 Fetches are cached per `repo@ref` in `node_modules/.cache/astroc4` (or
 `cacheDir`), ETag-revalidated after `cacheTtl` (an hour), replaced atomically.
 The grammar is re-derived from the cached text on every run, so upgrading
-astroc4 never reuses a grammar from an older derivation.
+AstroC4 never reuses a grammar from an older derivation.
 
 Failure policy: a ref that cannot exist **always** fails; a network failure fails
 unless `onError: 'warn'` (then: cached copy, then the bundled snapshot);
