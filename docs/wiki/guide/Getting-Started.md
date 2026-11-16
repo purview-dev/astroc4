@@ -8,7 +8,7 @@ Four files stand between an empty Starlight site and a rendered diagram.
 bun add @purview-dev/astroc4
 ```
 
-Astroc4 declares its peers, so Bun and npm install them with it. Under pnpm,
+AstroC4 declares its peers, so Bun and npm install them with it. Under pnpm,
 install them explicitly: `astro`, `@astrojs/starlight`, `@astrojs/react`,
 `@astrojs/markdown-satteri`, `likec4`, `@likec4/core`, `react`, `react-dom`,
 `shiki`.
@@ -34,7 +34,7 @@ export default defineConfig({
 ```
 
 The diagrams are React islands (`likec4/react`). Listing `react()` keeps the
-config explicit; leave it out and astroc4 adds `@astrojs/react` itself.
+config explicit; leave it out and AstroC4 adds `@astrojs/react` itself.
 
 Not using Starlight? `@purview-dev/astroc4/integration` is a plain
 `AstroIntegration`, and [Plain Astro](Plain-Astro.md) has the full config —
@@ -70,7 +70,7 @@ export default defineConfig({ name: 'docs' });
 
 Every file name LikeC4 reads works (`likec4.config.json`, `.likec4rc`,
 `likec4.config.mjs`, …), and without `name` the project is named after its
-folder. Astroc4 compiles **every** project under the site root. With one, pages need not name it; with
+folder. AstroC4 compiles **every** project under the site root. With one, pages need not name it; with
 several, every `<LikeC4View>` and empty fence has to say `project="…"`. Models
 that live outside the site are added with the `projects` option. See
 [Projects](Projects.md).
@@ -107,7 +107,7 @@ typo in the DSL fails `astro build` with the file name and the parser's message.
 ## Writing the model
 
 The DSL inside a fence, or in a `.c4` file under `src/likec4`, is LikeC4's
-language rather than astroc4's: this package renders what you wrote, and fails the
+language rather than AstroC4's: this package renders what you wrote, and fails the
 build when it cannot. LikeC4 publishes an agent skill that teaches exactly that —
 the complete DSL reference, plus the CLI — and it installs from the project's own
 site:

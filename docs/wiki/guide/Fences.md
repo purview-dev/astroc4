@@ -6,7 +6,7 @@ rather than DSL:
 
 - in `.mdx`, the fence is rewritten into a component;
 - in `.md`, which cannot hold a component, it becomes a placeholder with the same
-  model, and a page script astroc4 injects mounts the diagram in the browser. That
+  model, and a page script AstroC4 injects mounts the diagram in the browser. That
   script loads the diagram code only on a page that has a placeholder.
 
 ## Two forms
@@ -91,7 +91,7 @@ and take the same options. What differs is how the diagram reaches the page:
    to `<LikeC4Fence>` as a serialised prop in `.mdx`, or written into the
    placeholder's `data-model` attribute in `.md`.
 4. In `.mdx`, the component imports are inserted once per page, after every fence
-   on the page has been seen. In `.md`, the page script astroc4 injects
+   on the page has been seen. In `.md`, the page script AstroC4 injects
    on every page loads the diagram code only when it finds a placeholder.
 
 Layouted snippets are memoised by a hash of their source, so a snippet is

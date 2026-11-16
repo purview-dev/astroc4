@@ -16,7 +16,7 @@
     // No linter or formatter is configured here, and the Web defaults
     // (`bun run lint`, `bun run format:check`) are not scripts in this package.
     "RunLint": false,
-    // Nothing is packable by the pipeline: astroc4 publishes to npm from
+    // Nothing is packable by the pipeline: AstroC4 publishes to npm from
     // .github/workflows/release.yml, not as a NuGet package.
     "RunPack": false,
     "ValidatePack": false,

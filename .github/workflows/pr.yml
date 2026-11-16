@@ -19,7 +19,7 @@ jobs:
   # sets `ProjectType: Web`, so the shared pipeline installs, builds (grammar
   # snapshot → type-check → playground build) and tests this package — the same
   # arrangement `purview-dev.github.io` uses for its site. Pack and pack
-  # validation stay off: astroc4 ships to npm, not NuGet.
+  # validation stay off: AstroC4 ships to npm, not NuGet.
   build:
     name: Build and test
     # The shared workflow declares `contents: read` **and** `packages: read`, and

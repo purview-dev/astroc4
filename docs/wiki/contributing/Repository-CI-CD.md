@@ -25,7 +25,7 @@ build" cannot diverge:
 | `WebBuildCommand` | `bun run grammar:check && bun run check && bun run build` | Ordered to fail fastest: a grammar snapshot that drifted from its derivation, then the type-check, then the playground build. |
 | `WebTestCommand` | `bun run test` | The hermetic suite; the live grammar check is its own job. |
 | `RunLint` | `false` | No linter or formatter is configured in this repository yet. |
-| `RunPack`, `ValidatePack` | `false` | Nothing is packed; astroc4 publishes to npm from `release.yml`. |
+| `RunPack`, `ValidatePack` | `false` | Nothing is packed; AstroC4 publishes to npm from `release.yml`. |
 | `WebBuildOutput` | `playground/dist` | What `bun run build` produces. |
 | `Release.Mode` | `None` | The release workflow passes `GitHubRelease`; the build pipeline publishes nothing. |
 
@@ -49,7 +49,7 @@ PackageJson`).
 
 ### Why npm and not NuGet
 
-Astroc4 is consumed by Astro's bundler; a `.nupkg` cannot be. The organisation's
+AstroC4 is consumed by Astro's bundler; a `.nupkg` cannot be. The organisation's
 release action is still used — `GitHubRelease` mode tags the repository and
 creates the release with generated notes — and the npm publish runs *before* it,
 so a failed publish never leaves a release pointing at an uninstallable version.

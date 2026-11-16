@@ -1,6 +1,6 @@
 [![npm version](https://img.shields.io/npm/v/@purview-dev/astroc4.svg)](https://www.npmjs.com/package/@purview-dev/astroc4)
 
-# astroc4
+# AstroC4
 
 Interactive [LikeC4](https://likec4.dev) architecture diagrams for Astro and
 Starlight.
@@ -34,7 +34,7 @@ bun add @purview-dev/astroc4
 
 Only prereleases (`1.0.0-prerelease.N`) are published so far; `latest` and
 `prerelease` both point at the newest one, and `@prerelease` will keep tracking
-prereleases once a stable version ships. Astroc4 declares its peer dependencies,
+prereleases once a stable version ships. AstroC4 declares its peer dependencies,
 so Bun and npm install them with it; under pnpm add them explicitly (`astro`,
 `@astrojs/react`, `@astrojs/markdown-satteri`, `likec4`, `@likec4/core`,
 `react`, `react-dom`, `shiki`, and `@astrojs/starlight` if you use the plugin —
@@ -273,7 +273,7 @@ architecture diagram…" — open the page in `astro dev`, or run
 | Build fails with `Several LikeC4 projects exist (…); pass project="…"` | The site has more than one project (discovered or named) and a `<LikeC4View>` or fence names none. | Pass `project="<name>"`; the message lists the names. |
 | Build fails with `two LikeC4 projects are named "…"` | A named project and a discovered one, or two folders, share a name or a config `name`. | Rename one, or name the configured project differently. |
 | Build fails with `…likec4.config… could not be read` | The config does not parse (JSON5) or does not bundle (JS/TS). | Fix the error after the path; a JS/TS config's imports other than `likec4/config` must resolve from its folder. |
-| A diagram shows "Unknown LikeC4 projectId" | Only on a site that sets `vitePlugin.workspace` itself, where astroc4 does not know the projects. | Pass a `project` the workspace contains. |
+| A diagram shows "Unknown LikeC4 projectId" | Only on a site that sets `vitePlugin.workspace` itself, where AstroC4 does not know the projects. | Pass a `project` the workspace contains. |
 | `Cannot find module …/@purview-dev/astroc4/dist/index.js` | That version shipped without its build output (only `1.0.0-prerelease.3` did). | Move to `1.0.0-prerelease.4` or later. |
 
 Everything else — highlighting that produces one colour, fences left as code,

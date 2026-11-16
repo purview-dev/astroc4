@@ -7,7 +7,7 @@
 $schema: https://raw.githubusercontent.com/purview-dev/purview-dev/main/src/src/lib/manifest/schema.ts
 
 id: astroc4
-name: Astroc4
+name: AstroC4
 shortDescription: Interactive LikeC4 architecture diagrams for Astro and Starlight, with fences and syntax highlighting.
 description: >-
   A Starlight plugin and a plain-Astro integration that put LikeC4 architecture diagrams inside
@@ -132,7 +132,7 @@ useCases:
     evidence: >-
       Both entry points call the same likec4Integration(): the plain-Astro example in the
       repository builds with astro check and astro build, and its dev server is driven in a browser
-      to prove the island hydrates. @astrojs/react is the one integration astroc4 adds itself when
+      to prove the island hydrates. @astrojs/react is the one integration AstroC4 adds itself when
       the site has not — the islands are client:only="react" — and React is not added twice when
       the site already configures it. What a plain site gives up is documented: Astro.locals.t is
       Starlight's, so the components render English, and the highlighting option exists only on

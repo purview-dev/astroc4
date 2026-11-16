@@ -11,7 +11,7 @@ import starlightLikeC4 from '@purview-dev/astroc4';
 export default defineConfig({
 	integrations: [
 		starlight({
-			title: 'astroc4 playground',
+			title: 'AstroC4 playground',
 			defaultLocale: 'root',
 			locales: {
 				root: { label: 'English', lang: 'en' },

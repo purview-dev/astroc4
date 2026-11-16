@@ -123,7 +123,7 @@ options this plugin sets.
 ## A fence in a `.md` page shows "Loading diagram…" forever
 
 Since `1.0.0-prerelease.6` a fence in a `.md` page is a placeholder that a script
-astroc4 injects into every page mounts in the browser (a `.md` page cannot hold a
+AstroC4 injects into every page mounts in the browser (a `.md` page cannot hold a
 component). If it never mounts:
 
 1. Check the browser console for a failed `import()` of
@@ -152,7 +152,7 @@ lists the names. An unknown name fails the same way.
 [astroc4] …/likec4.config.ts could not be read: …
 ```
 
-Astroc4 reads every LikeC4 config file it discovers, to learn the project's name
+AstroC4 reads every LikeC4 config file it discovers, to learn the project's name
 and `imageAliases`: JSON names as JSON5, JS/TS names by bundling them with
 esbuild. The message after the path is the parser's or esbuild's. A TS config
 may import `likec4/config` (it is replaced with a stand-in), but anything else it
@@ -161,7 +161,7 @@ imports has to resolve from the config's folder.
 ## A diagram shows "Unknown LikeC4 projectId"
 
 Only on a site that sets `vitePlugin.workspace` (or `languageServices`) itself:
-astroc4 then does not know the projects at build time, and the browser island
+AstroC4 then does not know the projects at build time, and the browser island
 reports the unknown name. Pass a `project` that workspace contains. Everywhere
 else an unknown project fails the build.
 

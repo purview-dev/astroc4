@@ -1,4 +1,4 @@
-# Contributing — changing astroc4
+# Contributing — changing AstroC4
 
 For anyone editing the package: how it is put together, how to run it, and how a
 change reaches npm.

@@ -44,7 +44,7 @@ model {
     #public
     icon tech:astro
     description '''
-    A Starlight site using `astroc4`.
+    A Starlight site using `AstroC4`.
     '''
 
     edge = service 'Edge cache' {

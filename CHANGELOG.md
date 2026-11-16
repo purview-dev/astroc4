@@ -185,7 +185,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   placeholder is still visible, and fails on any console error. `test:site`
   runs it against the packed consumer site's own dev server, and the smoke test
   now asserts the placeholder is gone too.
-- **The skills and the guide point at LikeC4's own DSL skill.** Astroc4 covers the
+- **The skills and the guide point at LikeC4's own DSL skill.** AstroC4 covers the
   integration — fences, components, highlighting — and not LikeC4's language, so
   both `skills/` files name `likec4.dev@likec4-dsl` as a companion and
   [Getting Started](docs/wiki/guide/Getting-Started.md#writing-the-model) explains
