@@ -80,13 +80,19 @@ describe('resolveMarkerFile', () => {
 		).toThrow(/outside the repository/);
 	});
 
-	it('resolves backslash-separated relative paths the same as forward slashes', () => {
-		expect(
-			resolveMarkerFile('..\\diagrams\\a.c4', pathToFileURL(join(root, 'docs', 'guide', 'x.md')), root),
-		).toBe(join(root, 'docs', 'diagrams', 'a.c4'));
-	});
+	// `node:path` resolves a backslash and a drive letter only on win32; POSIX
+	// treats `\` as a literal filename character and `D:\…` as a relative
+	// segment, so these two cases only hold under Windows.
+	it.runIf(process.platform === 'win32')(
+		'resolves backslash-separated relative paths the same as forward slashes',
+		() => {
+			expect(
+				resolveMarkerFile('..\\diagrams\\a.c4', pathToFileURL(join(root, 'docs', 'guide', 'x.md')), root),
+			).toBe(join(root, 'docs', 'diagrams', 'a.c4'));
+		},
+	);
 
-	it('refuses an absolute path on another drive', () => {
+	it.runIf(process.platform === 'win32')('refuses an absolute path on another drive', () => {
 		expect(() =>
 			resolveMarkerFile('D:\\secrets\\x.c4', pathToFileURL(join(root, 'docs', 'guide', 'x.md')), root),
 		).toThrow(/outside the repository/);
