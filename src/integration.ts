@@ -9,6 +9,7 @@ import type { Plugin as VitePlugin } from 'vite';
 import { likec4Fences, preloadLikeC4 } from './fences.ts';
 import { fileLayoutPlugin } from './file-layout.ts';
 import { astroc4IconPlugin, type Astroc4IconPlugin } from './icon-plugin.ts';
+import { findRepositoryRoot } from './markers.ts';
 import { discoverProjects, resolveProjects, type ResolvedProject } from './projects.ts';
 import { prepareWorkspace, PROJECTS_MODULE_ID, projectsModule } from './workspace.ts';
 import type { ValidationOptions } from './validation.ts';
@@ -30,7 +31,11 @@ export interface LikeC4IntegrationOptions {
 	 * relative to the site root or absolute.
 	 */
 	projects?: Record<string, string>;
-	/** Render ```likec4 fences in .md and .mdx pages as diagrams. Defaults to `true`. */
+	/**
+	 * Render ```likec4 fences in .md and .mdx pages as diagrams. Defaults to
+	 * `true`. `false` also turns `markers` off: both need the fence transform
+	 * registered on the Markdown processor.
+	 */
 	fences?: boolean;
 	/**
 	 * How a fence that cannot be turned into a diagram is treated. `strict` (the
@@ -40,6 +45,15 @@ export interface LikeC4IntegrationOptions {
 	 * need not take the whole site's strictness with it.
 	 */
 	validation?: ValidationOptions;
+	/**
+	 * Turns `<!-- purview:likec4 … -->` … `<!-- /purview:likec4 -->` HTML-comment
+	 * markers in .md pages into diagrams, the way GitHub renders them. Defaults
+	 * to `true`, which resolves `root` to the nearest ancestor of the site root
+	 * holding `.git` (else the site root itself). An object's `root` is resolved
+	 * against the site root instead. `false` turns markers off; `.mdx` pages
+	 * never have them.
+	 */
+	markers?: boolean | { root?: string };
 }
 
 /**
@@ -100,6 +114,7 @@ export function likec4Integration({
 	projects,
 	fences = true,
 	validation,
+	markers = true,
 }: LikeC4IntegrationOptions = {}): AstroIntegration {
 	let icons: Astroc4IconPlugin | undefined;
 
@@ -123,7 +138,7 @@ export function likec4Integration({
 				});
 
 				if (fences) {
-					await registerFences(config, updateConfig, logger, resolved, validation);
+					await registerFences(config, updateConfig, logger, resolved, validation, resolveMarkers(markers, root));
 					injectScript('page', MD_FENCES_SCRIPT);
 				}
 
@@ -217,6 +232,19 @@ async function ensureReactRenderer(
 	}
 }
 
+/**
+ * Resolves `markers` against the site root: `true`, or an object without
+ * `root`, finds the repository root; an object's `root` is resolved against
+ * the site root; `false` stays `false`.
+ */
+function resolveMarkers(markers: boolean | { root?: string }, astroRoot: string): false | { root: string } {
+	if (markers === false) return false;
+
+	const root = typeof markers === 'object' ? markers.root : undefined;
+
+	return { root: root === undefined ? findRepositoryRoot(astroRoot) : resolve(astroRoot, root) };
+}
+
 /** Append the fence transform to the site's Sätteri processor, keeping its plugins. */
 async function registerFences(
 	config: AstroConfig,
@@ -224,6 +252,7 @@ async function registerFences(
 	logger: AstroIntegrationLogger,
 	projects: ResolvedProject[],
 	validation: ValidationOptions | undefined,
+	markers: false | { root: string },
 ): Promise<void> {
 	const { satteri, isSatteriProcessor } = await import('@astrojs/markdown-satteri');
 	const existing = config.markdown?.processor;
@@ -237,6 +266,8 @@ async function registerFences(
 			projects: projects.length > 0 ? projects.map((project) => project.name) : undefined,
 			validation,
 			onInvalid: (message) => logger.warn(message),
+			markers,
+			onMarkerFallback: (message) => logger.warn(message),
 		});
 
 	// No processor configured means Astro's default, which is Sätteri.

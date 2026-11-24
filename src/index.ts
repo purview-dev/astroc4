@@ -58,6 +58,7 @@ export default function starlightLikeC4(options: StarlightLikeC4Options = {}): L
 		projects: options.projects,
 		fences: options.fences,
 		validation: options.validation,
+		markers: options.markers,
 	});
 
 	return {
