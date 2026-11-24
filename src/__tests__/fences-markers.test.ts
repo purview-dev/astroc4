@@ -211,7 +211,7 @@ describe('purview:likec4 markers', () => {
 			mdastPlugins: [likec4Fences({ markers: { root: repo }, onMarkerFallback })],
 		});
 
-		expect(result.html).toContain('data-astroc4-fence');
+		expect(result.html).toContain('<section class="not-content likec4-md-fence"');
 		expect(result.html).not.toContain('mermaid');
 		expect(result.html).not.toContain('purview:likec4');
 		expect(result.html).toContain('<p>after</p>');
@@ -228,6 +228,21 @@ describe('purview:likec4 markers', () => {
 		expect(result.html).toContain('mermaid');
 		expect(result.html).not.toContain('purview:likec4');
 		expect(onMarkerFallback).toHaveBeenCalledWith(expect.stringMatching(/page\.md:3: /));
+	});
+
+	it('a stray closing marker, with no opening marker, warns and is left as is', async () => {
+		const onMarkerFallback = vi.fn();
+		const result = await markdownToHtml(`# Page\n\n<!-- /purview:likec4 -->\n\n${SOURCE}`, {
+			fileURL: pageURL,
+			mdastPlugins: [likec4Fences({ markers: { root: repo }, onMarkerFallback })],
+		});
+
+		expect(result.html).toContain('<!-- /purview:likec4 -->');
+		expect(result.html).toContain('<section class="not-content likec4-md-fence"');
+		expect(onMarkerFallback).toHaveBeenCalledTimes(1);
+		expect(onMarkerFallback).toHaveBeenCalledWith(
+			expect.stringMatching(/page\.md:3: a closing purview:likec4 marker has no opening marker\./),
+		);
 	});
 
 	it('page with only markers is not skipped', () => {

@@ -193,8 +193,9 @@ What differs from a fence:
 - **Markers never fail the build, whatever `validation` says.** A marker that
   cannot become a diagram — no `file=`, a file outside `markers.root` or
   missing, DSL that does not compile, a `view` its model does not declare, no
-  closing marker before the next one or the end of the page — keeps its
-  Mermaid fence and logs a warning naming the page, the line and the reason.
+  closing marker before the next one or the end of its block (its list,
+  quote, or page) — keeps its Mermaid fence and logs a warning naming the
+  page, the line and the reason.
   `strict` validation does not turn that warning into a build failure.
 - **A marker inside a code fence is ignored** — that is how this section
   shows one.

@@ -234,7 +234,9 @@ export interface FenceOptions {
 	/**
 	 * Turns `<!-- purview:likec4 … -->` … `<!-- /purview:likec4 -->` blocks in
 	 * .md pages into diagrams. `root` is the repository root a marker's `file`
-	 * must stay inside. `false` (the default) leaves the comments alone.
+	 * must stay inside. Omitted or `false` leaves the comments alone; the
+	 * integration defaults this to `true` (resolving `root` itself) before it
+	 * reaches here.
 	 */
 	markers?: false | { root: string };
 	/** Called for each marker that keeps its fallback content; markers never fail the build. */
@@ -264,6 +266,15 @@ export function likec4Fences({
 		const markdown = factory.sourceFormat !== 'mdx';
 		const used = new Set<ComponentName>();
 		const markerRoot = markers ? markers.root : undefined;
+		// How many closing markers an opening marker has found and is handling, but
+		// the walk has not visited directly yet (mutations are deferred, so it still
+		// will). Document order visits an opening before the closing its forward scan
+		// finds, so incrementing there and decrementing on the closing's own direct
+		// visit pairs the two correctly — tracking by line or node identity does not:
+		// a page's rendered line numbers can differ between the two (for example,
+		// Starlight strips frontmatter before the pass that visits nodes directly),
+		// and the processor hands the visitor a fresh node wrapper per call.
+		let pendingConsumedClosings = 0;
 
 		return {
 			name: 'likec4-fences',
@@ -276,15 +287,22 @@ export function likec4Fences({
 			async html(node, ctx) {
 				if (!markdown || markerRoot === undefined) return;
 
+				const line = node.position?.start.line;
+				const where = `${describe(ctx.fileURL)}${line === undefined ? '' : `:${line}`}`;
+
 				const opening = MARKER_OPEN.exec(node.value);
 
-				if (!opening) return;
+				if (!opening) {
+					if (MARKER_CLOSE.test(node.value)) {
+						if (pendingConsumedClosings > 0) pendingConsumedClosings--;
+						else onMarkerFallback?.(`${where}: a closing purview:likec4 marker has no opening marker.`);
+					}
 
-				const line = node.position?.start.line;
+					return;
+				}
+
 				const fallback = (reason: string): void => {
-					onMarkerFallback?.(
-						`${describe(ctx.fileURL)}${line === undefined ? '' : `:${line}`}: purview:likec4 marker kept its fallback — ${reason}`,
-					);
+					onMarkerFallback?.(`${where}: purview:likec4 marker kept its fallback — ${reason}`);
 				};
 
 				const parent = ctx.parent(node);
@@ -311,6 +329,8 @@ export function likec4Fences({
 
 					return;
 				}
+
+				pendingConsumedClosings++;
 
 				let placeholder;
 
