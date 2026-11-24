@@ -156,6 +156,53 @@ a folder. The plain-Astro integration takes the same option.
 | ``Several LikeC4 projects exist (…); pass project="…".`` | An empty fence on a site with several projects. |
 | ``Unknown LikeC4 projectId "<name>". Available projects: …`` | An empty fence whose `project` does not exist. |
 
+## Markers
+
+A marker is a different way to get a diagram onto a `.md` page: an
+HTML-comment pair around a Mermaid fence, the way purview.dev's own docs pair
+a diagram GitHub can render with the LikeC4 view AstroC4 renders instead.
+
+````markdown
+<!-- purview:likec4 file="./diagrams/the-loop.c4" view="theLoop" title="The loop" -->
+```mermaid
+flowchart LR
+  resume[pm-resume] --> next[pm-next]
+```
+
+[LikeC4 model](./diagrams/the-loop.c4)
+<!-- /purview:likec4 -->
+````
+
+| Part | Rule |
+| --- | --- |
+| Opening marker | `<!-- purview:likec4 … -->` alone on its line |
+| `file` | **required.** The `.c4` model, relative to the page, or `/`-rooted at `markers.root` — the repository root, which may be anywhere, not just inside the site |
+| `view` | the view to render; defaults to the first view the model declares |
+| `title`, `description`, `height`, `collapsible`, `defaultOpen` | the same meta options a fence takes |
+| Between the markers | what GitHub shows: one ` ```mermaid ` fence, then optionally a link to the model |
+| Closing marker | `<!-- /purview:likec4 -->` alone on its line |
+
+What differs from a fence:
+
+- **`.md` only.** `.mdx` pages never have markers; GitHub does not render HTML
+  comments specially there either.
+- **The model can live anywhere in the repository**, not just inside the site —
+  that is the point of pairing a GitHub-renderable Mermaid fence with a model
+  GitHub cannot render. `markers.root` defaults to the nearest ancestor of the
+  site root holding `.git`, else the site root.
+- **Markers never fail the build, whatever `validation` says.** A marker that
+  cannot become a diagram — no `file=`, a file outside `markers.root` or
+  missing, DSL that does not compile, a `view` its model does not declare, no
+  closing marker before the next one or the end of the page — keeps its
+  Mermaid fence and logs a warning naming the page, the line and the reason.
+  `strict` validation does not turn that warning into a build failure.
+- **A marker inside a code fence is ignored** — that is how this section
+  shows one.
+
+Turn markers off with `markers: false` (this also needs `fences`, since both
+share the Markdown transform); set `markers: { root: '...' }` to resolve
+`/`-rooted paths against a folder other than the discovered repository root.
+
 ## Fences versus components
 
 | | Fence | `<LikeC4View>` |

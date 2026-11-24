@@ -103,12 +103,38 @@ await checkDiagrams('/named-projects/', { expected: 4 });
 await checkDiagrams('/fences/', { expected: 3 });
 // Plain .md: placeholders mounted by the injected page script, not islands.
 await checkDiagrams('/markdown-fences/', { expected: 2 });
+// The valid purview:likec4 marker's placeholder; the undeclared-view one keeps its Mermaid fallback instead.
+await checkDiagrams('/markers/', { expected: 1 });
 
 const strayFences = await page.locator('[data-language="likec4"]').count();
 if (strayFences > 0) {
 	failures.push(`Fences: ${strayFences} \`\`\`likec4 block(s) rendered as code, not diagrams`);
 } else {
 	console.log('✓ No ```likec4 fence left as a code block');
+}
+
+// ── Markers ─────────────────────────────────────────────────────────────────
+await page.goto(`${baseUrl}/markers/`, { waitUntil: 'networkidle' });
+
+const validMarker = page.locator('[data-astroc4-fence][data-view-id="markerFlow"]');
+if ((await validMarker.count()) !== 1) {
+	failures.push(`/markers/: expected one data-astroc4-fence[data-view-id="markerFlow"], found ${await validMarker.count()}`);
+} else {
+	console.log('✓ /markers/: the valid marker became a placeholder for view "markerFlow"');
+}
+
+const undeclaredMermaid = page.locator('pre[data-language="mermaid"]');
+if ((await undeclaredMermaid.count()) !== 1) {
+	failures.push(`/markers/: expected the undeclared view's Mermaid fallback, found ${await undeclaredMermaid.count()} \`mermaid\` block(s)`);
+} else {
+	console.log('✓ /markers/: the undeclared-view marker kept its Mermaid fallback');
+}
+
+const fencedMarkerText = await page.locator('pre[data-language="markdown"]').innerText();
+if (!fencedMarkerText.includes('purview:likec4') || !fencedMarkerText.includes('```mermaid')) {
+	failures.push(`/markers/: the marker shown inside a \`\`\`markdown fence was not literal text (got ${JSON.stringify(fencedMarkerText.slice(0, 80))})`);
+} else {
+	console.log('✓ /markers/: marker text inside a fence stayed literal');
 }
 
 // ── Icons ───────────────────────────────────────────────────────────────────

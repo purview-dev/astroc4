@@ -4,6 +4,29 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-prerelease.9] - 2026-11-24
+
+### Added
+
+- **`purview:likec4` HTML-comment markers: a GitHub-renderable Mermaid fence
+  paired with the LikeC4 model it stands in for, in `.md` pages.** Wrap a
+  ` ```mermaid ` fence (and, optionally, a link to the model) in
+  `<!-- purview:likec4 file="..." view="id" --> ... <!-- /purview:likec4 -->`:
+  GitHub renders the Mermaid, and AstroC4 swaps the whole block for the named
+  LikeC4 view instead. Unlike a ` ```likec4 ` fence, `file=` can resolve
+  anywhere in the repository — relative to the page, or `/`-rooted at
+  `markers.root`, which defaults to the nearest ancestor of the site root
+  holding `.git` — because a marker's model never has to live inside the
+  site. Markers never fail the build, whatever `validation` says: one that
+  cannot become a diagram (no file, a path outside `markers.root`, a missing
+  or invalid model, an undeclared `view`, an unclosed marker) keeps its
+  Mermaid fence instead and logs a warning naming the page, the line and the
+  reason. `.mdx` pages never have markers, and a marker written inside a code
+  fence is ignored — the same as a fence. The new `markers` option (default
+  `true`) is on both the Starlight plugin and the plain-Astro integration;
+  `false` turns it off, alongside `fences`, since both share the Markdown
+  transform.
+
 ## [1.0.0-prerelease.8] - 2026-11-12
 
 ### Added

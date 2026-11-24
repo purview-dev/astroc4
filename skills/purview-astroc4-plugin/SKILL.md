@@ -2,11 +2,12 @@
 name: purview-astroc4-plugin
 description: >-
   Use when adding or changing LikeC4 diagrams in an Astro or Starlight site with AstroC4 - wiring the
-  Starlight plugin or the plain-Astro integration, choosing between a ```likec4 fence and
-  <LikeC4View>, naming projects (discovered, named via `projects`, or a single file), understanding
-  why highlighting needs no Expressive Code config under Starlight, diagnosing a diagram that renders but is
-  uncoloured, stays on "Loading…", or a fence that stayed a code block. Covers the integration, not
-  the DSL: pair it with the official LikeC4 DSL skill when the model itself is being written.
+  Starlight plugin or the plain-Astro integration, choosing between a ```likec4 fence, <LikeC4View>,
+  and a purview:likec4 marker, naming projects (discovered, named via `projects`, or a single file),
+  understanding why highlighting needs no Expressive Code config under Starlight, diagnosing a diagram
+  that renders but is uncoloured, stays on "Loading…", or a fence or marker that stayed a code block.
+  Covers the integration, not the DSL: pair it with the official LikeC4 DSL skill when the model itself
+  is being written.
 license: MIT
 metadata:
   product: astroc4
@@ -85,6 +86,7 @@ ignored.
 | A diagram whose DSL belongs next to the prose | ` ```likec4 ` fence with inline DSL, in `.md` or `.mdx` |
 | A view of a project's model | ` ```likec4 view="id" ` (empty fence) or `<LikeC4View viewId="id" />` |
 | One `.c4` file, compiled on its own | ` ```likec4 file="./x.c4" ` (relative to the page) or `<LikeC4View file="x.c4">` (relative to `src/`) |
+| A model GitHub should also render, and that lives anywhere in the repository | `<!-- purview:likec4 file="..." view="id" --> ... <!-- /purview:likec4 -->` around a ` ```mermaid ` fence, in `.md` only |
 | Show LikeC4 *source* rather than a diagram | ` ```c4 ` fence, or `<Code lang="likec4">` |
 
 Inline DSL and `file=` are compiled and laid out at build time, so a typo fails
@@ -101,6 +103,24 @@ In `.mdx` a fence becomes a component. In `.md` it becomes a placeholder that an
 injected page script mounts. It takes the same options (`title` defaults to
 "Diagram", `collapsible`, `defaultOpen`), but has no hint or badge and its
 strings are English.
+
+## Markers: a GitHub-renderable fence paired with a LikeC4 model
+
+`<!-- purview:likec4 file="..." view="id" title="..." --> ... <!-- /purview:likec4 -->` wraps a
+` ```mermaid ` fence in a `.md` page. GitHub renders the Mermaid between the comments; AstroC4 swaps
+the whole block for the named LikeC4 view instead. Unlike a ` ```likec4 ` fence, `file=` can point
+anywhere in the repository — relative to the page, or `/`-rooted at `markers.root` (the nearest
+ancestor of the site root holding `.git`, by default) — because a marker's model never has to live
+inside the site.
+
+- `.md` only; `.mdx` pages never have markers, and a marker written inside a code fence is ignored.
+- **Markers never fail the build, whatever `validation` says.** A marker that cannot become a
+  diagram — no file, a path outside `markers.root`, a missing file, DSL that will not compile, an
+  undeclared `view`, no closing marker — keeps its Mermaid fence and logs a warning naming the page,
+  the line and the reason.
+- Turn markers off with `astroc4({ markers: false })`; this needs `fences` (the default), since both
+  share the Markdown transform. `astroc4({ markers: { root: '...' } })` resolves `/`-rooted paths
+  against a folder other than the default.
 
 ## Styling
 
@@ -162,6 +182,7 @@ coloured, why a diagram did not draw.
 | No colours anywhere | `expressiveCode: false`? AstroC4 in `integrations` instead of `plugins`? plain Astro without `likec4Language` passed to `expressiveCode()`? which fence language? does `<pre data-language="c4">` contain several `--0:#…` values? |
 | Diagrams blank but the build passes | a static build passes even when islands fail to hydrate; use the browser smoke test (`bun scripts/hydration.ts <url>` on a **dev** server), not the exit code |
 | A ` ```likec4 ` fence stayed a code block | `fences: false`; the site's Markdown processor is not Sätteri; or the fence could not be drawn and `validation: 'relaxed'` left it as code. The last two log a warning |
+| A marker's Mermaid fence stayed, with no diagram | `markers: false`; the page is `.mdx`; the marker is inside a code fence (ignored on purpose); or it could not become a diagram — check the warning naming the page, the line and the reason |
 | `.md` fence stuck on "Loading diagram…" | browser console: did the `import()` of `@purview-dev/astroc4/components/md-fences` fail? is there a `data-astroc4-fence` element and the injected page script? |
 | Build fails `…likec4.config… could not be read` | the JSON5 parse or esbuild error follows the path; a JS/TS config's imports (other than `likec4/config`) must resolve from its folder |
 | Build fails "Several LikeC4 projects exist" | more than one project (discovered or named in `projects`); pass `project="<name>"` |

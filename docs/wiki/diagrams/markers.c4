@@ -1,0 +1,31 @@
+specification {
+  element system {
+    style {
+      shape rectangle
+    }
+  }
+}
+
+model {
+  reader = system 'Reader' {
+    description 'Opens the page on GitHub or purview.dev'
+  }
+  page = system 'Markdown page' {
+    description 'Holds a purview:likec4 marker pair around a Mermaid fence'
+  }
+  site = system 'purview.dev build' {
+    description 'Resolves the marker file and renders the LikeC4 view instead'
+  }
+
+  reader -> page 'opens'
+  page -> site 'marker resolved at build time'
+  site -> reader 'shows the interactive diagram'
+}
+
+views {
+  view markerFlow {
+    title 'Marker to diagram'
+    include *
+    autoLayout LeftRight
+  }
+}
