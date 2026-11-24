@@ -202,6 +202,13 @@ cpSync(join(root, 'playground'), site, {
 // place relative to the site, so the packed consumer proves named projects and alias icons too.
 cpSync(join(root, 'playground-external'), join(work, 'playground-external'), { recursive: true });
 
+// A marker's `file=` defaults to `/`-rooted at the nearest ancestor holding `.git`; `mkdtemp`'s
+// temp directory has none above it, so give the copy one and the model `markers.md` names at the
+// same repository-relative path, to prove the real, consumer-shaped default resolution — not just
+// this repository's own.
+mkdirSync(join(work, '.git'));
+cpSync(join(root, 'docs', 'wiki', 'diagrams'), join(work, 'docs', 'wiki', 'diagrams'), { recursive: true });
+
 // The playground's tsconfig type-checks `../src`, which has no counterpart in a copy.
 const siteTsconfig = join(site, 'tsconfig.json');
 writeFileSync(siteTsconfig, readFileSync(siteTsconfig, 'utf8').replace(/,\s*"\.\.\/src\/\*\*\/\*"/, ''));

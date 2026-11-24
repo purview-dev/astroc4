@@ -10,6 +10,7 @@ src/                                  TypeScript sources — bundled into dist/ 
   index.ts                  the Starlight plugin: hooks, options, Expressive Code injection
   integration.ts            the AstroIntegration both entry points install
   fences.ts                 ```likec4 → component (.mdx) or placeholder (.md); lays out DSL
+  markers.ts                purview:likec4 marker parsing and file resolution, for fences.ts
   projects.ts               discovered + named projects; reads every LikeC4 config file name
   workspace.ts              the staging workspace of links; `virtual:astroc4/projects`
   file-layout.ts            Vite plugin: `<LikeC4View file>` → layouted model at build time
@@ -65,7 +66,7 @@ cannot run).
 
 ## Data flow
 
-**A diagram renders in three steps.**
+**A diagram renders in four steps.**
 
 1. *Build, model.* `projects.ts` lists the discovered and named projects; with
    named ones, `workspace.ts` links them all into `.astro/astroc4/workspace`.
@@ -78,7 +79,16 @@ cannot run).
    resulting `$data` JSON to `<LikeC4Fence>` as a prop (`.mdx`) or writes it into
    a placeholder's `data-model` (`.md`). `<LikeC4View file>` gets the same
    through `file-layout.ts`. This is why layout needs no browser.
-3. *Browser.* `client:only="react"` islands — or, in `.md` pages, `md-fences.tsx`
+3. *Build, markers.* A `.md` page's `<!-- purview:likec4 … -->` …
+   `<!-- /purview:likec4 -->` HTML comments go through the same `html` mdast
+   visitor in `fences.ts`: `markers.ts` parses the attributes and resolves
+   `file=` against `markers.root` (`resolveMarkerFile`), the file is compiled
+   and laid out exactly like a fence, and the whole block — the two comments
+   and the Mermaid fence between them — is replaced by one `.md` placeholder.
+   A marker that cannot become a diagram keeps the Mermaid fence instead and
+   calls `onMarkerFallback`, never `onInvalid`: markers never fail the build,
+   whatever `validation` says.
+4. *Browser.* `client:only="react"` islands — or, in `.md` pages, `md-fences.tsx`
    loaded by the injected page script — hydrate with `@likec4/core`, render
    through `likec4/react`, and rehydrate either a project model or the inline
    dump. Nothing is laid out client-side.
@@ -111,6 +121,9 @@ Expressive Code integration, which is what makes the injection possible:
 | Config files are read the way LikeC4 reads them | All nine names in `ConfigFilenames` (`satisfies` fails the type-check if LikeC4 changes the list). JSON names via JSON5; JS/TS via `bundle-require` (esbuild), with `likec4/config` replaced by identity functions so an external project need not resolve it; `name` defaults to the folder name. Both loaders are `import()`ed lazily. |
 | Relative imports use `.ts` | `allowImportingTsExtensions`; Bun and Vitest resolve them, and `scripts/build.ts` rewrites them to `.js` in the emitted `.d.ts` (which sit next to `.js` bundles) and fails if one survives. |
 | `keywords` carries `astro-integration`, `withastro` and a category (`ui`) | Astro's [integrations library](https://docs.astro.build/en/guides/integrations/#integrations-library) indexes npm by those keywords and reads `name`, `description`, `repository` and `homepage` from `package.json`. Without a category keyword the listing lands under "Uncategorized". |
+| Markers never fail the build, whatever `validation` says | GitHub cannot run `validation`, so a marker page has to render the same whether `astroc4({ validation: 'strict' })` or `'relaxed'` is set. `fences.ts`'s `html` visitor always calls `onMarkerFallback` and keeps the Mermaid fence, never `fail()`/`onInvalid`. |
+| Markers are resolved before most other work, by a `MARKER_OPEN_TEXT` regex test on the whole page source | Positions (`options: { position: true }`) cost parse time on every page, so Sätteri is only asked for them on a `.md` page that has at least one marker; `fences.ts`'s early return also has to let a marker-only page through, not just a page with a ` ```likec4 ` fence. |
+| A marker's `file=` is resolved against `markers.root` (the repository root), a fence's against the site root | `resolveMarkerFile` (`markers.ts`) mirrors the containment test `readFenceFile` uses, but the model a marker names can live anywhere in the repository — that is the reason to pair a Mermaid fence with a marker instead of using a ` ```likec4 file= ` fence. `findRepositoryRoot` walks up from the site root for the nearest `.git`, else falls back to the site root itself. |
 
 ## Tests
 
@@ -118,6 +131,6 @@ Expressive Code integration, which is what makes the injection possible:
 | --- | --- |
 | Pure helpers, scanner, generator, snapshot parity, fetch/cache policy, hook wiring | `src/**/__tests__` (Vitest, hermetic) |
 | Live grammar | `network.test.ts`, opt-in with `ASTROC4_NETWORK=1` |
-| Rendering, hydration, icons, i18n | `scripts/smoke.ts` (Playwright against the playground) |
+| Rendering, hydration, icons, i18n, markers | `scripts/smoke.ts` (Playwright against the playground) |
 | One diagram hydrating, on either host | `scripts/hydration.ts` (Playwright; used by `test:site` against each consumer's dev server) |
 | The shipped package | `scripts/test-site.ts` (packs the tarball, builds a copy of the playground and a copy of `examples/astro` from it, runs the full smoke suite against the playground copy's preview server and `hydration.ts` against the plain copy's dev server, asserts a site's `--likec4-accent` reaches the shell, then rebuilds the plain copy in the `astro add` shape) |

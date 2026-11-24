@@ -29,9 +29,11 @@ else is shared, because both entry points call the same integration.
 
 | Option | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `fences` | `boolean` | `true` | Turn ` ```likec4 ` fences into diagrams, in `.md` and `.mdx`. `false` leaves them as code blocks and injects no page script. |
+| `fences` | `boolean` | `true` | Turn ` ```likec4 ` fences into diagrams, in `.md` and `.mdx`. `false` leaves them as code blocks and injects no page script; it also turns `markers` off. |
 | `projects` | `Record<string, string>` | `{}` | Named LikeC4 projects: name → folder holding a LikeC4 config file (any name LikeC4 reads, JSON or JS/TS), relative to the site root or absolute. Compiled alongside the projects discovered under the site root; their `imageAliases` and relative icons work unchanged. See [Projects](Projects.md). |
 | `vitePlugin` | `object` | `{}` | Passed straight to LikeC4's `LikeC4VitePlugin`. Setting `workspace` or `languageServices` takes discovery over, and `projects` is then ignored with a warning. |
+| `validation` | `ValidationOptions` | `'strict'` | Whether a fence that cannot be drawn (bad DSL, missing view, bad `project`, unresolved `file=`) fails the build or only warns. `'relaxed'` warns and leaves it as a highlighted code block; `{ default, collections, relaxed: [globs] }` scopes it by collection or path. See [Fences](Fences.md#partial-and-invalid-examples). |
+| `markers` | `boolean` \| `{ root?: string }` | `true` | Turn `<!-- purview:likec4 … --> … <!-- /purview:likec4 -->` HTML-comment markers in `.md` pages into diagrams. `root` defaults to the nearest ancestor of the site root holding `.git`; a marker's `file=` must stay inside it. `false` turns markers off; `.mdx` pages never have them. Needs `fences`. See [Fences](Fences.md#markers). |
 | `highlighting` | `true` \| `false` \| `HighlightingOptions` | `true` | **Starlight only.** Highlight LikeC4 source. `false` leaves Expressive Code entirely to the site. |
 
 ## Highlighting options

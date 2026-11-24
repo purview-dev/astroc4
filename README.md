@@ -148,6 +148,7 @@ reload in `astro dev` like any other.
 | `vitePlugin` | `{}` | Passed to `LikeC4VitePlugin`. Setting `workspace` or `languageServices` takes discovery over: `projects` is then ignored (with a warning). |
 | `fences` | `true` | Turn ` ```likec4 ` fences into diagrams. |
 | `validation` | `'strict'` | Whether a fence that cannot be drawn (bad DSL, missing view, bad `project`, unresolved `file=`) fails the build or only warns. `'relaxed'` warns and leaves it as a highlighted code block; `{ default, collections, relaxed: [globs] }` scopes it by collection or path. See [Fences](docs/wiki/guide/Fences.md#partial-and-invalid-examples). |
+| `markers` | `true` | Render `<!-- purview:likec4 … --> … <!-- /purview:likec4 -->` HTML-comment markers in `.md` pages as diagrams, the way GitHub shows the Mermaid fence between them. `{ root }` sets the repository root a marker's `file=` must stay inside; `false` turns markers off. See [Fences](docs/wiki/guide/Fences.md#markers). |
 | `highlighting` | `true` | Highlight LikeC4 source. Starlight only — a plain Astro site passes `likec4Language` to Expressive Code. See below. |
 
 ### Syntax highlighting

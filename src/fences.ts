@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { MdastPluginEntry, PluginFactoryContext } from 'satteri';
 
+import { MARKER_CLOSE, MARKER_OPEN, parseMarkerOptions, resolveMarkerFile } from './markers.ts';
 import { translations } from './translations.ts';
 import { validationModeFor, type ValidationOptions } from './validation.ts';
 
@@ -230,21 +231,123 @@ export interface FenceOptions {
 	contentDir?: string;
 	/** Called with the reason for each fence `relaxed` validation leaves as a code block. */
 	onInvalid?: (message: string) => void;
+	/**
+	 * Turns `<!-- purview:likec4 … -->` … `<!-- /purview:likec4 -->` blocks in
+	 * .md pages into diagrams. `root` is the repository root a marker's `file`
+	 * must stay inside. Omitted or `false` leaves the comments alone; the
+	 * integration defaults this to `true` (resolving `root` itself) before it
+	 * reaches here.
+	 */
+	markers?: false | { root: string };
+	/** Called for each marker that keeps its fallback content; markers never fail the build. */
+	onMarkerFallback?: (message: string) => void;
 }
 
+const MARKER_OPEN_TEXT = /<!--\s*purview:likec4\b/;
+
 // region plugin
-export function likec4Fences({ root, projects, validation, contentDir, onInvalid }: FenceOptions = {}): MdastPluginEntry {
+export function likec4Fences({
+	root,
+	projects,
+	validation,
+	contentDir,
+	onInvalid,
+	markers,
+	onMarkerFallback,
+}: FenceOptions = {}): MdastPluginEntry {
 	// A factory runs once per document, so `used` is per page.
 	return (factory: PluginFactoryContext) => {
-		if (!factory.source.includes('```' + FENCE_LANG)) return null;
+		const hasMarkers = Boolean(markers) && MARKER_OPEN_TEXT.test(factory.source);
+
+		if (!factory.source.includes('```' + FENCE_LANG) && !hasMarkers) return null;
 
 		// A .md page cannot hold a component, so it gets a placeholder that the
 		// injected page script mounts (src/components/md-fences.tsx).
 		const markdown = factory.sourceFormat !== 'mdx';
 		const used = new Set<ComponentName>();
+		const markerRoot = markers ? markers.root : undefined;
+		// How many closing markers an opening marker has found and is handling, but
+		// the walk has not visited directly yet (mutations are deferred, so it still
+		// will). Document order visits an opening before the closing its forward scan
+		// finds, so incrementing there and decrementing on the closing's own direct
+		// visit pairs the two correctly — tracking by line or node identity does not:
+		// a page's rendered line numbers can differ between the two (for example,
+		// Starlight strips frontmatter before the pass that visits nodes directly),
+		// and the processor hands the visitor a fresh node wrapper per call.
+		let pendingConsumedClosings = 0;
 
 		return {
 			name: 'likec4-fences',
+
+			// Positions cost parse time on every page, so only a page with markers asks for them.
+			...(markdown && hasMarkers ? { options: { position: true } } : {}),
+
+			// Mutations are queued and applied after the walk, so removing the
+			// following siblings here is safe; the walk still visits them unchanged.
+			async html(node, ctx) {
+				if (!markdown || markerRoot === undefined) return;
+
+				const line = node.position?.start.line;
+				const where = `${describe(ctx.fileURL)}${line === undefined ? '' : `:${line}`}`;
+
+				const opening = MARKER_OPEN.exec(node.value);
+
+				if (!opening) {
+					if (MARKER_CLOSE.test(node.value)) {
+						if (pendingConsumedClosings > 0) pendingConsumedClosings--;
+						else onMarkerFallback?.(`${where}: a closing purview:likec4 marker has no opening marker.`);
+					}
+
+					return;
+				}
+
+				const fallback = (reason: string): void => {
+					onMarkerFallback?.(`${where}: purview:likec4 marker kept its fallback — ${reason}`);
+				};
+
+				const parent = ctx.parent(node);
+				const index = ctx.indexOf(node);
+
+				if (!parent || index === undefined) return;
+
+				const siblings = parent.children;
+				let closing: number | undefined;
+
+				for (let at = index + 1; at < siblings.length; at++) {
+					const sibling = siblings[at]!;
+
+					if (sibling.type !== 'html') continue;
+					if (MARKER_CLOSE.test(sibling.value)) {
+						closing = at;
+						break;
+					}
+					if (MARKER_OPEN.test(sibling.value)) break;
+				}
+
+				if (closing === undefined) {
+					fallback('it has no closing <!-- /purview:likec4 --> before the next marker or the end of its block.');
+
+					return;
+				}
+
+				pendingConsumedClosings++;
+
+				let placeholder;
+
+				try {
+					placeholder = await markerPlaceholder(opening[1] ?? '', ctx.fileURL, markerRoot);
+				} catch (error) {
+					ctx.removeNode(siblings[closing]!);
+					ctx.removeNode(node);
+					fallback(error instanceof Error ? error.message : String(error));
+
+					return;
+				}
+
+				for (const sibling of siblings.slice(index + 1, closing + 1)) ctx.removeNode(sibling);
+
+				ctx.replaceNode(node, { type: 'html', value: placeholder });
+			},
 
 			async code(node, ctx) {
 				if (node.lang !== FENCE_LANG) return;
@@ -520,6 +623,42 @@ async function readFenceFile(
 	} catch {
 		throw new Error(`${where} uses file="${file}", which does not exist (${path}).`);
 	}
+}
+
+/** The placeholder a marker becomes; throws the reason it cannot become one. */
+async function markerPlaceholder(attributes: string, pageURL: URL | undefined, root: string): Promise<string> {
+	const options = parseMarkerOptions(attributes);
+	const file = options.file;
+
+	if (!file) throw new Error('it has no file="…".');
+	if (!pageURL) throw new Error(`file="${file}" needs the page's location.`);
+
+	const path = resolveMarkerFile(file, pageURL, root);
+	let source;
+
+	try {
+		source = (await readFile(path, 'utf8')).trim();
+	} catch {
+		throw new Error(`"${file}" does not exist (${path}).`);
+	}
+
+	let layout;
+
+	try {
+		layout = await layoutSource(source);
+	} catch (error) {
+		throw new Error(`"${file}" is not valid LikeC4 — ${error instanceof Error ? error.message : String(error)}`);
+	}
+
+	const viewId = options.view || defaultView(source, layout.viewIds);
+
+	if (!viewId || !layout.viewIds.includes(viewId)) {
+		throw new Error(
+			`view "${viewId ?? '(none)'}" is not declared in "${file}". Declared: ${layout.viewIds.join(', ') || '(none)'}.`,
+		);
+	}
+
+	return fencePlaceholder({ viewId, model: layout.dump, ...placeholderOptions(options) });
 }
 
 export default likec4Fences;
